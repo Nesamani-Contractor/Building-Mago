@@ -1,0 +1,15 @@
+# Key flow: do a look end to end, hands at the mirror.
+appId: app.mago.ios
+---
+- launchApp
+- tapOn: "Start this look"
+- tapOn: "Skip photo"
+- repeat:
+    while:
+      visible: "Next step"
+    commands:
+      - tapOn: "Next step"
+- tapOn: "Finish the look"
+- assertVisible:
+    text: ".*(Look complete|Done —|That’s the look|Finished).*"
+- tapOn: "Done"

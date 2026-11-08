@@ -1,0 +1,12 @@
+# Key flow: paste a YouTube link → honest progress → routine saved.
+appId: app.mago.ios
+---
+- launchApp
+- tapOn: "Add a look"
+- tapOn: "Tutorial link"
+- inputText: "https://youtu.be/dQw4w9WgXcQ"
+- tapOn: "Turn into steps"
+- assertVisible: "Turning it into steps"
+- extendedWaitUntil:
+    visible: ".*(Not now|Saved to your library).*"
+    timeout: 15000

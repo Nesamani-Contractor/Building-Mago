@@ -1,0 +1,86 @@
+# CLAUDE.md — Permanent rules for building Mago
+
+Every session that touches this repo follows these rules. If a rule here conflicts with `docs/PRD.md`, the PRD wins **except** where the Decisions Log below records an owner override. Tell the owner about any new conflict.
+
+## Who you are working with
+- The product owner (Nesamani) is not a coder. Explain decisions in plain language, keep the project simple to run, and never leave broken steps.
+- Owner has an iPad and a Windows computer. No Mac, no iPhone. All iOS builds use EAS cloud builds; testing is via development build / TestFlight on iPad. Android testing via Play internal testing.
+- Interrogate and challenge: ask before risky or irreversible choices; say plainly when something is risky or stuck. Never mark something done that isn't working.
+
+## Source of truth
+1. `docs/PRD.md` (Mago PRD v2.0, 7 Nov 2026) — product requirements.
+2. Decisions Log (below) — owner overrides and answers to PRD open questions.
+3. `docs/BUILD_PLAN.md`, `docs/ARCHITECTURE.md`, `docs/SCREENS.md`.
+
+## Decisions Log (owner-approved, 7 Nov 2026)
+| ID | Decision | Note |
+|---|---|---|
+| D-01 | No sign-in at first launch: anonymous Supabase account. Apple / Google linking optional (Me → Account). No email login. | PRD FR-ONB-02/03 (overrides build brief's email login) |
+| D-02 | Library lives on device (SQLite + FTS). **Encrypted cloud backup & restore ships in v1** for linked accounts: routines, collections, plans. Photos never leave the device. | Overrides PRD (backup was v1.1) |
+| D-03 | Pricing = PRD OQ-2: Free 5 new AI conversions/month (cached routines free). Pro $5.99/month or $39.99/year, 7-day trial on yearly, fair-use cap 150/month, Simplify is Pro. Configured remotely in RevenueCat. | Resolves OQ-2 |
+| D-04 | Video understanding via **Google Gemini API** (public YouTube URLs + uploaded files) producing timestamped transcript/notes. **Claude API** structures + validates the routine. Both called server-side only. Golden set decides final model mix. | Resolves YouTube captions blocker; informs OQ-3 |
+| D-05 | TikTok / Instagram in v1: public metadata (title/caption) + guided "save & upload" fallback. No scraping, no unofficial APIs. Every source adapter has a remote on/off switch in `app_config`. | Interim for OQ-1 |
+| D-06 | "Watch this step": YouTube = official embed seeking to timestamp; uploads = play the user's own on-device file (never re-downloaded from server); TikTok/IG = open original (embeds can't seek). | Owner approved |
+| D-07 | **Translation moved out of v1.** v1 accepts English-language videos; non-English videos get a friendly "English videos only for now" state, no credit charged, manual entry offered. Translation + English subtitles return in a later release. | Overrides PRD D7 |
+| D-08 | Minimum age **18+**, confirmed in onboarding. | Overrides PRD 16+ (OQ-5) |
+| D-09 | Launch markets **US + UK**. Analytics consent prompt for UK (GDPR). | Resolves OQ-6 |
+| D-10 | Voice commands via `expo-speech-recognition` (approved). Mic opt-in at first Follow-Along; listening pauses while read-aloud speaks. | Owner approved |
+| D-11 | All PRD v1.0 features ship at launch (Planner, weekly streaks, glow-up timeline, Discover, share cards, referrals). | Owner decision |
+| D-12 | Design mockups of 5 hero screens approved before any Phase 1 code. | Owner decision |
+| D-13 | Visual direction **Warm luxury A — Champagne & Plum** (8 Nov; replaces Blush Bloom): porcelain base, ambient champagne/peach/rose glows at 15–25% with 2–3% grain, Cormorant Garamond serif headlines + DM Sans, Deep Plum pill buttons. Full-strength gradient only on: streak ring, before/after reveal, paywall header. | Owner decision |
+| D-14 | UX structure references **Ulta Beauty iOS** (Mobbin): greeting header, banner carousel, rails, round occasion tiles, labeled 5-slot tab bar, Account-style settings lists. Not copied: hot-pink/orange banners, sign-up-first forms, location prompt at launch, shopping. | Owner decision 8 Nov |
+| D-15 | Build the full v1 app in **demo mode** first (all screens + flows on-device with sample data; backend written and typechecked, switched off until accounts/keys exist). Repo: github.com/Nesamani-Contractor/Building-Mago. | Owner decision 8 Nov |
+
+Still open: OQ-4 store name/trademark, OQ-7 Discover curation owner, golden-set reviewers, badge list reconciliation, legal review of upload processing, accounts not yet created.
+
+## Repository layout
+- `apps/mobile` — the Expo app (front end). Routes in `src/app`, design system in `src/design` + `src/components`, on-device data in `src/data`, services (import, purchases, analytics, voice, Supabase) in `src/services`.
+- `packages/shared` — pure TypeScript rules shared by app and server (routine schema + validation, link allow-list, streaks, quotas, analytics event list) with Jest tests.
+- `backend/supabase` — database migrations with RLS, pgTAP RLS tests, Edge Functions (the API) and `_shared` services (AI, source adapters). Run `node scripts/sync-shared.mjs` after changing `packages/shared`.
+- `docs/` — PRD, build plan, architecture, screens, status.
+
+## Tech stack (do not change without explaining first)
+- Expo SDK 58 + React Native 0.88 + TypeScript `strict`, Expo Router (routes in `src/app`). Install packages with `EXPO_OFFLINE=1 npx expo install <pkg>` if the Expo version API is unreachable.
+- TanStack Query (server data), Zustand (small local state), expo-sqlite (on-device library + FTS5).
+- Supabase: Auth (anonymous + Apple + Google), Postgres with RLS, Storage (temporary uploads only), Edge Functions, Queues (pgmq) + worker.
+- AI: Gemini (video understanding) + Claude (routine structuring, Simplify) — server-side only.
+- RevenueCat (subscriptions), PostHog (analytics, defined event list), Sentry (crashes).
+- react-native-reanimated (use `.get()`/`.set()` on shared values) + gesture-handler, expo-haptics, expo-keep-awake, expo-speech, expo-speech-recognition (approved, not yet installed), expo-camera, expo-secure-store, expo-blur, expo-linear-gradient, expo-clipboard, expo-document-picker, react-native-svg, @expo-google-fonts (Cormorant Garamond, DM Sans).
+- On web, wrap any `<Svg>` in a `<View>` so it stacks above frosted-glass layers.
+- Tests: Jest + React Native Testing Library; Maestro for key flows; SQL tests proving RLS.
+- **Dependencies:** only well-maintained packages; ask the owner before adding any package not listed here, and state its monthly cost.
+
+## Design rules (premium, not template)
+- Design system first. **No hard-coded colors, sizes, radii, shadows or durations in screens** — use tokens from `src/design/`.
+- Palette (D-13, exact): Porcelain `#FBF7F4` background; gradient stops Champagne `#F3E3D3` → Peach `#F6C9B4` → Rose `#E8A5B5`, Lilac `#CDB8E6` only in deep shadow; Deep Plum `#2A1622` for all text, icons and the primary button; secondary text `#7A6670` (never on raw champagne); Soft Gold `#C9A46A` ONLY for hairlines, badge outlines, the streak ring and dots — never text. Dark: bg `#1A1015`, surface `#251820`, ink `#F6EEE9`, secondary `#BCA8B2`. Source of truth: `apps/mobile/src/design/tokens.ts`.
+- Type: Cormorant Garamond (serif) for headlines, DM Sans for everything else; sentence case; Dynamic Type to 200%.
+- Spacing 4-pt base. Radii: chips 12, thumbs 16, cards 24, sheets 32, buttons pill. Cards are frosted glass (white 70% + blur) or porcelain with a warm plum shadow at 6% — never grey shadows. Text never sits directly on a saturated gradient.
+- One primary action per screen: a Deep Plum pill (56px), porcelain text; on hero screens a 1px champagne→rose gradient edge. Icons: one set, 1.5px outline, plum. Avoid: hot pink, Instagram purple-pink gradients, glitter, emoji icons, gradient text, more than one accent.
+- Motion: one shared spring preset, ≤400 ms; press scale ~0.97; step advance slides 250 ms; Reduce Motion → fades. Haptics on meaningful moments only (step complete, look complete, streak met, purchase).
+- Every screen designs: loading (skeletons, never blank spinners), empty (helpful + next action), error (what happened + what to do + retry), offline, success.
+- Anything used during makeup works at arm's length: large type, ≥44pt targets (bigger in Follow-Along), one-handed.
+- Accessibility: WCAG 2.1 AA, 4.5:1 text contrast, VoiceOver/TalkBack labels on every control.
+- Native feel: iOS HIG and Material 3 where they differ (back gestures, sheets, system dialogs).
+- Layout works on iPhone sizes and iPad (adaptive two-pane where it helps). Light + dark.
+- Copy: warm, short, second person. Buttons 1–3 words. Celebrations 3–6 words. No guilt or loss-aversion copy ("Don't lose your streak!" is banned).
+- Use skills when available: premium-mobile-app, premium-ios-app-design, secure-vibe-coding-workflow.
+
+## Security & privacy rules (non-negotiable)
+- No secret keys in the app bundle. Only the Supabase anon key, RevenueCat public SDK keys, PostHog project key and Sentry DSN may ship in the app.
+- RLS ON for every table; users read/write only their own rows. SQL tests prove it for every table.
+- Validate every input server-side. Video URLs: allow-listed hosts only (youtube.com, youtu.be, m.youtube.com, tiktok.com, vm.tiktok.com, instagram.com), normalised to `platform:video_id`; the server never fetches arbitrary user URLs (SSRF protection).
+- Pro entitlement and quota checked **on the server** before any paid AI call. Per-user rate limits + monthly quotas; global daily AI spend cap with alert.
+- Uploaded videos: private bucket, signed expiring upload URLs, deleted right after processing and never later than 24 h.
+- Photos, notes, transcripts never reach our server. Backups encrypted (see ARCHITECTURE).
+- Tokens in expo-secure-store; HTTPS only; no personal data, URLs-with-tokens, or photo data in logs, Sentry, or analytics.
+- In-app account deletion that truly deletes server data (and offers to wipe local), plus data export (JSON + photo zip).
+- No App Tracking Transparency: we do not track across apps. Re-check before adding any ad/attribution SDK.
+- Privacy labels, iOS Privacy Manifest and Play Data Safety answers are generated from what the code actually does and kept in `docs/privacy/`.
+
+## Definition of done (every phase)
+- Runs on iPhone-size and iPad-size, light + dark, iOS + Android.
+- All states designed (loading, empty, error, offline, success).
+- `npx tsc --noEmit` clean, lint passes, tests pass (incl. RLS tests when tables change).
+- Analytics events for the phase added to the event list and implemented.
+- Owner gets: what was built, what's left, risks, and a "How to test this on my iPad" checklist with exact steps.
+- Commit to git after each working step with clear messages. STOP after each phase for approval.

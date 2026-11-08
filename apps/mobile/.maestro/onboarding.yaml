@@ -1,0 +1,18 @@
+# Key flow: first launch → aha moment in under 60 seconds. Run: maestro test .maestro/onboarding.yaml
+appId: app.mago.ios
+---
+- launchApp:
+    clearState: true
+- assertVisible: "Get started"
+- tapOn: "Get started"
+- tapOn: "I’m 18 or older"
+- tapOn: "An easy everyday look"
+- tapOn: "Continue"
+- tapOn: "TikTok"
+- tapOn: "Continue"
+- tapOn: "Comfortable"
+- tapOn: "Continue"
+- tapOn: "See my looks"
+- assertVisible: "Your first looks are ready"
+- tapOn: "Try my first look"
+- assertVisible: "Start this look"

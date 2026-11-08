@@ -1,0 +1,181 @@
+/**
+ * The routine schema: what one tutorial becomes after import.
+ * Used by the app (to store and show routines) and by the server (to validate AI output).
+ * Rules come from PRD §11.2.
+ */
+
+export const CATEGORIES = [
+  'Eyes',
+  'Lips',
+  'Face/Base',
+  'Brows',
+  'Full look',
+  'Skincare',
+  'Hair',
+  'Other',
+] as const;
+export type Category = (typeof CATEGORIES)[number];
+
+export const OCCASIONS = ['Everyday', 'Work', 'Date night', 'Party', 'Wedding/Event', 'Custom'] as const;
+export type Occasion = (typeof OCCASIONS)[number];
+
+export const DIFFICULTIES = ['easy', 'medium', 'advanced'] as const;
+export type Difficulty = (typeof DIFFICULTIES)[number];
+
+export const PLATFORMS = ['youtube', 'tiktok', 'instagram', 'upload', 'manual'] as const;
+export type Platform = (typeof PLATFORMS)[number];
+
+/** Below this confidence a product is shown with a "Check this" label. */
+export const LOW_CONFIDENCE = 0.6;
+export const MIN_STEPS = 3;
+export const MAX_STEPS = 40;
+export const MAX_STEP_WORDS = 25;
+
+export interface ProductRef {
+  ref: string;
+  name: string;
+  brand?: string;
+  category?: string;
+  /** 0–1. Below LOW_CONFIDENCE the UI shows "Check this". */
+  confidence: number;
+}
+
+export interface Step {
+  id: string;
+  text: string;
+  hint?: string;
+  /** Seconds into the source video where this step starts. */
+  timestampSec?: number;
+  /** Seconds to wait (e.g. let moisturizer sink in). Shows a timer. */
+  waitSec?: number;
+  productRefs: string[];
+}
+
+export interface Section {
+  name: string;
+  steps: Step[];
+}
+
+export interface RoutineSource {
+  platform: Platform;
+  videoId?: string;
+  url?: string;
+  /** ISO 639-1 code, e.g. "en". */
+  language: string;
+}
+
+export interface Routine {
+  id: string;
+  title: string;
+  creator?: { name: string; handle?: string };
+  source: RoutineSource;
+  durationSec?: number;
+  totalTimeMin: number;
+  category: Category;
+  occasion: Occasion[];
+  difficulty: Difficulty;
+  tags: string[];
+  sections: Section[];
+  products: ProductRef[];
+  /** Set when this routine is a shortened ("Simplified") version of another. */
+  variantOf?: string;
+}
+
+export interface ValidationIssue {
+  path: string;
+  message: string;
+}
+
+export function countWords(text: string): number {
+  const t = text.trim();
+  return t.length === 0 ? 0 : t.split(/\s+/).length;
+}
+
+export function allSteps(r: Pick<Routine, 'sections'>): Step[] {
+  return r.sections.flatMap((s) => s.steps);
+}
+
+/** Validate a routine (e.g. AI output) against the PRD rules. Returns [] when valid. */
+export function validateRoutine(r: Routine): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  if (!r.title || r.title.trim().length === 0) issues.push({ path: 'title', message: 'Title is required' });
+  if (r.title && r.title.length > 120) issues.push({ path: 'title', message: 'Title is too long' });
+  if (!CATEGORIES.includes(r.category)) issues.push({ path: 'category', message: `Unknown category "${r.category}"` });
+  r.occasion.forEach((o, i) => {
+    if (!OCCASIONS.includes(o)) issues.push({ path: `occasion[${i}]`, message: `Unknown occasion "${o}"` });
+  });
+  if (!DIFFICULTIES.includes(r.difficulty))
+    issues.push({ path: 'difficulty', message: `Unknown difficulty "${r.difficulty}"` });
+  if (!PLATFORMS.includes(r.source.platform))
+    issues.push({ path: 'source.platform', message: `Unknown platform "${r.source.platform}"` });
+
+  const steps = allSteps(r);
+  if (steps.length < MIN_STEPS) issues.push({ path: 'sections', message: `Needs at least ${MIN_STEPS} steps` });
+  if (steps.length > MAX_STEPS) issues.push({ path: 'sections', message: `No more than ${MAX_STEPS} steps` });
+
+  const productRefs = new Set(r.products.map((p) => p.ref));
+  const stepIds = new Set<string>();
+  r.sections.forEach((section, si) => {
+    if (!section.name.trim()) issues.push({ path: `sections[${si}].name`, message: 'Section name is required' });
+    section.steps.forEach((step, i) => {
+      const path = `sections[${si}].steps[${i}]`;
+      if (stepIds.has(step.id)) issues.push({ path, message: 'Duplicate step id' });
+      stepIds.add(step.id);
+      const words = countWords(step.text);
+      if (words === 0) issues.push({ path, message: 'Step text is empty' });
+      if (words > MAX_STEP_WORDS) issues.push({ path, message: `Step has ${words} words (max ${MAX_STEP_WORDS})` });
+      if (step.timestampSec !== undefined && (step.timestampSec < 0 || !Number.isFinite(step.timestampSec)))
+        issues.push({ path, message: 'Invalid timestamp' });
+      step.productRefs.forEach((ref) => {
+        if (!productRefs.has(ref)) issues.push({ path, message: `Unknown product ref "${ref}"` });
+      });
+    });
+  });
+  r.products.forEach((p, i) => {
+    if (p.confidence < 0 || p.confidence > 1)
+      issues.push({ path: `products[${i}].confidence`, message: 'Confidence must be between 0 and 1' });
+  });
+  return issues;
+}
+
+export function needsCheck(p: ProductRef): boolean {
+  return p.confidence < LOW_CONFIDENCE;
+}
+
+/**
+ * "Simplify my routine" (Pro): keep the steps that carry the look's key effect,
+ * aiming for ≤ 60% of the original. Deterministic local fallback; the server version
+ * asks Claude and then runs the same validation.
+ * Rule: always keep the first step of every section (it sets up that area), then fill the
+ * remaining budget with steps that use a product, in original order.
+ */
+export function simplifyRoutine(r: Routine, newId: string): Routine {
+  const steps = allSteps(r);
+  const budget = Math.max(MIN_STEPS, Math.floor(steps.length * 0.6));
+  const keep = new Set<string>();
+  r.sections.forEach((s) => {
+    if (s.steps[0] && keep.size < budget) keep.add(s.steps[0].id);
+  });
+  for (const step of steps) {
+    if (keep.size >= budget) break;
+    if (step.productRefs.length > 0) keep.add(step.id);
+  }
+  for (const step of steps) {
+    if (keep.size >= budget) break;
+    keep.add(step.id);
+  }
+  const sections = r.sections
+    .map((s) => ({ name: s.name, steps: s.steps.filter((st) => keep.has(st.id)) }))
+    .filter((s) => s.steps.length > 0);
+  const kept = sections.flatMap((s) => s.steps);
+  const usedRefs = new Set(kept.flatMap((s) => s.productRefs));
+  return {
+    ...r,
+    id: newId,
+    title: r.title,
+    variantOf: r.id,
+    sections,
+    products: r.products.filter((p) => usedRefs.has(p.ref)),
+    totalTimeMin: Math.max(1, Math.round((r.totalTimeMin * kept.length) / Math.max(1, steps.length))),
+  };
+}

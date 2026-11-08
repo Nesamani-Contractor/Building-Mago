@@ -1,0 +1,17 @@
+{
+  "name": "@mago/shared",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pure TypeScript rules shared by the Mago app and backend: routine schema, link allow-list, streaks, quotas.",
+  "main": "src/index.ts",
+  "scripts": {
+    "test": "jest",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "jest": "^30.0.0",
+    "ts-jest": "^29.4.0",
+    "typescript": "~6.0.3"
+  }
+}

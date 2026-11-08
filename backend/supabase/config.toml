@@ -1,0 +1,35 @@
+# Supabase project config for local development (`supabase start`).
+project_id = "mago"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage"]
+
+[db]
+port = 54322
+major_version = 17
+
+[auth]
+enabled = true
+site_url = "mago://"
+# D-01: silent anonymous accounts, later linked to Apple/Google.
+enable_anonymous_sign_ins = true
+enable_signup = true
+
+[auth.external.apple]
+enabled = false # turn on with your Apple Services ID (Phase 2)
+client_id = ""
+secret = "env(SUPABASE_AUTH_APPLE_SECRET)"
+
+[auth.external.google]
+enabled = false # turn on with your Google OAuth client (Phase 2)
+client_id = ""
+secret = "env(SUPABASE_AUTH_GOOGLE_SECRET)"
+
+[storage]
+enabled = true
+file_size_limit = "500MiB"
+
+[functions.rc-webhook]
+verify_jwt = false # RevenueCat calls this; it is verified with a shared secret instead.
