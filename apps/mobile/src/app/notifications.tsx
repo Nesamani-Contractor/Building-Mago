@@ -51,7 +51,7 @@ export default function NotificationsPrompt() {
       <Card style={{ marginTop: space.xxl, gap: space.l }}>
         {ITEMS.map((i) => (
           <View key={i.title} style={styles.row}>
-            <View style={[styles.icon, { borderColor: c.hairlineStrong }]}>
+            <View style={[styles.icon, { borderColor: 'transparent', backgroundColor: c.surfaceAlt }]}>
               <Icon name={i.icon} size={20} />
             </View>
             <View style={{ flex: 1, gap: 2 }}>

@@ -74,7 +74,7 @@ function Tile({ item, onPress }: { item: BagItem; onPress: () => void }) {
     <PressableScale onPress={onPress} accessibilityLabel={`${item.name}, ${roleLabel(item.role ?? productRole(item))}. Edit`} style={styles.tileWrap}>
       <Card style={styles.tile}>
         <BagThumb item={item} size={72} />
-        <Txt variant="footnote" numberOfLines={2} align="center" style={{ fontFamily: 'DMSans_600SemiBold' }}>
+        <Txt variant="footnote" numberOfLines={2} align="center" style={{ fontWeight: '600' }}>
           {item.name}
         </Txt>
         <Txt variant="caption" tone="secondary" numberOfLines={1}>

@@ -12,7 +12,9 @@ import { Card } from '@/components/Surface';
 import { Icon } from '@/components/Icon';
 import { PressableScale } from '@/components/PressableScale';
 import { useTheme } from '@/design/theme';
-import { fonts, radius, signatureGradient, space } from '@/design/tokens';
+import { fonts, radius, scrimColors, space } from '@/design/tokens';
+import { routineImage } from '@/design/media';
+import { LookPhoto, StreakRing } from '@/components/Bits';
 import { haptic } from '@/design/haptics';
 import { useSessions } from '@/data/sessions';
 import { useLibrary } from '@/data/library';
@@ -76,8 +78,7 @@ export default function Complete() {
       footer={
         <View style={{ gap: space.s }}>
           <Button
-            variant="hero"
-            label="Make a share card"
+            label="Share my look"
             icon="share"
             onPress={() => {
               save();
@@ -112,7 +113,7 @@ export default function Complete() {
           {line}
         </Txt>
         <Txt variant="callout" tone="secondary" align="center">
-          {routine.title} · done {saved?.doneCount ?? 1} {saved?.doneCount === 1 ? 'time' : 'times'}
+          {routine.title} · done {saved?.doneCount ?? 1} {(saved?.doneCount ?? 1) === 1 ? 'time' : 'times'}
         </Txt>
       </Animated.View>
 
@@ -130,7 +131,7 @@ export default function Complete() {
         }}
         accessibilityActions={hasPhotos ? [{ name: 'increment' }, { name: 'decrement' }] : undefined}
       >
-        <LinearGradient colors={signatureGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+        {!hasPhotos ? <LookPhoto image={routineImage(routine)} style={StyleSheet.absoluteFill} /> : null}
         {hasPhotos ? (
           <>
             <Image source={{ uri: session.beforePhoto }} style={StyleSheet.absoluteFill} contentFit="cover" />
@@ -150,19 +151,17 @@ export default function Complete() {
             </View>
           </>
         ) : (
-          <View style={styles.center}>
-            <View style={[styles.badge, { borderColor: c.accent, backgroundColor: c.glass }]}>
-              <Icon name="sparkle" size={34} />
-            </View>
-            <Txt variant="callout" align="center" style={{ maxWidth: 240 }}>
+          <>
+            <LinearGradient colors={scrimColors(c)} style={[StyleSheet.absoluteFill, { top: '50%' }]} />
+            <Txt variant="footnote" style={{ position: 'absolute', left: space.l, right: space.l, bottom: space.l, color: c.inkOnPhoto }}>
               Next time, add a before photo to see your reveal here.
             </Txt>
-          </View>
+          </>
         )}
       </View>
 
       <Card style={[styles.row, { marginTop: space.l }]}>
-        <Icon name={streak.thisWeekMet ? 'check' : 'star'} size={22} />
+        <StreakRing done={streak.thisWeekCount} goal={streak.weeklyGoal} size={44} />
         <Txt variant="headline" style={{ flex: 1 }}>
           {streak.thisWeekMet ? `${streak.thisWeekCount} of ${streak.weeklyGoal} this week — goal met` : `${streak.thisWeekCount} of ${streak.weeklyGoal} looks this week`}
         </Txt>
@@ -194,7 +193,7 @@ export default function Complete() {
           placeholder="Add a note for next time (only you see this)"
           placeholderTextColor={c.inkSecondary}
           accessibilityLabel="Note for next time"
-          style={[styles.note, { color: c.ink, borderColor: c.hairlineStrong }]}
+          style={[styles.note, { color: c.ink, backgroundColor: c.surfaceAlt }]}
         />
       </Card>
     </Screen>
@@ -202,7 +201,7 @@ export default function Complete() {
 }
 
 const styles = StyleSheet.create({
-  reveal: { height: 340, borderRadius: radius.card, overflow: 'hidden', marginTop: space.xxl },
+  reveal: { height: 420, borderRadius: radius.card, overflow: 'hidden', marginTop: space.xxl },
   divider: { position: 'absolute', top: 0, bottom: 0, width: 2, marginLeft: -1 },
   handle: { position: 'absolute', top: 148, width: 44, height: 44, borderRadius: 22, marginLeft: -22, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   tag: { position: 'absolute', bottom: space.m, borderRadius: radius.chip, paddingHorizontal: space.s, paddingVertical: 2 },
@@ -211,5 +210,5 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: space.m },
   stars: { flexDirection: 'row', gap: space.xs },
   star: { width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
-  note: { borderWidth: 1, borderRadius: radius.chip, minHeight: 72, maxHeight: 120, padding: space.m, fontFamily: fonts.sans, fontSize: 17, textAlignVertical: 'top' },
+  note: { borderRadius: radius.chip, minHeight: 72, maxHeight: 120, padding: space.m, fontFamily: fonts.sans, fontSize: 17, textAlignVertical: 'top' },
 });

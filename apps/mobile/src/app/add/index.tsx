@@ -4,10 +4,10 @@ import { useRouter } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import * as DocumentPicker from 'expo-document-picker';
 import { checkConversionQuota } from '@mago/shared';
-import { Screen, TopBar } from '@/components/Screen';
+import { RoundButton, Screen, TopBar } from '@/components/Screen';
+import { Eyebrow } from '@/components/Bits';
 import { Txt } from '@/components/Txt';
 import { Button } from '@/components/Button';
-import { Card } from '@/components/Surface';
 import { Icon, type IconName } from '@/components/Icon';
 import { PressableScale } from '@/components/PressableScale';
 import { useTheme } from '@/design/theme';
@@ -24,6 +24,7 @@ export default function Add() {
   const acct = useAccount();
   const [link, setLink] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [showHow, setShowHow] = useState(false);
   const quota = checkConversionQuota(conversionsUsed(acct), acct.isPro, new Date());
 
   function go(input: string) {
@@ -63,32 +64,43 @@ export default function Add() {
   }
 
   return (
-    <Screen mood="calm" header={<TopBar title="Add a look" backIcon="close" backLabel="Close" />}>
-      <Txt variant="title2" accessibilityRole="header" style={{ marginTop: space.l }}>
-        Turn a tutorial into steps
-      </Txt>
-      <Card style={{ marginTop: space.l, gap: space.m }}>
-        <Txt variant="headline">How it works</Txt>
-        {[
-          'In YouTube, TikTok or Instagram, open the tutorial and tap Share → Copy link.',
-          'Come back here and paste it into the box below.',
-          'Tap Turn into steps.',
-        ].map((t, i) => (
-          <View key={i} style={styles.howRow}>
-            <View style={[styles.num, { borderColor: c.accent }]}>
-              <Txt variant="subhead">{i + 1}</Txt>
-            </View>
-            <Txt variant="callout" style={{ flex: 1 }}>
-              {t}
-            </Txt>
-          </View>
-        ))}
-      </Card>
+    <Screen
+      mood="calm"
+      header={
+        <TopBar
+          backIcon="close"
+          backLabel="Close"
+          right={<RoundButton icon="info" label="How saving a tutorial works" onPress={() => setShowHow(!showHow)} />}
+        />
+      }
+    >
+      <View style={{ gap: 6, marginTop: space.s }}>
+        <Eyebrow>Add a tutorial</Eyebrow>
+        <Txt variant="title1" accessibilityRole="header">
+          Turn any tutorial into steps
+        </Txt>
+      </View>
 
-      <Txt variant="subhead" style={{ marginTop: space.xl }} nativeID="linkLabel">
-        Paste your link here
-      </Txt>
-      <View style={[styles.field, { borderColor: error ? c.danger : c.inkSecondary, backgroundColor: c.surface }]}>
+      {showHow ? (
+        <View style={[styles.how, { backgroundColor: c.surface }]}>
+          {[
+            'In YouTube, TikTok or Instagram, tap Share → Copy link.',
+            'Paste it here.',
+            'Tap Turn into steps — ready in about a minute.',
+          ].map((t, i) => (
+            <View key={i} style={styles.howRow}>
+              <Txt variant="headline" style={{ width: 20 }}>
+                {i + 1}
+              </Txt>
+              <Txt variant="callout" style={{ flex: 1 }}>
+                {t}
+              </Txt>
+            </View>
+          ))}
+        </View>
+      ) : null}
+
+      <View style={[styles.field, { backgroundColor: c.surfaceAlt, borderColor: error ? c.danger : 'transparent' }]}>
         <Icon name="link" size={20} color={c.inkSecondary} />
         <TextInput
           value={link}
@@ -96,7 +108,7 @@ export default function Add() {
             setLink(t);
             setError(null);
           }}
-          placeholder="e.g. https://youtu.be/…"
+          placeholder="Paste a tutorial link"
           placeholderTextColor={c.inkSecondary}
           autoCapitalize="none"
           autoCorrect={false}
@@ -111,8 +123,10 @@ export default function Add() {
             <Icon name="close" size={18} />
           </PressableScale>
         ) : (
-          <PressableScale accessibilityLabel="Paste from clipboard" onPress={paste} style={[styles.pasteBtn, { borderColor: c.ink }]}>
-            <Txt variant="subhead">Paste</Txt>
+          <PressableScale accessibilityLabel="Paste from clipboard" onPress={paste} style={[styles.pasteBtn, { backgroundColor: c.primary }]}>
+            <Txt variant="subhead" style={{ color: c.inkOnPrimary, fontWeight: '600' }}>
+              Paste
+            </Txt>
           </PressableScale>
         )}
       </View>
@@ -121,28 +135,30 @@ export default function Add() {
           {error}
         </Txt>
       ) : null}
-      <Button variant="hero" label="Turn into steps" disabled={!link.trim()} onPress={() => go(link)} style={{ marginTop: space.l }} />
-      <PressableScale accessibilityLabel="Try a sample link" onPress={() => {
-        setError(null);
-        setLink(SAMPLE_LINK);
-      }} style={styles.sample}>
-        <Txt variant="subhead" style={{ textDecorationLine: 'underline', textDecorationColor: c.accent }}>
-          No link handy? Try a sample link
+      <Button label="Turn into steps" disabled={!link.trim()} onPress={() => go(link)} style={{ marginTop: space.l }} />
+      <PressableScale
+        accessibilityLabel="Try a sample link"
+        onPress={() => {
+          setError(null);
+          setLink(SAMPLE_LINK);
+        }}
+        style={styles.sample}
+      >
+        <Txt variant="subhead" style={{ color: c.primary }}>
+          No link handy? Try a sample
         </Txt>
       </PressableScale>
 
-      <Txt variant="subhead" tone="secondary" style={{ marginTop: space.xl }}>
-        Or
-      </Txt>
-      <View style={styles.grid}>
+      <View style={[styles.options, { borderTopColor: c.hairlineStrong }]}>
         <Option icon="upload" title="Upload a video" body="A saved video or screen recording, up to 15 min" onPress={upload} />
+        <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: c.hairlineStrong }} />
         <Option icon="pencil" title="Write it myself" body="Your own steps, no link needed" onPress={() => router.push('/add/manual')} />
       </View>
 
-      <Txt variant="footnote" tone="secondary" align="center" style={{ marginTop: space.xl }}>
+      <Txt variant="footnote" tone="secondary" align="center" style={{ marginTop: space.x3 }}>
         {acct.isPro
-          ? `${quota.remaining} of ${quota.limit} conversions left this month`
-          : `${quota.remaining} of ${quota.limit} free conversions left · Refreshes ${new Date(quota.refreshesOn).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`}
+          ? `${quota.remaining} of ${quota.limit} this month`
+          : `${quota.remaining} of ${quota.limit} free this month · Refreshes ${new Date(quota.refreshesOn).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`}
       </Txt>
       <Txt variant="footnote" tone="secondary" align="center" style={{ marginTop: space.xs }}>
         Looks someone already converted are free and instant.
@@ -152,26 +168,29 @@ export default function Add() {
 }
 
 function Option({ icon, title, body, onPress }: { icon: IconName; title: string; body: string; onPress: () => void }) {
+  const { c } = useTheme();
   return (
-    <PressableScale onPress={onPress} accessibilityLabel={`${title}. ${body}`} style={{ flex: 1 }}>
-      <Card style={{ gap: space.s, minHeight: 132 }}>
-        <Icon name={icon} size={24} />
+    <PressableScale onPress={onPress} accessibilityLabel={`${title}. ${body}`} scaleTo={0.985} style={styles.option}>
+      <Icon name={icon} size={22} color={c.inkSecondary} />
+      <View style={{ flex: 1, gap: 2 }}>
         <Txt variant="headline">{title}</Txt>
         <Txt variant="footnote" tone="secondary">
           {body}
         </Txt>
-      </Card>
+      </View>
+      <Icon name="chevronRight" size={20} color={c.inkSecondary} />
     </PressableScale>
   );
 }
 
 const styles = StyleSheet.create({
-  input: { flex: 1, minHeight: 52, fontFamily: fonts.sans, fontSize: 17 },
-  grid: { flexDirection: 'row', gap: space.m, marginTop: space.s },
-  howRow: { flexDirection: 'row', alignItems: 'center', gap: space.m },
-  num: { width: 28, height: 28, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  field: { flexDirection: 'row', alignItems: 'center', gap: space.s, borderWidth: 1.5, borderRadius: radius.chip, paddingLeft: space.l, paddingRight: space.xs, minHeight: 60, marginTop: space.s },
+  input: { flex: 1, minWidth: 0, minHeight: 52, fontFamily: fonts.sans, fontSize: 17 },
+  how: { marginTop: space.l, padding: space.l, borderRadius: radius.thumb, gap: space.m },
+  howRow: { flexDirection: 'row', alignItems: 'flex-start', gap: space.m },
+  field: { flexDirection: 'row', alignItems: 'center', gap: space.s, borderWidth: 1.5, borderRadius: radius.pill, paddingLeft: space.l, paddingRight: 6, minHeight: 60, marginTop: space.xxl },
+  options: { marginTop: space.x3, borderTopWidth: StyleSheet.hairlineWidth },
+  option: { flexDirection: 'row', alignItems: 'center', gap: space.l, paddingVertical: space.l, minHeight: 72 },
   inlineBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  pasteBtn: { minHeight: 44, paddingHorizontal: space.l, borderRadius: radius.pill, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  pasteBtn: { minHeight: 44, paddingHorizontal: space.l, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
   sample: { alignSelf: 'center', minHeight: 44, justifyContent: 'center', marginTop: space.s },
 });

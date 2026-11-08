@@ -1,42 +1,31 @@
-import { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { useMemo, useState, type ReactNode } from 'react';
+import { ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import type { Occasion, Routine } from '@mago/shared';
 import { Screen } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
-import { Card } from '@/components/Surface';
-import { Carousel, CircleTile, RoutineTile, SectionHeader, routineMeta } from '@/components/Bits';
-import { Button } from '@/components/Button';
-import { useTheme } from '@/design/theme';
-import { layout, palette, radius, space } from '@/design/tokens';
+import { Eyebrow, LookHero, OccasionTile, RoutineTile, SectionHeader, stepCount } from '@/components/Bits';
+import { layout, space } from '@/design/tokens';
+import { OCCASION_PHOTO, photo } from '@/design/media';
 import { useLibrary } from '@/data/library';
 import { OCCASION_TILES, SAMPLE_ROUTINES } from '@/data/samples';
 import { haptic } from '@/design/haptics';
 import { track } from '@/services/analytics';
-import type { IconName } from '@/components/Icon';
 
-const OCC_ICON: Record<string, IconName> = {
-  Everyday: 'star',
-  Work: 'clock',
-  'Date night': 'heart',
-  Party: 'sparkle',
-  'Wedding/Event': 'gift',
-};
-
-/** M-13 Discover: Ulta-style hero carousel, occasion circles, rails. One-tap save. */
+/** Discover (Porter editorial): a cover story, occasions as photo tiles, rails, then a 2-up grid. */
 export default function Discover() {
   const router = useRouter();
-  const { isDark } = useTheme();
+  const { width } = useWindowDimensions();
   const items = useLibrary((s) => s.items);
   const save = useLibrary((s) => s.save);
   const [occ, setOcc] = useState<Occasion | null>(null);
 
-  const trending = SAMPLE_ROUTINES.slice(0, 3);
+  const cover = SAMPLE_ROUTINES[0];
   const quick = SAMPLE_ROUTINES.filter((r) => r.totalTimeMin < 10);
   const byOcc = useMemo(() => (occ ? SAMPLE_ROUTINES.filter((r) => r.occasion.includes(occ)) : []), [occ]);
   const savedCats = new Set(Object.values(items).map((s) => s.routine.category));
   const because = SAMPLE_ROUTINES.filter((r) => savedCats.has(r.category) && !items[r.id]);
+  const colW = Math.floor((Math.min(width, layout.maxContentWidth) - space.xl * 2 - space.m) / 2);
 
   function quickSave(r: Routine) {
     if (items[r.id]) return router.push(`/routine/${r.id}`);
@@ -47,70 +36,57 @@ export default function Discover() {
 
   return (
     <Screen mood="warm" bottomInset={layout.tabBarSpace}>
-      <Txt variant="display" accessibilityRole="header" style={{ marginTop: space.xl }}>
-        Discover
-      </Txt>
-      <Txt variant="callout" tone="secondary" style={{ marginTop: space.xs, marginBottom: space.xl }}>
-        Looks to try this week, reviewed by our team.
-      </Txt>
+      <View style={{ marginTop: space.l, marginBottom: space.xxl, gap: 6 }}>
+        <Eyebrow>Edited by Mago</Eyebrow>
+        <Txt variant="display" accessibilityRole="header">
+          Discover
+        </Txt>
+      </View>
 
-      <Carousel<Routine>
-        data={trending}
-        height={236}
-        render={(r) => (
-          <View style={styles.hero}>
-            <LinearGradient
-              colors={isDark ? ['#3A2632', '#241720'] : [palette.champagne, '#F8E6DA']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={StyleSheet.absoluteFill}
-            />
-            <View style={{ flex: 1, justifyContent: 'flex-end', padding: space.xl, gap: space.s }}>
-              <Card style={{ gap: space.s }}>
-                <Txt variant="caption" tone="secondary">
-                  Trending this week
-                </Txt>
-                <Txt variant="title3" numberOfLines={1}>
-                  {r.title}
-                </Txt>
-                <View style={styles.heroRow}>
-                  <Txt variant="footnote" tone="secondary" style={{ flex: 1 }} numberOfLines={1}>
-                    {routineMeta(r)}
-                  </Txt>
-                  <Button variant="secondary" label={items[r.id] ? 'Open' : 'Save'} onPress={() => quickSave(r)} style={{ alignSelf: 'center', flexShrink: 0 }} />
-                </View>
-              </Card>
-            </View>
-          </View>
-        )}
-      />
+      {cover ? (
+        <LookHero
+          routine={cover}
+          eyebrow="This week’s cover"
+          meta={`${cover.totalTimeMin} min · ${stepCount(cover)} steps`}
+          action={items[cover.id] ? 'Saved' : 'Save'}
+          actionIcon="bookmark"
+          height={440}
+          onPress={() => router.push(`/routine/${cover.id}`)}
+          onAction={() => quickSave(cover)}
+        />
+      ) : null}
 
       <SectionHeader title="By occasion" />
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -space.xl }} contentContainerStyle={{ paddingHorizontal: space.xl, gap: space.m, paddingTop: space.m }}>
+      <Rail>
         {OCCASION_TILES.map((o) => (
-          <CircleTile key={o.occasion} label={o.label} icon={OCC_ICON[o.occasion] ?? 'star'} onPress={() => setOcc(occ === o.occasion ? null : o.occasion)} />
+          <OccasionTile
+            key={o.occasion}
+            label={occ === o.occasion ? `${o.label} ✓` : o.label}
+            image={photo(OCCASION_PHOTO[o.occasion])}
+            onPress={() => {
+              haptic.select();
+              setOcc(occ === o.occasion ? null : o.occasion);
+            }}
+          />
         ))}
-      </ScrollView>
+      </Rail>
       {occ ? (
-        <Card style={{ marginTop: space.l, gap: space.m }}>
-          <Txt variant="headline">{occ}</Txt>
-          {byOcc.length === 0 ? (
-            <Txt variant="callout" tone="secondary">
-              No looks here yet — check back soon.
-            </Txt>
-          ) : (
-            <Rail>
-              {byOcc.map((r) => (
-                <RoutineTile key={r.id} routine={r} onPress={() => router.push(`/routine/${r.id}`)} badge={items[r.id] ? 'Saved' : undefined} />
-              ))}
-            </Rail>
-          )}
-        </Card>
+        byOcc.length === 0 ? (
+          <Txt variant="callout" tone="secondary" style={{ marginTop: space.l }}>
+            No {occ.toLowerCase()} looks yet — check back soon.
+          </Txt>
+        ) : (
+          <Rail>
+            {byOcc.map((r) => (
+              <RoutineTile key={r.id} routine={r} onPress={() => router.push(`/routine/${r.id}`)} badge={items[r.id] ? 'Saved' : undefined} />
+            ))}
+          </Rail>
+        )
       ) : null}
 
       <SectionHeader title="Quick looks" />
       <Txt variant="footnote" tone="secondary">
-        Under 10 minutes · {quick.length} looks
+        Under 10 minutes
       </Txt>
       <Rail>
         {quick.map((r) => (
@@ -130,27 +106,28 @@ export default function Discover() {
       ) : null}
 
       <SectionHeader title="All looks" />
-      <Rail>
+      <View style={styles.grid}>
         {SAMPLE_ROUTINES.map((r) => (
-          <RoutineTile key={r.id} routine={r} onPress={() => router.push(`/routine/${r.id}`)} badge={items[r.id] ? 'Saved' : undefined} />
+          <RoutineTile key={r.id} width={colW} routine={r} onPress={() => router.push(`/routine/${r.id}`)} badge={items[r.id] ? 'Saved' : undefined} />
         ))}
-      </Rail>
-      <Txt variant="footnote" tone="secondary" style={{ marginTop: space.xl }}>
-        Translated looks arrive in a later update.
-      </Txt>
+      </View>
     </Screen>
   );
 }
 
-function Rail({ children }: { children: React.ReactNode }) {
+function Rail({ children }: { children: ReactNode }) {
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -space.xl }} contentContainerStyle={{ paddingHorizontal: space.xl, gap: space.l, paddingTop: space.m }}>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      style={{ marginHorizontal: -space.xl }}
+      contentContainerStyle={{ paddingHorizontal: space.xl, gap: space.m, paddingTop: space.m }}
+    >
       {children}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  hero: { flex: 1, borderRadius: radius.card, overflow: 'hidden' },
-  heroRow: { flexDirection: 'row', alignItems: 'center', gap: space.m },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.m, rowGap: space.xl, marginTop: space.m },
 });

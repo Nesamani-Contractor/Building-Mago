@@ -33,6 +33,7 @@ Every session that touches this repo follows these rules. If a rule here conflic
 | D-17 | **Read-aloud uses a natural female English voice** chosen automatically (premium/enhanced first, known male voices excluded — `packages/shared/src/voice.ts`); she can preview and pick another in Settings → Read-aloud voice. **Default style "Soft & husky"** (pitch 0.88, rate 0.86; warmer voices like Ava/Zoe/Allison/Jenny ranked first); Natural and Bright also offered. | Owner request 8 Nov |
 | D-18 | **My makeup bag** (8 Nov): she scans products (multi-photo camera or photo picker) or adds by hand; list lives on device. **Privacy change:** product photos (never face photos) are sent once to `scan-products` for Gemini vision reading and are not stored anywhere. Every look runs a bag check (have / swap with advice / missing — `packages/shared/src/bag.ts`) shown on the routine page, the stylist's note and each Follow-Along step. | Owner request |
 | D-19 | **Stylist's note** before every look starts (not on resume): handwritten-style (Caveat font, note only) plan, bag check, what to lay out, tips. Built on-device from the routine + bag. | Owner request |
+| D-20 | **Visual direction: Luxury v2 · A · Porter editorial** (8 Nov; replaces D-13, and the visual parts of D-14 and D-19). Template: claude.ai design "Mago — Hero Screens v1", page "Luxury v2", option A. Porcelain `#FAF7F4` + blush wash on tab screens; one strong color, Plum `#4A1F35`; Cormorant Garamond for display only (≥28pt), system sans (SF Pro) for all UI text; real photography on every look; no gold-ringed icon circles, no bordered cards, no handwriting font; floating glass pill tab bar (Today · Looks · + · Discover · Me); Follow-Along = photo/clip on top + sheet with step, product tiles, timer ring inside Next. Spec: `docs/design/LUXURY_V2.md`. | Owner decision 8 Nov |
 | D-15 | Build the full v1 app in **demo mode** first (all screens + flows on-device with sample data; backend written and typechecked, switched off until accounts/keys exist). Repo: github.com/Nesamani-Contractor/Building-Mago. | Owner decision 8 Nov |
 
 Still open: OQ-4 store name/trademark, OQ-7 Discover curation owner, golden-set reviewers, badge list reconciliation, legal review of upload processing, accounts not yet created.
@@ -49,25 +50,27 @@ Still open: OQ-4 store name/trademark, OQ-7 Discover curation owner, golden-set 
 - Supabase: Auth (anonymous + Apple + Google), Postgres with RLS, Storage (temporary uploads only), Edge Functions, Queues (pgmq) + worker.
 - AI: Gemini (video understanding) + Claude (routine structuring, Simplify) — server-side only.
 - RevenueCat (subscriptions), PostHog (analytics, defined event list), Sentry (crashes).
-- react-native-reanimated (use `.get()`/`.set()` on shared values) + gesture-handler, expo-haptics, expo-keep-awake, expo-speech, expo-speech-recognition (approved, not yet installed), expo-camera, expo-secure-store, expo-blur, expo-linear-gradient, expo-clipboard, expo-document-picker, react-native-svg, @expo-google-fonts (Cormorant Garamond, DM Sans, Caveat — Caveat only in the stylist's note).
+- react-native-reanimated (use `.get()`/`.set()` on shared values) + gesture-handler, expo-haptics, expo-keep-awake, expo-speech, expo-speech-recognition (approved, not yet installed), expo-camera, expo-secure-store, expo-blur, expo-linear-gradient, expo-clipboard, expo-document-picker, react-native-svg, @expo-google-fonts (Cormorant Garamond only — UI text uses the system font), expo-image.
 - On web, wrap any `<Svg>` in a `<View>` so it stacks above frosted-glass layers.
 - Tests: Jest + React Native Testing Library; Maestro for key flows; SQL tests proving RLS.
 - **Dependencies:** only well-maintained packages; ask the owner before adding any package not listed here, and state its monthly cost.
 
-## Design rules (premium, not template)
-- Design system first. **No hard-coded colors, sizes, radii, shadows or durations in screens** — use tokens from `src/design/`.
-- Palette (D-13, exact): Porcelain `#FBF7F4` background; gradient stops Champagne `#F3E3D3` → Peach `#F6C9B4` → Rose `#E8A5B5`, Lilac `#CDB8E6` only in deep shadow; Deep Plum `#2A1622` for all text, icons and the primary button; secondary text `#7A6670` (never on raw champagne); Soft Gold `#C9A46A` ONLY for hairlines, badge outlines, the streak ring and dots — never text. Dark: bg `#1A1015`, surface `#251820`, ink `#F6EEE9`, secondary `#BCA8B2`. Source of truth: `apps/mobile/src/design/tokens.ts`.
-- Type: Cormorant Garamond (serif) for headlines, DM Sans for everything else; sentence case; Dynamic Type to 200%.
-- Spacing 4-pt base. Radii: chips 12, thumbs 16, cards 24, sheets 32, buttons pill. Cards are frosted glass (white 70% + blur) or porcelain with a warm plum shadow at 6% — never grey shadows. Text never sits directly on a saturated gradient.
-- One primary action per screen: a Deep Plum pill (56px), porcelain text; on hero screens a 1px champagne→rose gradient edge. Icons: one set, 1.5px outline, plum. Avoid: hot pink, Instagram purple-pink gradients, glitter, emoji icons, gradient text, more than one accent.
-- Motion: one shared spring preset, ≤400 ms; press scale ~0.97; step advance slides 250 ms; Reduce Motion → fades. Haptics on meaningful moments only (step complete, look complete, streak met, purchase).
-- Every screen designs: loading (skeletons, never blank spinners), empty (helpful + next action), error (what happened + what to do + retry), offline, success.
-- Anything used during makeup works at arm's length: large type, ≥44pt targets (bigger in Follow-Along), one-handed.
+## Design rules (premium, not template) — Luxury v2 · A (D-20)
+- Design system first. **No hard-coded colors, sizes, radii, shadows or durations in screens** — use tokens from `src/design/tokens.ts` and photos from `src/design/media.ts`.
+- Palette: Porcelain `#FAF7F4` background (blush wash `#F6D9DE → #FDF6F3` on tab screens via `Ambient mood="warm"`); ink `#1F1418`; secondary `#6B5A60`; Plum `#4A1F35` is the ONLY strong UI color (primary buttons, selection, active states); sunken fill `#F2ECE7` for chips, inputs, secondary buttons and product tiles; champagne `#B8956A` is decoration only (progress, timelines, one detail per screen) — never text. Dark: bg `#140E11`, surface `#1E161A`, ink `#F6EEE9`, primary = blush `#F1CCD3`.
+- Type: Cormorant Garamond 500 for display/titles ≥ 28pt only; system sans (SF Pro / Roboto) for everything else; UPPERCASE `eyebrow` labels above titles; sentence case; Dynamic Type to 200%.
+- Photography leads: every look shows a real photo (`LookPhoto` / `routineImage`) — source thumbnail for saved YouTube looks, licensed demo photos (`assets/looks/CREDITS.md`) until the commissioned shoot. Never an icon placeholder for a look.
+- No borders on cards and no gold-ringed icon circles. Separate with space and tone (`surface`, `surfaceAlt`). Shadows only on floating layers (tab bar, sticky footers).
+- Radii: chips 10, thumbs 16, cards 24, sheets/hero media 32, buttons pill. Spacing 4-pt base, 20 side margin, 40 between sections.
+- One emphasized element and one primary action per screen. Primary = Plum pill 56px. Disabled = sunken fill + tertiary text (never a faded plum).
+- Product pictures: one line-silhouette style with a real shade dot (`ProductArt` mono); her own bag photo when she has one.
+- Motion: critically damped springs by default, press scale 0.97, step changes slide 250 ms; Reduce Motion → fades. Haptics on meaningful moments only.
+- Every screen designs: loading (skeletons), empty (helpful + next action), error (what happened + what to do + retry), offline, success.
+- Anything used during makeup works at arm's length: large type, ≥44pt targets (56pt in Follow-Along), one-handed.
 - Accessibility: WCAG 2.1 AA, 4.5:1 text contrast, VoiceOver/TalkBack labels on every control.
-- Native feel: iOS HIG and Material 3 where they differ (back gestures, sheets, system dialogs).
-- Layout works on iPhone sizes and iPad (adaptive two-pane where it helps). Light + dark.
-- Copy: warm, short, second person. Buttons 1–3 words. Celebrations 3–6 words. No guilt or loss-aversion copy ("Don't lose your streak!" is banned).
-- Use skills when available: premium-mobile-app, premium-ios-app-design, secure-vibe-coding-workflow.
+- Native feel: iOS HIG and Material 3 where they differ. Layout works on iPhone and iPad (two-pane Follow-Along on iPad). Light + dark.
+- Copy: warm, short, second person. Buttons are verb + object. Explain things once, where needed. No demo/developer copy in the main UI. No guilt or loss-aversion copy.
+- Use skills when available: premium-ios-app-design, premium-mobile-app, apple-design, secure-vibe-coding-workflow.
 
 ## Security & privacy rules (non-negotiable)
 - No secret keys in the app bundle. Only the Supabase anon key, RevenueCat public SDK keys, PostHog project key and Sentry DSN may ship in the app.

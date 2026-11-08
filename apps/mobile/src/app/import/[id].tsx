@@ -7,9 +7,10 @@ import { Txt } from '@/components/Txt';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Surface';
 import { Icon } from '@/components/Icon';
+import { Eyebrow, LookPhoto } from '@/components/Bits';
 import { Skeleton, StateView } from '@/components/States';
 import { useTheme } from '@/design/theme';
-import { space } from '@/design/tokens';
+import { radius, space } from '@/design/tokens';
 import { haptic } from '@/design/haptics';
 import { IMPORT_STAGES, useLibrary } from '@/data/library';
 import { usePrefs } from '@/data/prefs';
@@ -52,6 +53,8 @@ export default function ImportProgress() {
     if (r.kind === 'limit') router.replace('/paywall?from=limit');
   }
 
+  const ytId = job.platform === 'youtube' && job.canonicalKey?.startsWith('youtube:') ? job.canonicalKey.slice(8) : undefined;
+  const thumb = ytId && /^[\w-]{11}$/.test(ytId) ? `https://i.ytimg.com/vi/${ytId}/hqdefault.jpg` : undefined;
   const sourceLabel =
     job.platform === 'youtube' ? 'YouTube' : job.platform === 'tiktok' ? 'TikTok' : job.platform === 'instagram' ? 'Instagram' : 'Your video';
 
@@ -71,9 +74,9 @@ export default function ImportProgress() {
             { n: 3, t: 'Tap Upload the video below' },
           ].map((s) => (
             <View key={s.n} style={styles.guide}>
-              <View style={[styles.num, { borderColor: c.accent }]}>
-                <Txt variant="headline">{s.n}</Txt>
-              </View>
+              <Txt variant="title3" tone="secondary" style={{ width: 24 }}>
+                {s.n}
+              </Txt>
               <Txt variant="body" style={{ flex: 1 }}>
                 {s.t}
               </Txt>
@@ -115,10 +118,13 @@ export default function ImportProgress() {
         </View>
       }
     >
+      {thumb ? (
+        <View style={[styles.thumb, { backgroundColor: c.mediaTint }]}>
+          <LookPhoto image={{ source: { uri: thumb } }} style={StyleSheet.absoluteFill} />
+        </View>
+      ) : null}
       <View style={{ gap: space.s, marginTop: space.xxl }}>
-        <Txt variant="caption" tone="secondary">
-          {sourceLabel}
-        </Txt>
+        <Eyebrow>{sourceLabel}</Eyebrow>
         <Txt variant="title1" accessibilityRole="header">
           {job.title ?? 'Turning it into steps'}
         </Txt>
@@ -149,7 +155,7 @@ export default function ImportProgress() {
 
 const styles = StyleSheet.create({
   guide: { flexDirection: 'row', alignItems: 'center', gap: space.l },
-  num: { width: 36, height: 36, borderRadius: 18, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  thumb: { marginTop: space.l, aspectRatio: 16 / 9, borderRadius: radius.card, overflow: 'hidden' },
   stage: { flexDirection: 'row', alignItems: 'center', gap: space.m, minHeight: 28 },
   dot: { width: 24, height: 24, borderRadius: 12, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
   inner: { width: 8, height: 8, borderRadius: 4 },

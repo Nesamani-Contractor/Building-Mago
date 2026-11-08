@@ -1,22 +1,24 @@
 import { useEffect, useState } from 'react';
-import { Linking, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { Linking, Platform, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Txt } from '@/components/Txt';
 import { Button } from '@/components/Button';
-import { Card, Badge } from '@/components/Surface';
-import { Icon, type IconName } from '@/components/Icon';
+import { Badge } from '@/components/Surface';
+import { Eyebrow, LookPhoto } from '@/components/Bits';
+import { photo } from '@/design/media';
+import { Icon } from '@/components/Icon';
 import { PressableScale } from '@/components/PressableScale';
 import { useTheme } from '@/design/theme';
-import { layout, palette, signatureGradient, space } from '@/design/tokens';
+import { layout, radius, scrimColors, softShadow, space } from '@/design/tokens';
 import { haptic } from '@/design/haptics';
 import { useAccount, type PlanId } from '@/data/account';
 import { OFFERINGS, purchase, restore, trialTimeline } from '@/services/purchases';
 import { config, isDemo } from '@/services/config';
 import { track } from '@/services/analytics';
 
-const BENEFITS: { icon: IconName; title: string; body: string }[] = [
+const BENEFITS: { icon: string; title: string; body: string }[] = [
   { icon: 'sparkle', title: 'Every tutorial, turned into steps', body: 'No monthly limit on new looks (fair use: 150 a month).' },
   { icon: 'wand', title: 'Simplify any routine', body: 'A shorter version of long looks that keeps the key effect.' },
   { icon: 'heart', title: 'Your saved looks stay yours', body: 'Everything you saved works forever, Pro or not.' },
@@ -28,6 +30,7 @@ export default function Paywall() {
   const { from } = useLocalSearchParams<{ from?: string }>();
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
   const isPro = useAccount((s) => s.isPro);
   const [plan, setPlan] = useState<PlanId>('yearly');
   const [busy, setBusy] = useState(false);
@@ -62,28 +65,26 @@ export default function Paywall() {
   return (
     <View style={[styles.fill, { backgroundColor: c.bg }]}>
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 240 }} showsVerticalScrollIndicator={false}>
-        <LinearGradient colors={signatureGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.header, { paddingTop: insets.top + space.x5 }]}>
-          <View style={styles.column}>
-            <Txt variant="caption" style={{ color: palette.plum, letterSpacing: 2 }}>
-              MAGO PRO
-            </Txt>
-            <Txt variant="title1" style={{ color: palette.plum, marginTop: space.s }} accessibilityRole="header">
+        <View style={[styles.header, { height: Math.min(440, Math.round(height * 0.46)) }]}>
+          <LookPhoto image={photo('softGlam')} style={StyleSheet.absoluteFill} />
+          <LinearGradient colors={scrimColors(c)} style={[StyleSheet.absoluteFill, { top: '30%' }]} />
+          <View style={[styles.column, styles.headerText]}>
+            <Eyebrow onPhoto>Mago Pro</Eyebrow>
+            <Txt variant="title1" style={{ color: c.inkOnPhoto }} accessibilityRole="header">
               {headline}
             </Txt>
             {from === 'limit' ? (
-              <Txt variant="callout" style={{ color: palette.plum, marginTop: space.s }}>
+              <Txt variant="callout" style={{ color: c.inkOnPhoto, opacity: 0.92 }}>
                 Your saved looks always stay free. Pro removes the monthly limit.
               </Txt>
             ) : null}
           </View>
-        </LinearGradient>
+        </View>
 
-        <View style={[styles.column, { gap: space.l, marginTop: space.xl }]}>
+        <View style={[styles.column, { gap: space.l, marginTop: space.xxl }]}>
           {BENEFITS.map((b) => (
             <View key={b.title} style={styles.benefit}>
-              <View style={[styles.benefitIcon, { borderColor: c.accent }]}>
-                <Icon name={b.icon} size={22} />
-              </View>
+              <Icon name="check" size={18} color={c.accent} strokeWidth={2} />
               <View style={{ flex: 1, gap: 2 }}>
                 <Txt variant="headline">{b.title}</Txt>
                 <Txt variant="callout" tone="secondary">
@@ -107,62 +108,68 @@ export default function Paywall() {
                     setPlan(o.id);
                   }}
                 >
-                  <Card variant="porcelain" style={[styles.plan, { borderColor: sel ? c.primary : c.hairline, borderWidth: sel ? 1.5 : 1 }]}>
+                  <View style={[styles.plan, { backgroundColor: c.surface, borderColor: sel ? c.primary : 'transparent' }]}>
                     <View style={[styles.radio, { borderColor: sel ? c.primary : c.hairlineStrong, backgroundColor: sel ? c.primary : 'transparent' }]}>
                       {sel ? <Icon name="check" size={14} color={c.inkOnPrimary} strokeWidth={2.4} /> : null}
                     </View>
                     <View style={{ flex: 1, gap: 2 }}>
                       <View style={{ flexDirection: 'row', gap: space.s, alignItems: 'center' }}>
                         <Txt variant="headline">{o.title}</Txt>
-                        {o.savings ? <Badge label={o.savings} /> : null}
+                        {o.savings ? <Badge label={o.savings} tone="plum" /> : null}
                       </View>
                       <Txt variant="callout" tone="secondary">
                         {o.trialDays ? `${o.trialDays} days free, then ${o.price}` : o.price}
                       </Txt>
                     </View>
                     <Txt variant="subhead">{o.perMonth}</Txt>
-                  </Card>
+                  </View>
                 </PressableScale>
               );
             })}
           </View>
 
           {offer.trialDays > 0 ? (
-            <Card style={{ gap: space.m }}>
-              <Txt variant="headline">How your free week works</Txt>
+            <View style={{ gap: space.l, marginTop: space.l }}>
+              <Txt variant="title3">How your free week works</Txt>
               {[
                 { d: `Today, ${t.today}`, s: 'Full Pro access starts. No charge.' },
                 { d: t.reminder, s: 'We’ll remind you two days before it ends.' },
                 { d: t.charge, s: `You’re charged ${offer.price} unless you cancel before then.` },
-              ].map((x, i) => (
+              ].map((x, i, arr) => (
                 <View key={i} style={styles.timeline}>
-                  <View style={[styles.tdot, { backgroundColor: i === 0 ? c.primary : 'transparent', borderColor: c.primary }]} />
-                  <View style={{ flex: 1 }}>
-                    <Txt variant="subhead">{x.d}</Txt>
+                  <View style={styles.rail}>
+                    <View style={[styles.tdot, { backgroundColor: i === 0 ? c.primary : c.accent }]} />
+                    {i < arr.length - 1 ? <View style={[styles.tline, { backgroundColor: c.accent }]} /> : null}
+                  </View>
+                  <View style={{ flex: 1, paddingBottom: space.s }}>
+                    <Txt variant="headline">{x.d}</Txt>
                     <Txt variant="footnote" tone="secondary">
                       {x.s}
                     </Txt>
                   </View>
                 </View>
               ))}
-            </Card>
+            </View>
           ) : null}
         </View>
       </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, space.l), backgroundColor: c.bg, borderTopColor: c.hairline }]}>
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, space.l), backgroundColor: c.bg }, softShadow(c, 'card')]}>
         <View style={[styles.column, { gap: space.s }]}>
           {isPro ? (
             <Button label="You’re already Pro" onPress={() => router.back()} />
           ) : (
-            <Button variant="hero" loading={busy} label={offer.trialDays ? 'Start my free week' : `Subscribe for ${offer.price}`} onPress={buy} />
+            <Button loading={busy} label={offer.trialDays ? 'Start my free week' : `Subscribe for ${offer.price}`} onPress={buy} />
           )}
+          <Txt variant="footnote" tone="secondary" align="center">
+            Cancel anytime in Settings.
+          </Txt>
           {msg ? (
             <Txt variant="footnote" tone="danger" align="center" accessibilityLiveRegion="assertive">
               {msg}
             </Txt>
           ) : null}
-          <Txt variant="caption" tone="secondary" align="center">
+          <Txt variant="caption" align="center" style={{ color: c.inkTertiary }}>
             {offer.trialDays ? `Free for ${offer.trialDays} days, then ${offer.price}. ` : `${offer.price}. `}
             Renews automatically unless cancelled at least 24 hours before the period ends. Payment is charged to your {Platform.OS === 'android' ? 'Google Play' : 'Apple ID'} account. Manage or cancel anytime in {Platform.OS === 'android' ? 'Google Play' : 'App Store'} settings.
             {isDemo ? ' Demo mode: no real charge.' : ''}
@@ -175,8 +182,8 @@ export default function Paywall() {
         </View>
       </View>
 
-      <PressableScale accessibilityLabel="Close" onPress={() => router.back()} style={[styles.close, { top: insets.top + space.s, backgroundColor: c.glass, borderColor: c.hairline }]}>
-        <Icon name="close" size={20} />
+      <PressableScale accessibilityLabel="Close" onPress={() => router.back()} style={[styles.close, { top: insets.top + space.s, backgroundColor: c.glassOnPhoto }]}>
+        <Icon name="close" size={20} color={c.inkOnPhoto} />
       </PressableScale>
     </View>
   );
@@ -195,15 +202,16 @@ function LinkText({ label, onPress }: { label: string; onPress: () => void }) {
 const styles = StyleSheet.create({
   fill: { flex: 1 },
   column: { width: '100%', maxWidth: layout.maxContentWidth, alignSelf: 'center', paddingHorizontal: space.xl },
-  header: { paddingBottom: space.x4 },
-  benefit: { flexDirection: 'row', gap: space.l, alignItems: 'center' },
-  benefitIcon: { width: 48, height: 48, borderRadius: 24, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  plan: { flexDirection: 'row', alignItems: 'center', gap: space.l, padding: space.l },
+  header: { overflow: 'hidden', borderBottomLeftRadius: radius.sheet, borderBottomRightRadius: radius.sheet, borderCurve: 'continuous' },
+  headerText: { position: 'absolute', left: 0, right: 0, bottom: space.xxl, gap: space.s },
+  benefit: { flexDirection: 'row', gap: space.m, alignItems: 'flex-start' },
+  plan: { flexDirection: 'row', alignItems: 'center', gap: space.l, padding: space.l, borderRadius: radius.thumb, borderWidth: 1.5 },
   radio: { width: 24, height: 24, borderRadius: 12, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
-  timeline: { flexDirection: 'row', gap: space.m, alignItems: 'flex-start' },
-  tdot: { width: 12, height: 12, borderRadius: 6, borderWidth: 1.5, marginTop: 5 },
-  footer: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingTop: space.m, borderTopWidth: 1 },
+  timeline: { flexDirection: 'row', gap: space.l },
+  rail: { width: 10, alignItems: 'center', paddingTop: 6 },
+  tdot: { width: 9, height: 9, borderRadius: 5 },
+  tline: { width: 1, flex: 1, marginTop: 4 },
+  footer: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingTop: space.l, borderTopLeftRadius: radius.card, borderTopRightRadius: radius.card },
   links: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap' },
-  close: { position: 'absolute', right: space.l, width: 44, height: 44, borderRadius: 22, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  close: { position: 'absolute', right: space.l, width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
 });
-

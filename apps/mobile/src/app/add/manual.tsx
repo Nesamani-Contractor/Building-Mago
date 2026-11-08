@@ -116,7 +116,7 @@ export default function ManualEditor() {
         placeholderTextColor={c.inkSecondary}
         accessibilityLabel="Look name"
         maxLength={80}
-        style={[styles.title, { color: c.ink, borderColor: c.hairlineStrong }]}
+        style={[styles.title, { color: c.ink, borderColor: 'transparent', backgroundColor: c.surfaceAlt }]}
       />
       <Txt variant="footnote" tone="secondary" style={{ marginTop: space.xl }}>
         Steps — short and clear works best (up to {MAX_STEP_WORDS} words)

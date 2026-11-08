@@ -11,8 +11,6 @@ import {
   CormorantGaramond_500Medium_Italic,
   CormorantGaramond_600SemiBold,
 } from '@expo-google-fonts/cormorant-garamond';
-import { Caveat_500Medium } from '@expo-google-fonts/caveat';
-import { DMSans_400Regular, DMSans_500Medium, DMSans_600SemiBold, DMSans_700Bold } from '@expo-google-fonts/dm-sans';
 import { ThemeProvider, useTheme } from '@/design/theme';
 import { useHydrated } from '@/lib/hooks';
 import { ensureAnonymousSession } from '@/services/supabase';
@@ -44,11 +42,6 @@ export default function RootLayout() {
     CormorantGaramond_500Medium,
     CormorantGaramond_500Medium_Italic,
     CormorantGaramond_600SemiBold,
-    DMSans_400Regular,
-    DMSans_500Medium,
-    DMSans_600SemiBold,
-    DMSans_700Bold,
-    Caveat_500Medium,
   });
   const hydrated = useHydrated();
   // If a font can't load (e.g. blocked), open the app with system fonts rather than a blank screen.
@@ -64,7 +57,7 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
           <ThemeProvider>
-            {(fontsLoaded || fontError) && hydrated ? <Shell /> : <View style={{ flex: 1, backgroundColor: '#FBF7F4' }} />}
+            {(fontsLoaded || fontError) && hydrated ? <Shell /> : <View style={{ flex: 1, backgroundColor: '#FAF7F4' }} />}
           </ThemeProvider>
         </QueryClientProvider>
       </SafeAreaProvider>

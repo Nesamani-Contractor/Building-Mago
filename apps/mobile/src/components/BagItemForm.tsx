@@ -81,7 +81,7 @@ export function BagItemForm({ value, onChange, onRemove }: { value: Draft; onCha
             placeholder="Brand (optional)"
             placeholderTextColor={c.inkSecondary}
             accessibilityLabel="Brand"
-            style={[styles.input, { color: c.ink, borderColor: c.hairlineStrong }]}
+            style={[styles.input, { color: c.ink, borderColor: 'transparent', backgroundColor: c.surfaceAlt }]}
           />
         </View>
         {onRemove ? (

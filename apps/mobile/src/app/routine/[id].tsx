@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
-import { Linking, StyleSheet, View } from 'react-native';
+import { Linking, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { needsCheck, simplifyRoutine } from '@mago/shared';
@@ -8,13 +9,13 @@ import { BagCheckCard, useBagCheck } from '@/components/BagCheck';
 import { Screen, TopBar, RoundButton } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
 import { Button } from '@/components/Button';
-import { Card, Badge, Hairline } from '@/components/Surface';
-import { Chip, routineMeta, stepCount } from '@/components/Bits';
+import { Chip, Eyebrow, LookPhoto, routineMeta, stepCount } from '@/components/Bits';
 import { Icon } from '@/components/Icon';
 import { StateView } from '@/components/States';
 import { PressableScale } from '@/components/PressableScale';
 import { useTheme } from '@/design/theme';
-import { palette, radius, space } from '@/design/tokens';
+import { radius, space } from '@/design/tokens';
+import { routineImage } from '@/design/media';
 import { haptic } from '@/design/haptics';
 import { useLibrary } from '@/data/library';
 import { useAccount } from '@/data/account';
@@ -27,7 +28,9 @@ import { track } from '@/services/analytics';
 export default function RoutineDetail() {
   const { id, fresh, already } = useLocalSearchParams<{ id: string; fresh?: string; already?: string }>();
   const router = useRouter();
-  const { c, isDark } = useTheme();
+  const { c } = useTheme();
+  const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
   const routine = useRoutine(id);
   const saved = useLibrary((s) => (id ? s.items[id] : undefined));
   const lib = useLibrary();
@@ -81,21 +84,12 @@ export default function RoutineDetail() {
     }
   }
 
+  const eyebrow = [r.category, ...r.occasion.slice(0, 2)].join(' · ');
+
   return (
     <Screen
       mood="none"
-      header={
-        <TopBar
-          right={
-            <View style={{ flexDirection: 'row', gap: space.s }}>
-              {saved ? (
-                <RoundButton icon="pencil" label="Edit steps" onPress={() => router.push(`/add/manual?edit=${r.id}`)} />
-              ) : null}
-              <RoundButton icon="share" label="Share" onPress={() => router.push(`/share/${r.id}`)} />
-            </View>
-          }
-        />
-      }
+      edgeToEdge
       footer={
         <View style={{ flexDirection: 'row', gap: space.m }}>
           <Button
@@ -109,7 +103,6 @@ export default function RoutineDetail() {
             style={{ flex: 0.8 }}
           />
           <Button
-            variant="hero"
             label="Start this look"
             onPress={() => {
               ensureSaved();
@@ -120,74 +113,78 @@ export default function RoutineDetail() {
         </View>
       }
     >
-      {/* Full-bleed artwork with a warm fade into the background. */}
-      <View style={[styles.hero, { marginHorizontal: -space.xl }]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-        <LinearGradient colors={isDark ? ['#3A2632', c.bg] : [palette.champagne, palette.peach, c.bg]} locations={isDark ? [0, 1] : [0, 0.55, 1]} style={StyleSheet.absoluteFill} />
-        <View style={[styles.heroMark, { borderColor: c.hairlineStrong, backgroundColor: c.glass }]}>
-          {source === 'youtube' ? <Icon name="play" size={26} /> : <Icon name="sparkle" size={26} />}
+      {/* Full-bleed hero photo with glass controls over it. */}
+      <View style={[styles.hero, { marginHorizontal: -space.xl, height: Math.min(520, Math.round(height * 0.58)) }]}>
+        <LookPhoto image={routineImage(r)} style={StyleSheet.absoluteFill} accessibilityLabel={r.title} />
+        <LinearGradient colors={['rgba(10,6,8,0.38)', 'rgba(10,6,8,0)']} style={styles.heroTopScrim} />
+        <View style={[styles.heroBar, { top: insets.top + space.s }]}>
+          <RoundButton onPhoto icon="chevronLeft" label="Back" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
+          <View style={{ flexDirection: 'row', gap: space.s }}>
+            {saved ? <RoundButton onPhoto icon="pencil" label="Edit steps" onPress={() => router.push(`/add/manual?edit=${r.id}`)} /> : null}
+            <RoundButton onPhoto icon="share" label="Share" onPress={() => router.push(`/share/${r.id}`)} />
+          </View>
         </View>
+        {source === 'youtube' && r.source.videoId ? (
+          <PressableScale accessibilityLabel="Watch the tutorial in YouTube" onPress={() => watch()} style={[styles.heroWatch, { backgroundColor: c.glassOnPhoto }]}>
+            <Icon name="play" size={16} color={c.inkOnPhoto} filled />
+            <Txt variant="subhead" style={{ color: c.inkOnPhoto, fontWeight: '600' }}>
+              Watch the tutorial
+            </Txt>
+          </PressableScale>
+        ) : null}
       </View>
 
-      {fresh ? (
-        <Card variant="outline" style={styles.banner}>
-          <Icon name="check" size={20} />
+      {fresh || already ? (
+        <View style={[styles.banner, { backgroundColor: c.surface }]}>
+          <Icon name={fresh ? 'check' : 'info'} size={18} color={c.inkSecondary} />
           <Txt variant="callout" style={{ flex: 1 }}>
-            Saved to your library.
+            {fresh ? 'Saved to your looks.' : 'You already saved this one.'}
           </Txt>
-        </Card>
-      ) : null}
-      {already ? (
-        <Card variant="outline" style={styles.banner}>
-          <Icon name="info" size={20} />
-          <Txt variant="callout" style={{ flex: 1 }}>
-            You already saved this one.
-          </Txt>
-        </Card>
+        </View>
       ) : null}
       {saved?.isDemoContent ? (
-        <Card variant="outline" style={styles.banner}>
-          <Icon name="info" size={20} />
-          <Txt variant="footnote" tone="secondary" style={{ flex: 1 }}>
-            Demo mode: these are sample steps, not read from this video. The full build writes real steps from the tutorial.
-          </Txt>
-        </Card>
+        <Txt variant="footnote" tone="secondary" style={{ marginTop: space.l }}>
+          Preview: these are sample steps, not read from this video yet.
+        </Txt>
       ) : null}
 
-      <View style={{ gap: space.s, marginTop: space.l }}>
-        <View style={styles.metaRow}>
-          <Badge label={r.category} />
-          {r.occasion.slice(0, 2).map((o) => (
-            <Badge key={o} label={o} />
-          ))}
-        </View>
+      <View style={{ gap: space.s, marginTop: space.xxl }}>
+        <Eyebrow>{eyebrow}</Eyebrow>
         <Txt variant="title1" accessibilityRole="header">
           {r.title}
         </Txt>
         <Txt variant="callout" tone="secondary">
           {routineMeta(r)}
-        </Txt>
-        <Txt variant="footnote" tone="secondary">
+          {' · '}
           {sourceLabel}
           {r.creator && r.creator.name !== 'Mago sample' && r.creator.name !== 'You' ? ` · ${r.creator.name}` : ''}
-          {saved && saved.doneCount > 0 ? ` · Done ${saved.doneCount} ${saved.doneCount === 1 ? 'time' : 'times'}` : ''}
+          {saved && saved.doneCount > 0 ? ` · Done ${saved.doneCount}×` : ''}
         </Txt>
       </View>
 
       <View style={styles.actions}>
-        <Chip
-          label={saved?.favorite ? 'Favorite' : 'Add to favorites'}
+        <IconAction
           icon="heart"
-          selected={!!saved?.favorite}
+          label={saved?.favorite ? 'Favorite' : 'Favorite'}
+          active={!!saved?.favorite}
           onPress={() => {
             ensureSaved();
             lib.toggleFavorite(r.id);
           }}
         />
-        <Chip label="Collections" icon="bookmark" selected={showCollections} onPress={() => setShowCollections(!showCollections)} />
-        <Chip label={saved?.pinned ? 'Pinned' : 'Pin to Today'} icon="pin" selected={!!saved?.pinned} onPress={() => { ensureSaved(); lib.togglePinned(r.id); }} />
+        <IconAction icon="bookmark" label="Collections" active={showCollections} onPress={() => setShowCollections(!showCollections)} />
+        <IconAction
+          icon="pin"
+          label={saved?.pinned ? 'Pinned' : 'Pin'}
+          active={!!saved?.pinned}
+          onPress={() => {
+            ensureSaved();
+            lib.togglePinned(r.id);
+          }}
+        />
       </View>
       {showCollections ? (
-        <View style={styles.actions}>
+        <View style={styles.chips}>
           {lib.collections.map((col) => (
             <Chip
               key={col.id}
@@ -202,17 +199,15 @@ export default function RoutineDetail() {
         </View>
       ) : null}
 
-      <PressableScale onPress={simplify} accessibilityLabel="Simplify my routine. Pro feature." style={{ marginTop: space.l }}>
-        <Card variant="outline" style={styles.simplify}>
-          <Icon name="wand" size={22} />
-          <View style={{ flex: 1, gap: 2 }}>
-            <Txt variant="headline">{variant ? 'Open simplified version' : original ? 'This is a simplified version' : 'Simplify my routine'}</Txt>
-            <Txt variant="footnote" tone="secondary">
-              {original ? `Original has ${stepCount(original)} steps` : 'Keep the key steps, about 40% shorter'}
-            </Txt>
-          </View>
-          {!isPro ? <Badge label="Pro" /> : <Icon name="chevronRight" size={18} />}
-        </Card>
+      <PressableScale onPress={simplify} accessibilityLabel="Simplify my routine. Pro feature." scaleTo={0.985} style={[styles.simplify, { backgroundColor: c.surface }]}>
+        <View style={{ flex: 1, gap: 4 }}>
+          {!isPro ? <Eyebrow>Mago Pro</Eyebrow> : null}
+          <Txt variant="headline">{variant ? 'Open the simplified version' : original ? 'This is a simplified version' : 'Simplify this look'}</Txt>
+          <Txt variant="footnote" tone="secondary">
+            {original ? `The original has ${stepCount(original)} steps` : 'Keep the key steps, about 40% shorter'}
+          </Txt>
+        </View>
+        <Icon name="chevronRight" size={20} color={c.inkSecondary} />
       </PressableScale>
       {original ? <Button variant="ghost" label="Switch to the original" onPress={() => router.replace(`/routine/${original.id}`)} /> : null}
 
@@ -221,16 +216,15 @@ export default function RoutineDetail() {
       </View>
 
       {r.products.length > 0 ? (
-        <View style={{ marginTop: space.xxl, gap: space.m }}>
-          <Txt variant="title3">Products in this look</Txt>
-          <StepProducts products={r.products} title={`${r.products.length} products`} note />
+        <View style={{ marginTop: space.x4 }}>
+          <StepProducts products={r.products} title={`In this look · ${r.products.length}`} matches={bagMatches} />
         </View>
       ) : null}
 
       <View style={styles.stepsHead}>
         <Txt variant="title3">Steps</Txt>
         <PressableScale accessibilityLabel={showHints ? 'Hide tips' : 'Show tips'} onPress={() => setShowHints(!showHints)} style={styles.hintToggle}>
-          <Txt variant="subhead" style={{ textDecorationLine: 'underline', textDecorationColor: c.accent }}>
+          <Txt variant="subhead" style={{ color: c.primary }}>
             {showHints ? 'Hide tips' : 'Show tips'}
           </Txt>
         </PressableScale>
@@ -247,43 +241,40 @@ export default function RoutineDetail() {
       {r.sections.map((sec, si) => {
         const offset = r.sections.slice(0, si).reduce((n, s) => n + s.steps.length, 0);
         return (
-          <Card key={`${sec.name}-${si}`} style={{ marginTop: space.l, gap: space.l }}>
-            <Txt variant="caption" tone="secondary" style={{ letterSpacing: 1.2 }}>
-              {sec.name.toUpperCase()}
-            </Txt>
+          <View key={`${sec.name}-${si}`} style={{ marginTop: space.xxl }}>
+            <Eyebrow style={{ marginBottom: space.s }}>{sec.name}</Eyebrow>
             {sec.steps.map((st, i) => (
-              <View key={st.id} style={{ gap: space.s }}>
-                {i > 0 ? <Hairline style={{ marginBottom: space.s }} /> : null}
-                <View style={styles.step}>
-                  <Txt variant="title3" style={{ width: 28 }}>
-                    {offset + i + 1}
-                  </Txt>
-                  <View style={{ flex: 1, gap: space.s }}>
-                    <Txt variant="body">{st.text}</Txt>
-                    {showHints && st.hint ? (
-                      <Txt variant="callout" tone="secondary">
-                        {st.hint}
+              <View key={st.id} style={[styles.step, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.hairlineStrong }]}>
+                <Txt variant="title3" tone="secondary" style={styles.stepNum}>
+                  {offset + i + 1}
+                </Txt>
+                <View style={{ flex: 1, gap: space.s }}>
+                  <Txt variant="body">{st.text}</Txt>
+                  {showHints && st.hint ? (
+                    <Txt variant="callout" tone="secondary">
+                      {st.hint}
+                    </Txt>
+                  ) : null}
+                  <StepProducts title="" matches={bagMatches} products={st.productRefs.map((ref) => productsByRef.get(ref)).filter((p): p is NonNullable<typeof p> => !!p)} />
+                  {source === 'youtube' && st.timestampSec !== undefined ? (
+                    <PressableScale accessibilityLabel={`Watch step ${offset + i + 1} in YouTube`} onPress={() => watch(st.timestampSec)} style={styles.watch}>
+                      <Icon name="play" size={14} color={c.primary} filled />
+                      <Txt variant="footnote" style={{ color: c.primary, fontWeight: '600' }}>
+                        Watch · {fmt(st.timestampSec)}
                       </Txt>
-                    ) : null}
-                    <StepProducts matches={bagMatches} products={st.productRefs.map((ref) => productsByRef.get(ref)).filter((p): p is NonNullable<typeof p> => !!p)} />
-                    {source === 'youtube' && st.timestampSec !== undefined ? (
-                      <PressableScale accessibilityLabel={`Watch step ${offset + i + 1} in YouTube`} onPress={() => watch(st.timestampSec)} style={styles.watch}>
-                        <Icon name="play" size={16} />
-                        <Txt variant="footnote">Watch this step · {fmt(st.timestampSec)}</Txt>
-                      </PressableScale>
-                    ) : null}
-                  </View>
+                    </PressableScale>
+                  ) : null}
                 </View>
               </View>
             ))}
-          </Card>
+          </View>
         );
       })}
 
       {saved ? (
         <Button
           variant="ghost"
-          label="Remove from library"
+          label="Remove from my looks"
           icon="trash"
           onPress={() => {
             lib.remove(r.id);
@@ -296,20 +287,45 @@ export default function RoutineDetail() {
   );
 }
 
+function IconAction({ icon, label, active, onPress }: { icon: 'heart' | 'bookmark' | 'pin'; label: string; active: boolean; onPress: () => void }) {
+  const { c } = useTheme();
+  return (
+    <PressableScale
+      accessibilityRole="button"
+      accessibilityState={{ selected: active }}
+      accessibilityLabel={label}
+      onPress={() => {
+        haptic.select();
+        onPress();
+      }}
+      style={styles.iconAction}
+    >
+      <Icon name={icon} size={24} color={active ? c.primary : c.ink} filled={active} />
+      <Txt variant="footnote" tone={active ? 'ink' : 'secondary'}>
+        {label}
+      </Txt>
+    </PressableScale>
+  );
+}
+
 function fmt(sec: number) {
   return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
 }
 
 const styles = StyleSheet.create({
-  hero: { height: 200, alignItems: 'center', justifyContent: 'center', borderBottomLeftRadius: radius.card, borderBottomRightRadius: radius.card, overflow: 'hidden' },
-  heroMark: { width: 64, height: 64, borderRadius: 32, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  banner: { flexDirection: 'row', alignItems: 'center', gap: space.m, marginTop: space.l, paddingVertical: space.m },
-  metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.s },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: space.s, marginTop: space.l },
-  simplify: { flexDirection: 'row', alignItems: 'center', gap: space.l },
-  stepsHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: space.xxl },
+  hero: { overflow: 'hidden', borderBottomLeftRadius: radius.sheet, borderBottomRightRadius: radius.sheet, borderCurve: 'continuous' },
+  heroTopScrim: { position: 'absolute', top: 0, left: 0, right: 0, height: 140 },
+  heroBar: { position: 'absolute', left: space.l, right: space.l, flexDirection: 'row', justifyContent: 'space-between' },
+  heroWatch: { position: 'absolute', left: space.xl, bottom: space.xl, flexDirection: 'row', alignItems: 'center', gap: space.s, minHeight: 44, paddingHorizontal: space.l, borderRadius: radius.pill },
+  banner: { flexDirection: 'row', alignItems: 'center', gap: space.m, marginTop: space.l, padding: space.m, borderRadius: radius.thumb },
+  actions: { flexDirection: 'row', gap: space.xl, marginTop: space.xl },
+  iconAction: { alignItems: 'center', gap: 4, minWidth: 64, minHeight: 56, justifyContent: 'center' },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.s, marginTop: space.m },
+  simplify: { flexDirection: 'row', alignItems: 'center', gap: space.l, marginTop: space.xl, padding: space.l, borderRadius: radius.thumb },
+  stepsHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: space.x4 },
   hintToggle: { minHeight: 44, justifyContent: 'center' },
   warn: { flexDirection: 'row', gap: space.s, alignItems: 'center', padding: space.m, borderRadius: radius.chip, marginTop: space.s },
-  step: { flexDirection: 'row', gap: space.m },
-  watch: { flexDirection: 'row', alignItems: 'center', gap: space.xs, minHeight: 44, alignSelf: 'flex-start' },
+  step: { flexDirection: 'row', gap: space.l, paddingVertical: space.l },
+  stepNum: { width: 28, fontVariant: ['tabular-nums'] },
+  watch: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 36, alignSelf: 'flex-start' },
 });

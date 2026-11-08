@@ -7,20 +7,24 @@ import {
   useWindowDimensions,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
+  type ImageStyle,
   type StyleProp,
+  type TextStyle,
   type ViewStyle,
 } from 'react-native';
-import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop, Text as SvgText } from 'react-native-svg';
+import Svg, { Circle, Text as SvgText } from 'react-native-svg';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import type { Category, Routine } from '@mago/shared';
+import type { Routine } from '@mago/shared';
 import { useTheme } from '@/design/theme';
-import { fonts, layout, palette, radius, space } from '@/design/tokens';
+import { fonts, layout, palette, radius, scrimColors, space } from '@/design/tokens';
+import { routineImage, type LookImage } from '@/design/media';
 import { haptic } from '@/design/haptics';
 import { PressableScale } from './PressableScale';
 import { Txt } from './Txt';
 import { Icon, type IconName } from './Icon';
 
-/** Selectable chip (filters, onboarding answers). Selected = plum fill. */
+/** Selectable chip (filters, answers). Sunken fill; selected = plum fill. No borders. */
 export function Chip({
   label,
   selected,
@@ -42,12 +46,9 @@ export function Chip({
         haptic.select();
         onPress?.();
       }}
-      style={[
-        styles.chip,
-        { borderColor: selected ? c.primary : c.hairlineStrong, backgroundColor: selected ? c.primary : 'transparent' },
-      ]}
+      style={[styles.chip, { backgroundColor: selected ? c.primary : c.surfaceAlt }]}
     >
-      {icon ? <Icon name={icon} size={18} color={selected ? c.inkOnPrimary : c.ink} /> : null}
+      {icon ? <Icon name={icon} size={16} color={selected ? c.inkOnPrimary : c.ink} /> : null}
       <Txt variant="subhead" style={{ color: selected ? c.inkOnPrimary : c.ink }}>
         {label}
       </Txt>
@@ -55,7 +56,7 @@ export function Chip({
   );
 }
 
-/** Big tappable answer card (onboarding). */
+/** Answer card (onboarding): tonal row, plain icon, plum inset ring + check when selected. */
 export function ChoiceCard({
   title,
   body,
@@ -81,12 +82,10 @@ export function ChoiceCard({
       }}
       style={[
         styles.choice,
-        { backgroundColor: c.surface, borderColor: selected ? c.primary : c.hairline, borderWidth: selected ? 1.5 : 1 },
+        { backgroundColor: c.surface, borderColor: selected ? c.primary : 'transparent', borderWidth: 1.5 },
       ]}
     >
-      <View style={[styles.choiceIcon, { borderColor: c.hairlineStrong }]}>
-        <Icon name={icon} size={22} />
-      </View>
+      <Icon name={icon} size={22} color={c.inkSecondary} />
       <View style={{ flex: 1, gap: 2 }}>
         <Txt variant="headline">{title}</Txt>
         {body ? (
@@ -102,16 +101,26 @@ export function ChoiceCard({
   );
 }
 
+/** Small uppercase label above a title. */
+export function Eyebrow({ children, onPhoto, style }: { children: ReactNode; onPhoto?: boolean; style?: StyleProp<TextStyle> }) {
+  const { c } = useTheme();
+  return (
+    <Txt variant="eyebrow" tone="secondary" style={[onPhoto && { color: c.inkOnPhoto, opacity: 0.9 }, style]}>
+      {children}
+    </Txt>
+  );
+}
+
 export function SectionHeader({ title, action, onAction }: { title: string; action?: string; onAction?: () => void }) {
   const { c } = useTheme();
   return (
     <View style={styles.sectionHeader}>
-      <Txt variant="title3" accessibilityRole="header">
+      <Txt variant="title3" accessibilityRole="header" style={{ flex: 1 }}>
         {title}
       </Txt>
       {action && onAction ? (
         <PressableScale onPress={onAction} accessibilityLabel={action} style={styles.link}>
-          <Txt variant="subhead" style={{ textDecorationLine: 'underline', textDecorationColor: c.accent }}>
+          <Txt variant="subhead" style={{ color: c.primary }}>
             {action}
           </Txt>
         </PressableScale>
@@ -120,40 +129,43 @@ export function SectionHeader({ title, action, onAction }: { title: string; acti
   );
 }
 
-/** Weekly streak ring — one of three places a full-strength gradient is allowed. */
-export function StreakRing({ done, goal, size = 64 }: { done: number; goal: number; size?: number }) {
+/** Weekly goal ring: thin track, plum progress, quiet number. */
+export function StreakRing({ done, goal, size = 64, onPhoto }: { done: number; goal: number; size?: number; onPhoto?: boolean }) {
   const { c } = useTheme();
-  const r = size / 2 - 5;
+  const stroke = size >= 56 ? 4 : 3;
+  const r = size / 2 - stroke;
   const circ = 2 * Math.PI * r;
   const frac = Math.min(1, goal > 0 ? done / goal : 0);
+  const ink = onPhoto ? c.inkOnPhoto : c.ink;
   return (
     <View style={{ width: size, height: size }} accessible accessibilityLabel={`${done} of ${goal} looks this week`} accessibilityRole="image">
-    <Svg width={size} height={size}>
-      <Defs>
-        <SvgGradient id="ring" x1="0" y1="0" x2="1" y2="1">
-          <Stop offset="0" stopColor={palette.champagne} />
-          <Stop offset="0.5" stopColor={palette.peach} />
-          <Stop offset="1" stopColor={palette.rose} />
-        </SvgGradient>
-      </Defs>
-      <Circle cx={size / 2} cy={size / 2} r={r} stroke={c.accent} strokeWidth={1} fill="none" />
-      {frac > 0 ? (
-        <Circle
-          cx={size / 2}
-          cy={size / 2}
-          r={r}
-          stroke="url(#ring)"
-          strokeWidth={6}
-          strokeLinecap="round"
-          fill="none"
-          strokeDasharray={`${circ * frac} ${circ}`}
-          transform={`rotate(-90 ${size / 2} ${size / 2})`}
-        />
-      ) : null}
-      <SvgText x={size / 2} y={size / 2 + 6} textAnchor="middle" fontSize={size * 0.28} fontFamily={fonts.serif} fill={c.ink}>
-        {`${done}/${goal}`}
-      </SvgText>
-    </Svg>
+      <Svg width={size} height={size}>
+        <Circle cx={size / 2} cy={size / 2} r={r} stroke={c.track} strokeWidth={stroke} fill="none" />
+        {frac > 0 ? (
+          <Circle
+            cx={size / 2}
+            cy={size / 2}
+            r={r}
+            stroke={c.primary}
+            strokeWidth={stroke}
+            strokeLinecap="round"
+            fill="none"
+            strokeDasharray={`${circ * frac} ${circ}`}
+            transform={`rotate(-90 ${size / 2} ${size / 2})`}
+          />
+        ) : null}
+        <SvgText
+          x={size / 2}
+          y={size / 2 + size * 0.1}
+          textAnchor="middle"
+          fontSize={size * 0.3}
+          fontWeight="600"
+          fontFamily={fonts.sans}
+          fill={ink}
+        >
+          {`${done}/${goal}`}
+        </SvgText>
+      </Svg>
     </View>
   );
 }
@@ -167,50 +179,38 @@ export function ProgressBar({ value, style }: { value: number; style?: StyleProp
   );
 }
 
-const CATEGORY_ICON: Record<Category, IconName> = {
-  Eyes: 'sparkle',
-  Lips: 'heart',
-  'Face/Base': 'star',
-  Brows: 'pencil',
-  'Full look': 'wand',
-  Skincare: 'cloud',
-  Hair: 'star',
-  Other: 'bookmark',
-};
-
-/**
- * Routine artwork. Real photos/thumbnails come from the source in production; in demo mode a
- * soft warm tile with the category mark (a quiet placeholder, not decoration for its own sake).
- */
-export function RoutineThumb({ routine, size = 56, wide }: { routine: Routine; size?: number; wide?: boolean }) {
-  const { c, isDark } = useTheme();
-  const tones: Record<string, readonly [string, string]> = {
-    Lips: [palette.peach, palette.rose],
-    Eyes: [palette.champagne, palette.peach],
-    Skincare: [palette.champagne, '#EFE6DD'],
-    Brows: ['#EFE2D6', palette.champagne],
-    'Full look': [palette.champagne, palette.rose],
-  };
-  const [a, b] = tones[routine.category] ?? [palette.champagne, palette.peach];
+/** A look's photograph (source thumbnail, or demo photography). Tinted while it loads. */
+export function LookPhoto({
+  image,
+  style,
+  accessibilityLabel,
+}: {
+  image: LookImage;
+  style?: StyleProp<ImageStyle>;
+  accessibilityLabel?: string;
+}) {
+  const { c } = useTheme();
+  const [x, y] = (image.focus ?? '50% 50%').split(' ');
   return (
-    <LinearGradient
-      colors={isDark ? ['#3A2632', '#2A1A24'] : [a, b]}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={{
-        width: wide ? '100%' : size,
-        height: size,
-        borderRadius: wide ? radius.card : radius.thumb,
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-    >
-      <View style={{ opacity: 0.7 }}>
-        <Icon name={CATEGORY_ICON[routine.category]} size={Math.min(28, size * 0.4)} color={c.ink} />
-      </View>
-    </LinearGradient>
+    <Image
+      source={image.source}
+      contentFit="cover"
+      contentPosition={{ left: x as `${number}%`, top: y as `${number}%` }}
+      transition={200}
+      style={[{ backgroundColor: c.mediaTint }, style]}
+      accessible={!!accessibilityLabel}
+      accessibilityLabel={accessibilityLabel}
+    />
+  );
+}
+
+/** Square/landscape thumbnail of a look. */
+export function RoutineThumb({ routine, size = 64, wide }: { routine: Routine; size?: number; wide?: boolean }) {
+  return (
+    <LookPhoto
+      image={routineImage(routine)}
+      style={{ width: wide ? '100%' : size, height: size, borderRadius: wide ? radius.card : size <= 64 ? radius.chip : radius.thumb }}
+    />
   );
 }
 
@@ -220,54 +220,132 @@ export function stepCount(r: Routine): number {
 
 export function routineMeta(r: Routine): string {
   const level = r.difficulty === 'easy' ? 'Easy' : r.difficulty === 'medium' ? 'Medium' : 'Advanced';
-  return `${stepCount(r)} steps · about ${r.totalTimeMin} min · ${level}`;
+  return `${stepCount(r)} steps · ${r.totalTimeMin} min · ${level}`;
 }
 
-/** Ulta-style tile for rails (thumbnail on top, title below). */
-export function RoutineTile({ routine, onPress, width = 168, badge }: { routine: Routine; onPress: () => void; width?: number; badge?: string }) {
+/** Portrait 3:4 look card for rails and grids: photo, then title and meta below. */
+export function RoutineTile({ routine, onPress, width = 150, badge }: { routine: Routine; onPress: () => void; width?: number; badge?: string }) {
+  const { c } = useTheme();
   return (
     <PressableScale onPress={onPress} accessibilityLabel={`${routine.title}. ${routineMeta(routine)}`} style={{ width, gap: space.s }}>
       <View>
-        <RoutineThumb routine={routine} size={Math.round(width * 0.72)} wide />
+        <LookPhoto image={routineImage(routine)} style={{ width, height: Math.round((width * 4) / 3), borderRadius: radius.thumb }} />
         {badge ? (
-          <View style={{ position: 'absolute', top: space.s, left: space.s }}>
-            <BadgeLight label={badge} />
+          <View style={[styles.photoBadge, { backgroundColor: c.glass }]}>
+            <Txt variant="caption" style={{ fontWeight: '600' }}>
+              {badge}
+            </Txt>
           </View>
         ) : null}
       </View>
-      <Txt variant="headline" numberOfLines={2}>
-        {routine.title}
-      </Txt>
-      <Txt variant="footnote" tone="secondary" numberOfLines={1}>
-        {stepCount(routine)} steps · {routine.totalTimeMin} min
-      </Txt>
+      <View style={{ gap: 2 }}>
+        <Txt variant="headline" numberOfLines={2}>
+          {routine.title}
+        </Txt>
+        <Txt variant="footnote" tone="secondary" numberOfLines={1}>
+          {stepCount(routine)} steps · {routine.totalTimeMin} min
+        </Txt>
+      </View>
     </PressableScale>
   );
 }
 
-function BadgeLight({ label }: { label: string }) {
+/**
+ * Hero look card (the one emphasized element on a screen): full photo, bottom scrim, serif title
+ * and an optional pill action, all on the photo.
+ */
+export function LookHero({
+  routine,
+  eyebrow,
+  meta,
+  action,
+  onPress,
+  onAction,
+  actionIcon = 'play',
+  height = 380,
+}: {
+  actionIcon?: 'play' | 'bookmark';
+  routine: Routine;
+  eyebrow?: string;
+  meta?: string;
+  action?: string;
+  onPress: () => void;
+  onAction?: () => void;
+  height?: number;
+}) {
   const { c } = useTheme();
   return (
-    <View style={{ backgroundColor: c.glass, borderColor: c.accent, borderWidth: 1, borderRadius: radius.chip, paddingHorizontal: space.s, paddingVertical: 2 }}>
-      <Txt variant="caption">{label}</Txt>
-    </View>
+    <PressableScale
+      onPress={onPress}
+      accessibilityLabel={`${eyebrow ? `${eyebrow}. ` : ''}${routine.title}. ${meta ?? routineMeta(routine)}`}
+      scaleTo={0.985}
+      style={[styles.hero, { height, backgroundColor: c.mediaTint }]}
+    >
+      <LookPhoto image={routineImage(routine)} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={scrimColors(c)} style={styles.heroScrim} />
+      <View style={styles.heroText}>
+        {eyebrow ? <Eyebrow onPhoto>{eyebrow}</Eyebrow> : null}
+        <Txt variant="title2" style={{ color: c.inkOnPhoto }} numberOfLines={2}>
+          {routine.title}
+        </Txt>
+        <View style={styles.heroRow}>
+          <Txt variant="callout" style={{ color: c.inkOnPhoto, opacity: 0.92, flex: 1 }} numberOfLines={1}>
+            {meta ?? routineMeta(routine)}
+          </Txt>
+          {action ? (
+            <PressableScale
+              onPress={onAction ?? onPress}
+              accessibilityLabel={`${action} ${routine.title}`}
+              style={[styles.heroPill, { backgroundColor: palette.blush }]}
+            >
+              <Icon name={actionIcon} size={14} color={palette.plum} filled />
+              <Txt variant="subhead" style={{ color: palette.plum, fontWeight: '600' }}>
+                {action}
+              </Txt>
+            </PressableScale>
+          ) : null}
+        </View>
+      </View>
+    </PressableScale>
   );
 }
 
-/** Row card for lists. */
-export function RoutineRow({ routine, onPress, right, subtitle }: { routine: Routine; onPress: () => void; right?: ReactNode; subtitle?: string }) {
+/** Row for lists: 64pt photo, title, meta; optional progress. Tonal row, no border. */
+export function RoutineRow({
+  routine,
+  onPress,
+  right,
+  subtitle,
+  progress,
+  plain,
+}: {
+  routine: Routine;
+  onPress: () => void;
+  right?: ReactNode;
+  subtitle?: string;
+  progress?: number;
+  /** No row fill (inside an already-tinted group). */
+  plain?: boolean;
+}) {
+  const { c } = useTheme();
   return (
-    <PressableScale onPress={onPress} accessibilityLabel={`${routine.title}. ${subtitle ?? routineMeta(routine)}`} style={styles.row}>
+    <PressableScale
+      onPress={onPress}
+      scaleTo={0.985}
+      accessibilityLabel={`${routine.title}. ${subtitle ?? routineMeta(routine)}`}
+      style={[styles.row, !plain && { backgroundColor: c.surface, paddingHorizontal: space.m, borderRadius: radius.thumb }]}
+    >
       <RoutineThumb routine={routine} />
-      <View style={{ flex: 1, gap: 2 }}>
+      <View style={{ flex: 1, gap: 4 }}>
         <Txt variant="headline" numberOfLines={2}>
           {routine.title}
         </Txt>
         <Txt variant="footnote" tone="secondary" numberOfLines={1}>
           {subtitle ?? routineMeta(routine)}
         </Txt>
+        {progress !== undefined ? <ProgressBar value={progress} style={{ marginTop: 2 }} /> : null}
       </View>
-      {right ?? <Icon name="chevronRight" size={18} />}
+      {right ?? <Icon name="chevronRight" size={20} color={c.inkSecondary} />}
     </PressableScale>
   );
 }
@@ -370,15 +448,14 @@ export function Carousel<T>({ data, render, height = 196 }: { data: T[]; render:
   );
 }
 
-/** Ulta "deal circles" pattern, used for occasions. */
-export function CircleTile({ label, icon, onPress }: { label: string; icon: IconName; onPress: () => void }) {
+/** Occasion tile: 3:4 photo with the label on a scrim. */
+export function OccasionTile({ label, image, onPress, width = 112 }: { label: string; image: LookImage; onPress: () => void; width?: number }) {
   const { c } = useTheme();
   return (
-    <PressableScale onPress={onPress} accessibilityLabel={label} style={{ alignItems: 'center', gap: space.s, width: 76 }}>
-      <View style={[styles.circle, { backgroundColor: c.surface, borderColor: c.hairlineStrong }]}>
-        <Icon name={icon} size={26} />
-      </View>
-      <Txt variant="footnote" align="center" numberOfLines={1}>
+    <PressableScale onPress={onPress} accessibilityLabel={label} style={{ width, height: Math.round((width * 4) / 3), borderRadius: radius.thumb, overflow: 'hidden' }}>
+      <LookPhoto image={image} style={StyleSheet.absoluteFill} />
+      <LinearGradient colors={scrimColors(c)} style={[StyleSheet.absoluteFill, { top: '40%' }]} />
+      <Txt variant="headline" style={{ position: 'absolute', left: space.m, right: space.m, bottom: space.m, color: c.inkOnPhoto }} numberOfLines={1}>
         {label}
       </Txt>
     </PressableScale>
@@ -390,26 +467,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.xs,
-    minHeight: layout.tapMin - 4,
+    minHeight: 36,
     paddingHorizontal: space.l,
     borderRadius: radius.pill,
-    borderWidth: 1,
   },
   choice: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: space.l,
     padding: space.l,
+    paddingVertical: space.xl,
     borderRadius: radius.card,
-    minHeight: 72,
+    minHeight: 76,
   },
-  choiceIcon: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   radio: { width: 24, height: 24, borderRadius: 12, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginTop: space.l },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: space.x4 },
   link: { minHeight: layout.tapMin, justifyContent: 'center' },
-  row: { flexDirection: 'row', alignItems: 'center', gap: space.l, paddingVertical: space.m, minHeight: 72 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: space.m, minHeight: 88 },
+  photoBadge: { position: 'absolute', top: space.s, left: space.s, borderRadius: radius.pill, paddingHorizontal: space.s, paddingVertical: 3 },
+  hero: { borderRadius: radius.card, overflow: 'hidden', borderCurve: 'continuous' },
+  heroScrim: { position: 'absolute', left: 0, right: 0, bottom: 0, height: 240 },
+  heroText: { position: 'absolute', left: space.xl, right: space.xl, bottom: space.xl, gap: 6 },
+  heroRow: { flexDirection: 'row', alignItems: 'center', gap: space.m, marginTop: space.s },
+  heroPill: { height: 44, paddingHorizontal: space.xl, borderRadius: 22, flexDirection: 'row', alignItems: 'center', gap: 6 },
   listRow: { flexDirection: 'row', alignItems: 'center', gap: space.l, minHeight: 56, paddingVertical: space.m },
   dots: { flexDirection: 'row', justifyContent: 'center', gap: space.s },
   dot: { width: 7, height: 7, borderRadius: 4, borderWidth: 1 },
-  circle: { width: 68, height: 68, borderRadius: 34, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
 });

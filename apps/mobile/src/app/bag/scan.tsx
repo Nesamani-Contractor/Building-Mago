@@ -113,7 +113,7 @@ export default function Scan() {
         style={{ marginTop: space.xxl }}
       >
         <Card style={styles.option}>
-          <View style={[styles.optIcon, { borderColor: c.hairlineStrong }]}>
+          <View style={[styles.optIcon, { borderColor: 'transparent', backgroundColor: c.surfaceAlt }]}>
             <Icon name="camera" size={26} />
           </View>
           <View style={{ flex: 1, gap: 2 }}>
@@ -133,7 +133,7 @@ export default function Scan() {
 
       <PressableScale accessibilityLabel="Choose photos you already have" onPress={pick} style={{ marginTop: space.m }}>
         <Card style={styles.option}>
-          <View style={[styles.optIcon, { borderColor: c.hairlineStrong }]}>
+          <View style={[styles.optIcon, { borderColor: 'transparent', backgroundColor: c.surfaceAlt }]}>
             <Icon name="upload" size={26} />
           </View>
           <View style={{ flex: 1, gap: 2 }}>

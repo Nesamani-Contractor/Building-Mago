@@ -1,12 +1,11 @@
 import { useEffect, useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { Routine } from '@mago/shared';
 import { Screen } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
 import { Button } from '@/components/Button';
-import { Card } from '@/components/Surface';
-import { RoutineRow } from '@/components/Bits';
+import { RoutineTile, Eyebrow } from '@/components/Bits';
 import { Icon } from '@/components/Icon';
 import { space } from '@/design/tokens';
 import { useTheme } from '@/design/theme';
@@ -47,56 +46,43 @@ export default function Preview() {
   }
 
   return (
-    <Screen mood="reveal" footer={<Button variant="hero" label="Try my first look" onPress={() => finish(starters[0]?.id)} />}>
-      <View style={{ gap: space.m, marginTop: space.x4 }}>
+    <Screen
+      mood="warm"
+      footer={
+        <View style={{ gap: space.xs }}>
+          <Button label="Try my first look" onPress={() => finish(starters[0]?.id)} />
+          <Button variant="ghost" label="Go to Today" onPress={() => finish()} />
+        </View>
+      }
+    >
+      <View style={{ gap: space.s, marginTop: space.x4 }}>
+        <Eyebrow>Picked for you</Eyebrow>
         <Txt variant="title1" accessibilityRole="header">
           Your first looks are ready
         </Txt>
-        <Txt variant="body" tone="secondary">
-          Picked for you. Start one now, or save your own from {app}.
-        </Txt>
       </View>
 
-      <Card style={{ marginTop: space.xxl, paddingVertical: space.s }}>
-        {starters.map((r, i) => (
-          <View key={r.id} style={i > 0 ? { borderTopWidth: 1, borderTopColor: c.hairline } : undefined}>
-            <RoutineRow routine={r} onPress={() => finish(r.id)} />
-          </View>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={{ marginHorizontal: -space.xl, marginTop: space.xxl }}
+        contentContainerStyle={{ paddingHorizontal: space.xl, gap: space.m }}
+      >
+        {starters.map((r) => (
+          <RoutineTile key={r.id} routine={r} width={200} onPress={() => finish(r.id)} />
         ))}
-      </Card>
+      </ScrollView>
 
-      <Card variant="outline" style={{ marginTop: space.l, gap: space.m }}>
-        <Txt variant="headline">Save looks from {app}</Txt>
-        <View style={styles.flow}>
-          <View style={styles.flowStep}>
-            <Icon name="play" size={22} />
-            <Txt variant="footnote" align="center">
-              Open a tutorial in {app}
-            </Txt>
-          </View>
-          <Icon name="chevronRight" size={16} color={c.inkSecondary} />
-          <View style={styles.flowStep}>
-            <Icon name="share" size={22} />
-            <Txt variant="footnote" align="center">
-              Tap Share
-            </Txt>
-          </View>
-          <Icon name="chevronRight" size={16} color={c.inkSecondary} />
-          <View style={styles.flowStep}>
-            <Icon name="sparkle" size={22} />
-            <Txt variant="footnote" align="center">
-              Choose Mago
-            </Txt>
-          </View>
-        </View>
-      </Card>
-
-      <Button variant="ghost" label="Go to Today" onPress={() => finish()} style={{ marginTop: space.l }} />
+      <View style={styles.tip}>
+        <Icon name="share" size={18} color={c.inkSecondary} />
+        <Txt variant="callout" tone="secondary" style={{ flex: 1 }}>
+          To save your own, tap Share in {app} and choose Mago.
+        </Txt>
+      </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  flow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: space.s },
-  flowStep: { flex: 1, alignItems: 'center', gap: space.s },
+  tip: { flexDirection: 'row', alignItems: 'center', gap: space.m, marginTop: space.xxl },
 });

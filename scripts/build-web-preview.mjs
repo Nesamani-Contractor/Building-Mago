@@ -15,11 +15,6 @@ const USED_FONTS = [
   'CormorantGaramond_500Medium.',
   'CormorantGaramond_500Medium_Italic.',
   'CormorantGaramond_600SemiBold.',
-  'DMSans_400Regular.',
-  'DMSans_500Medium.',
-  'DMSans_600SemiBold.',
-  'DMSans_700Bold.',
-  'Caveat_500Medium.',
 ];
 const MIME = { ttf: 'font/ttf', png: 'image/png', jpg: 'image/jpeg', ico: 'image/x-icon' };
 
