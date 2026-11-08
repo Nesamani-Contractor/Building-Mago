@@ -8,6 +8,8 @@ export type Consent = 'unasked' | 'granted' | 'denied';
 interface PrefsState {
   appearance: Appearance;
   readAloud: boolean;
+  /** Chosen read-aloud voice id; null = automatic (best female English voice). */
+  voiceId: string | null;
   voiceCommands: boolean;
   stepPhotos: boolean;
   savePhotosToLibrary: boolean;
@@ -23,6 +25,7 @@ interface PrefsState {
 const defaults = {
   appearance: 'system' as Appearance,
   readAloud: true,
+  voiceId: null as string | null,
   voiceCommands: false,
   stepPhotos: false,
   savePhotosToLibrary: false,

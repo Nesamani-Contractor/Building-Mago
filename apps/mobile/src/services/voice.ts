@@ -1,32 +1,82 @@
+import { Platform } from 'react-native';
 import * as Speech from 'expo-speech';
+import { pickReadAloudVoice, rankVoices, type VoiceInfo } from '@mago/shared';
+import { usePrefs } from '@/data/prefs';
 
 /**
  * Read-aloud (works in Expo Go and on web) and voice commands.
+ * Voice: a natural female English voice is chosen automatically (best quality available on the
+ * device); she can pick another in Settings → Read-aloud voice.
  * Voice commands ("next", "back", "repeat") use expo-speech-recognition (approved, D-10), which
- * needs a development build — it is not inside Expo Go or the web preview. While read-aloud is
- * speaking, listening is paused so the app can never hear itself say "next".
+ * needs a development build — not inside Expo Go or the web preview. While read-aloud is speaking,
+ * listening is paused so the app can never hear itself say "next".
  */
 export const voiceCommandsAvailable = false;
 
 let speaking = false;
+let cache: VoiceInfo[] | null = null;
 
-export function speak(text: string, onDone?: () => void) {
+/** Voices on this device. On web the list loads late, so we retry briefly. */
+export async function loadVoices(): Promise<VoiceInfo[]> {
+  if (cache && cache.length > 0) return cache;
+  for (let i = 0; i < 4; i++) {
+    try {
+      // Some browsers never answer; don't wait forever.
+      const list = await Promise.race([
+        Speech.getAvailableVoicesAsync(),
+        new Promise<Speech.Voice[]>((r) => setTimeout(() => r([]), 400)),
+      ]);
+      if (list.length > 0) {
+        cache = list.map((v) => ({ identifier: v.identifier, name: v.name, language: v.language, quality: v.quality }));
+        return cache;
+      }
+    } catch {
+      // ignore and retry
+    }
+    if (Platform.OS !== 'web') break;
+    await new Promise((r) => setTimeout(r, 200));
+  }
+  return [];
+}
+
+/** English female voices, best first, for the Settings picker. */
+export async function femaleVoices(): Promise<VoiceInfo[]> {
+  return rankVoices(await loadVoices());
+}
+
+async function chosenVoice(): Promise<VoiceInfo | undefined> {
+  return pickReadAloudVoice(await loadVoices(), usePrefs.getState().voiceId);
+}
+
+// Warm the cache early so the first step speaks with the right voice.
+void loadVoices();
+
+/** Gentle pacing: a touch slower and softer than default. */
+const RATE = 0.92;
+const PITCH = 1.05;
+
+export function speak(text: string, onDone?: () => void, voiceOverride?: string) {
   Speech.stop();
   speaking = true;
-  Speech.speak(text, {
-    language: 'en-US',
-    rate: 0.95,
-    onDone: () => {
-      speaking = false;
-      onDone?.();
-    },
-    onStopped: () => {
-      speaking = false;
-    },
-    onError: () => {
-      speaking = false;
-    },
-  });
+  void (async () => {
+    const voice = voiceOverride ?? (await chosenVoice())?.identifier;
+    Speech.speak(text, {
+      language: 'en-US',
+      voice,
+      rate: RATE,
+      pitch: PITCH,
+      onDone: () => {
+        speaking = false;
+        onDone?.();
+      },
+      onStopped: () => {
+        speaking = false;
+      },
+      onError: () => {
+        speaking = false;
+      },
+    });
+  })();
 }
 
 export function stopSpeaking() {

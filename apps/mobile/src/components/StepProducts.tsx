@@ -9,8 +9,8 @@ import { Icon } from './Icon';
 import { PressableScale } from './PressableScale';
 import { ProductArt } from './ProductArt';
 
-/** Pro sees product pictures; free users see names plus a teaser. One switch to change. */
-export const PRODUCT_PICTURES_ARE_PRO = true;
+/** Product pictures are shown to everyone (owner decision, D-16 revised). Flip to gate them behind Pro. */
+export const PRODUCT_PICTURES_ARE_PRO = false;
 
 const KIND_LABEL: Record<ProductKind, string> = {
   lipstick: 'Lipstick',

@@ -18,7 +18,6 @@ import { track } from '@/services/analytics';
 
 const BENEFITS: { icon: IconName; title: string; body: string }[] = [
   { icon: 'sparkle', title: 'Every tutorial, turned into steps', body: 'No monthly limit on new looks (fair use: 150 a month).' },
-  { icon: 'star', title: 'See the products for every step', body: 'A picture of what to use, in its shade, right at your mirror.' },
   { icon: 'wand', title: 'Simplify any routine', body: 'A shorter version of long looks that keeps the key effect.' },
   { icon: 'heart', title: 'Your saved looks stay yours', body: 'Everything you saved works forever, Pro or not.' },
 ];

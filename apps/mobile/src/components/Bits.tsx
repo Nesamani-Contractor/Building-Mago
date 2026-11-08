@@ -326,6 +326,8 @@ export function ToggleRow({ label, body, value, onChange, disabled }: { label: s
         trackColor={{ false: c.track, true: c.primary }}
         thumbColor={c.surface}
         ios_backgroundColor={c.track}
+        // react-native-web colors the knob with activeThumbColor
+        {...({ activeThumbColor: c.surface } as object)}
       />
     </View>
   );

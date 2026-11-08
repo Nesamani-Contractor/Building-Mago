@@ -12,6 +12,9 @@ import {
   weekKey,
   sanitizeProps,
   productKind,
+  pickReadAloudVoice,
+  rankVoices,
+  isLikelyMale,
   type Routine,
 } from '../src';
 
@@ -203,5 +206,35 @@ describe('product pictures', () => {
     const r = sample();
     r.products[0]!.shadeHex = 'pink';
     expect(validateRoutine(r).map((i) => i.message)).toContain('Shade must be a #RRGGBB color');
+  });
+});
+
+describe('read-aloud voice', () => {
+  const v = (name: string, language = 'en-US', identifier = name, quality = 'Default') => ({ name, language, identifier, quality });
+  const ios = [
+    v('Fred', 'en-US', 'com.apple.speech.synthesis.voice.Fred'),
+    v('Daniel', 'en-GB', 'com.apple.voice.compact.en-GB.Daniel'),
+    v('Samantha', 'en-US', 'com.apple.voice.compact.en-US.Samantha'),
+    v('Ava (Premium)', 'en-US', 'com.apple.voice.premium.en-US.Ava', 'Enhanced'),
+    v('Thomas', 'fr-FR', 'com.apple.voice.compact.fr-FR.Thomas'),
+  ];
+  it('prefers a premium female English voice on iOS', () => {
+    expect(pickReadAloudVoice(ios)?.name).toBe('Ava (Premium)');
+  });
+  it('never picks known male voices', () => {
+    expect(rankVoices(ios).map((x) => x.name)).not.toContain('Fred');
+    expect(rankVoices(ios).map((x) => x.name)).not.toContain('Daniel');
+    expect(isLikelyMale(v('Google UK English Male', 'en-GB'))).toBe(true);
+    expect(isLikelyMale(v('Google UK English Female', 'en-GB'))).toBe(false);
+  });
+  it('picks a female voice on web/Android', () => {
+    const web = [v('Microsoft Guy Online (Natural)'), v('Microsoft Aria Online (Natural)'), v('Google UK English Male', 'en-GB')];
+    expect(pickReadAloudVoice(web)?.name).toBe('Microsoft Aria Online (Natural)');
+    const android = [v('en-us-x-iom-local'), v('en-us-x-sfg-local'), v('en-us-x-tpd-network')];
+    expect(pickReadAloudVoice(android)?.name).toBe('en-us-x-sfg-local');
+  });
+  it('honours the user’s choice and falls back to system default when nothing fits', () => {
+    expect(pickReadAloudVoice(ios, 'com.apple.voice.compact.en-US.Samantha')?.name).toBe('Samantha');
+    expect(pickReadAloudVoice([v('Fred')])).toBeUndefined();
   });
 });

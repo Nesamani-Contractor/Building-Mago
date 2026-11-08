@@ -45,6 +45,8 @@ export default function Settings() {
       <Group title="App">
         <ListRow icon="bell" label="Notifications" onPress={() => router.push('/settings/notifications')} />
         <Hairline />
+        <ListRow icon="speaker" label="Read-aloud voice" onPress={() => router.push('/settings/voice')} />
+        <Hairline />
         <ListRow icon="lock" label="Privacy & data" onPress={() => router.push('/settings/privacy')} />
         <Hairline />
         <Txt variant="callout" tone="secondary" style={{ marginTop: space.m }}>
