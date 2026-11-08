@@ -46,6 +46,10 @@ export const ANALYTICS_EVENTS = [
   'restore_completed',
   'export_completed',
   'account_deleted',
+  'bag_scan_started',
+  'bag_item_added',
+  'bag_check_viewed',
+  'stylist_note_viewed',
 ] as const;
 export type AnalyticsEvent = (typeof ANALYTICS_EVENTS)[number];
 export type AnalyticsProps = Record<string, string | number | boolean>;

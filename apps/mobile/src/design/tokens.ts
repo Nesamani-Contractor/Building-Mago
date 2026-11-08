@@ -125,6 +125,8 @@ export const fonts = {
   sansMedium: 'DMSans_500Medium',
   sansSemibold: 'DMSans_600SemiBold',
   sansBold: 'DMSans_700Bold',
+  /** Handwritten — only for the stylist's note. */
+  hand: 'Caveat_500Medium',
 } as const;
 
 /** Type scale. Serif for headlines, sans for everything else. Sentence case everywhere. */

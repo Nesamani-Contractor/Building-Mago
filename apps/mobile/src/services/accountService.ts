@@ -4,6 +4,7 @@ import { useSessions } from '@/data/sessions';
 import { useProfile } from '@/data/profile';
 import { usePrefs } from '@/data/prefs';
 import { useAccount } from '@/data/account';
+import { useBag } from '@/data/bag';
 import { track } from './analytics';
 import { isDemo } from './config';
 import { callFunction } from './supabase';
@@ -51,6 +52,7 @@ export async function exportMyData(): Promise<void> {
     collections: useLibrary.getState().collections,
     sessions: Object.values(useSessions.getState().sessions).map((s) => ({ ...s, beforePhoto: undefined, afterPhoto: undefined })),
     plans: useSessions.getState().plans,
+    makeupBag: useBag.getState().items.map((i) => ({ ...i, photoUri: undefined })),
   };
   const json = JSON.stringify(data, null, 2);
   track('export_completed', {});
@@ -76,6 +78,7 @@ export async function deleteEverything(): Promise<void> {
   useLibrary.getState().reset();
   useSessions.getState().reset();
   useAccount.getState().reset();
+  useBag.getState().reset();
   usePrefs.getState().reset();
   useProfile.getState().reset();
 }

@@ -238,3 +238,54 @@ describe('read-aloud voice', () => {
     expect(pickReadAloudVoice([v('Fred')])).toBeUndefined();
   });
 });
+
+import { checkBag, productRole, shadeDistance, type BagItem } from '../src';
+
+describe('makeup bag check', () => {
+  const item = (name: string, shadeHex?: string): BagItem => ({ id: name, name, shadeHex, addedAt: '2026-11-08' });
+  const prod = (name: string, shadeHex?: string) => ({ ref: name, name, confidence: 0.9, shadeHex });
+
+  it('infers roles from names', () => {
+    expect(productRole({ name: 'Rosy cream blush' })).toBe('blush');
+    expect(productRole({ name: 'Gel eyeliner' })).toBe('eyeliner');
+    expect(productRole({ name: 'Lash curler' })).toBe('tool');
+    expect(productRole({ name: 'Skin-tint foundation' })).toBe('foundation');
+    expect(productRole({ name: 'Setting spray' })).toBe('setting spray');
+    expect(productRole({ name: 'Matte brown eyeshadow' })).toBe('eyeshadow');
+    expect(productRole({ name: 'Brow pencil' })).toBe('brow');
+  });
+
+  it('have / swap / missing', () => {
+    const bag = [item('Fenty concealer', '#EFCDB0'), item('Matte brown eyeshadow', '#8A5A40'), item('Ruby lipstick', '#9E1B32'), item('Mascara')];
+    const r = checkBag(
+      [prod('Concealer', '#EECBAE'), prod('Lengthening mascara', '#1E1A1C'), prod('Gel eyeliner', '#1E1A1C'), prod('Rosy cream blush', '#D9808E'), prod('Setting spray'), prod('Highlighter')],
+      bag,
+    );
+    const by = Object.fromEntries(r.matches.map((m) => [m.product.name, m]));
+    expect(by['Concealer']!.status).toBe('have');
+    expect(by['Lengthening mascara']!.status).toBe('have');
+    expect(by['Gel eyeliner']!.status).toBe('swap');
+    expect(by['Gel eyeliner']!.item!.name).toBe('Matte brown eyeshadow');
+    expect(by['Rosy cream blush']!.status).toBe('swap');
+    expect(by['Rosy cream blush']!.item!.name).toBe('Ruby lipstick');
+    expect(by['Setting spray']!.status).toBe('missing');
+    expect(r.have).toBe(2);
+    expect(by['Highlighter']!.status).toBe('swap');
+    expect(r.missing).toBe(1);
+  });
+
+  it('a very different shade of the same thing is a swap, not a match', () => {
+    const r = checkBag([prod('Pink-nude lipstick', '#C98583')], [item('Black lipstick', '#111111')]);
+    expect(r.matches[0]!.status).toBe('swap');
+  });
+
+  it('brushes and sponges fall back to fingertips', () => {
+    expect(checkBag([prod('Damp sponge')], []).matches[0]!.status).toBe('swap');
+  });
+
+  it('shade distance', () => {
+    expect(shadeDistance('#FFFFFF', '#FFFFFF')).toBe(0);
+    expect(shadeDistance('#000000', '#FFFFFF')).toBeGreaterThan(700);
+    expect(shadeDistance(undefined, '#FFFFFF')).toBe(Number.POSITIVE_INFINITY);
+  });
+});

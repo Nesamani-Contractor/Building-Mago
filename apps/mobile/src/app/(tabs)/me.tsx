@@ -15,6 +15,8 @@ import { useSessions } from '@/data/sessions';
 import { useAccount } from '@/data/account';
 import { useProfile } from '@/data/profile';
 import { useStreak } from '@/lib/hooks';
+import { useBag } from '@/data/bag';
+import { BagThumb } from '@/components/BagItemForm';
 
 /** M-14 Me: glow-up preview, stats, badges, referral, Pro status, settings (Ulta Account pattern). */
 export default function Me() {
@@ -25,6 +27,7 @@ export default function Me() {
   const trialEndsAt = useAccount((s) => s.trialEndsAt);
   const linked = useProfile((s) => s.linkedProvider);
   const streak = useStreak();
+  const bag = useBag((s) => s.items);
   const photos = useMemo(
     () => Object.values(sessions).filter((s) => s.completedAt && (s.afterPhoto || s.beforePhoto)).sort((a, b) => (b.completedAt ?? '').localeCompare(a.completedAt ?? '')),
     [sessions],
@@ -53,6 +56,30 @@ export default function Me() {
           </Txt>
         </View>
       </Card>
+
+      <SectionHeader title="My makeup bag" action={bag.length > 0 ? 'Open' : undefined} onAction={() => router.push('/bag')} />
+      <PressableScale onPress={() => router.push(bag.length ? '/bag' : '/bag/scan')} accessibilityLabel={bag.length ? `My makeup bag, ${bag.length} products` : 'Scan your makeup products'} style={{ marginTop: space.m }}>
+        <Card style={styles.bagCard}>
+          {bag.length > 0 ? (
+            <View style={styles.bagThumbs}>
+              {bag.slice(0, 4).map((i) => (
+                <BagThumb key={i.id} item={i} size={48} />
+              ))}
+            </View>
+          ) : (
+            <View style={[styles.badge, { borderColor: c.hairlineStrong }]}>
+              <Icon name="camera" size={22} />
+            </View>
+          )}
+          <View style={{ flex: 1, gap: 2 }}>
+            <Txt variant="headline">{bag.length ? `${bag.length} ${bag.length === 1 ? 'product' : 'products'}` : 'Scan what you own'}</Txt>
+            <Txt variant="footnote" tone="secondary">
+              {bag.length ? 'Every look checks what you have' : 'See what you have for every look'}
+            </Txt>
+          </View>
+          <Icon name="chevronRight" size={18} />
+        </Card>
+      </PressableScale>
 
       <SectionHeader title="Glow-up timeline" action={photos.length > 0 ? 'See all' : undefined} onAction={() => router.push('/glowup')} />
       {photos.length === 0 ? (
@@ -110,6 +137,8 @@ export default function Me() {
 
 const styles = StyleSheet.create({
   stats: { flexDirection: 'row', alignItems: 'center', gap: space.xl },
+  bagCard: { flexDirection: 'row', alignItems: 'center', gap: space.l },
+  bagThumbs: { flexDirection: 'row', gap: -8 },
   stat: { flex: 1, gap: 2 },
   photos: { flexDirection: 'row', gap: space.s, marginTop: space.m },
   photo: { flex: 1, aspectRatio: 3 / 4, borderRadius: radius.thumb },

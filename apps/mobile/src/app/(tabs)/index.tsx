@@ -17,8 +17,9 @@ import { useAccount } from '@/data/account';
 import { SAMPLE_ROUTINES } from '@/data/samples';
 import { greeting, todayLabel, useStreak } from '@/lib/hooks';
 import { findRoutine, startersFor } from '@/lib/routines';
+import { useBag } from '@/data/bag';
 
-type Banner = 'week' | 'share' | 'pro';
+type Banner = 'week' | 'bag' | 'share' | 'pro';
 
 /** Today (home). Ulta structure — greeting, banner carousel, rails — in the warm luxury skin. */
 export default function Today() {
@@ -31,6 +32,7 @@ export default function Today() {
   const goal = useProfile((s) => s.goal);
   const isPro = useAccount((s) => s.isPro);
   const streak = useStreak();
+  const bagCount = useBag((s) => s.items.length);
 
   const saved = useMemo(() => Object.values(items).sort((a, b) => b.savedAt.localeCompare(a.savedAt)), [items]);
   const pinned = saved.filter((s) => s.pinned);
@@ -41,7 +43,12 @@ export default function Today() {
   const inFlight = Object.values(imports).filter((j) => j.status === 'processing' || j.status === 'pending_offline');
   const starters = startersFor(goal);
   const pick = SAMPLE_ROUTINES.find((r) => !items[r.id]) ?? SAMPLE_ROUTINES[0];
-  const banners: Banner[] = isPro ? ['week', 'share'] : ['week', 'share', 'pro'];
+  const banners: Banner[] = [
+    'week',
+    ...(bagCount === 0 ? (['bag'] as Banner[]) : []),
+    'share',
+    ...(isPro ? [] : (['pro'] as Banner[])),
+  ];
 
   return (
     <Screen mood="warm" bottomInset={layout.tabBarSpace}>
@@ -92,6 +99,20 @@ export default function Today() {
                 </Txt>
               </View>
             </Card>
+          ) : b === 'bag' ? (
+            <PressableScale onPress={() => router.push('/bag/scan')} accessibilityLabel="Scan your makeup products">
+              <Card style={styles.banner}>
+                <View style={[styles.bannerIcon, { borderColor: c.hairlineStrong }]}>
+                  <Icon name="camera" size={24} />
+                </View>
+                <View style={{ flex: 1, gap: 4 }}>
+                  <Txt variant="headline">Scan your makeup bag</Txt>
+                  <Txt variant="callout" tone="secondary" numberOfLines={2}>
+                    See what you have, what to swap and what’s missing for every look.
+                  </Txt>
+                </View>
+              </Card>
+            </PressableScale>
           ) : b === 'share' ? (
             <PressableScale onPress={() => router.push('/add')} accessibilityLabel="How to save a look from another app">
             <Card style={styles.banner}>
@@ -175,7 +196,7 @@ export default function Today() {
               {routineMeta(planRoutine)}
             </Txt>
           </View>
-          <Button variant="hero" label="Start this look" onPress={() => router.push(`/follow/${planRoutine.id}`)} />
+          <Button variant="hero" label="Start this look" onPress={() => router.push(`/brief/${planRoutine.id}`)} />
         </Card>
       ) : saved.length === 0 ? (
         <Card variant="porcelain" style={{ marginTop: space.l, gap: space.m }}>
@@ -196,7 +217,7 @@ export default function Today() {
           <Txt variant="callout" tone="secondary">
             {routineMeta((saved[0] as (typeof saved)[number]).routine)}
           </Txt>
-          <Button variant="hero" label="Start this look" onPress={() => router.push(`/follow/${(saved[0] as (typeof saved)[number]).routine.id}`)} />
+          <Button variant="hero" label="Start this look" onPress={() => router.push(`/brief/${(saved[0] as (typeof saved)[number]).routine.id}`)} />
           <Button variant="ghost" label="Open planner" icon="calendar" onPress={() => router.push('/planner')} />
         </Card>
       )}

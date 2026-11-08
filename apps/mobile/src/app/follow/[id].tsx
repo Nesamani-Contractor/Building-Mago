@@ -11,6 +11,7 @@ import { Card } from '@/components/Surface';
 import { Icon } from '@/components/Icon';
 import { PhotoCapture } from '@/components/PhotoCapture';
 import { StepProducts } from '@/components/StepProducts';
+import { useBagCheck } from '@/components/BagCheck';
 import { PressableScale } from '@/components/PressableScale';
 import { StateView } from '@/components/States';
 import { useTheme } from '@/design/theme';
@@ -55,6 +56,8 @@ export default function FollowAlong() {
 
   const steps = useMemo(() => routine?.sections.flatMap((s) => s.steps.map((st) => ({ ...st, section: s.name }))) ?? [], [routine]);
   const products = useMemo(() => new Map(routine?.products.map((p) => [p.ref, p]) ?? []), [routine]);
+  const { check: bagCheck } = useBagCheck(routine);
+  const bagMatches = useMemo(() => (bagCheck ? new Map(bagCheck.matches.map((m) => [m.product.ref, m])) : undefined), [bagCheck]);
   const step = steps[idx];
   const isWide = width >= 900 && width > height;
 
@@ -219,6 +222,7 @@ export default function FollowAlong() {
       ) : null}
       <StepProducts
         note
+        matches={bagMatches}
         size={isWide ? 'l' : 'm'}
         products={step.productRefs.map((ref) => products.get(ref)).filter((p): p is NonNullable<typeof p> => !!p)}
       />

@@ -31,6 +31,8 @@ Every session that touches this repo follows these rules. If a rule here conflic
 | D-14 | UX structure references **Ulta Beauty iOS** (Mobbin): greeting header, banner carousel, rails, round occasion tiles, labeled 5-slot tab bar, Account-style settings lists. Not copied: hot-pink/orange banners, sign-up-first forms, location prompt at launch, shopping. | Owner decision 8 Nov |
 | D-16 | **Product pictures on every step for everyone** (8 Nov, revised same day — no longer Pro-gated). Until a licensed catalog is connected, pictures are type illustrations in the product's shade (`ProductArt`); `imageUrl` takes over when real photos exist. Switch: `PRODUCT_PICTURES_ARE_PRO` (false). | Owner request |
 | D-17 | **Read-aloud uses a natural female English voice** chosen automatically (premium/enhanced first, known male voices excluded — `packages/shared/src/voice.ts`); she can preview and pick another in Settings → Read-aloud voice. Rate 0.92, pitch 1.05. | Owner request 8 Nov |
+| D-18 | **My makeup bag** (8 Nov): she scans products (multi-photo camera or photo picker) or adds by hand; list lives on device. **Privacy change:** product photos (never face photos) are sent once to `scan-products` for Gemini vision reading and are not stored anywhere. Every look runs a bag check (have / swap with advice / missing — `packages/shared/src/bag.ts`) shown on the routine page, the stylist's note and each Follow-Along step. | Owner request |
+| D-19 | **Stylist's note** before every look starts (not on resume): handwritten-style (Caveat font, note only) plan, bag check, what to lay out, tips. Built on-device from the routine + bag. | Owner request |
 | D-15 | Build the full v1 app in **demo mode** first (all screens + flows on-device with sample data; backend written and typechecked, switched off until accounts/keys exist). Repo: github.com/Nesamani-Contractor/Building-Mago. | Owner decision 8 Nov |
 
 Still open: OQ-4 store name/trademark, OQ-7 Discover curation owner, golden-set reviewers, badge list reconciliation, legal review of upload processing, accounts not yet created.
@@ -47,7 +49,7 @@ Still open: OQ-4 store name/trademark, OQ-7 Discover curation owner, golden-set 
 - Supabase: Auth (anonymous + Apple + Google), Postgres with RLS, Storage (temporary uploads only), Edge Functions, Queues (pgmq) + worker.
 - AI: Gemini (video understanding) + Claude (routine structuring, Simplify) — server-side only.
 - RevenueCat (subscriptions), PostHog (analytics, defined event list), Sentry (crashes).
-- react-native-reanimated (use `.get()`/`.set()` on shared values) + gesture-handler, expo-haptics, expo-keep-awake, expo-speech, expo-speech-recognition (approved, not yet installed), expo-camera, expo-secure-store, expo-blur, expo-linear-gradient, expo-clipboard, expo-document-picker, react-native-svg, @expo-google-fonts (Cormorant Garamond, DM Sans).
+- react-native-reanimated (use `.get()`/`.set()` on shared values) + gesture-handler, expo-haptics, expo-keep-awake, expo-speech, expo-speech-recognition (approved, not yet installed), expo-camera, expo-secure-store, expo-blur, expo-linear-gradient, expo-clipboard, expo-document-picker, react-native-svg, @expo-google-fonts (Cormorant Garamond, DM Sans, Caveat — Caveat only in the stylist's note).
 - On web, wrap any `<Svg>` in a `<View>` so it stacks above frosted-glass layers.
 - Tests: Jest + React Native Testing Library; Maestro for key flows; SQL tests proving RLS.
 - **Dependencies:** only well-maintained packages; ask the owner before adding any package not listed here, and state its monthly cost.
@@ -73,7 +75,7 @@ Still open: OQ-4 store name/trademark, OQ-7 Discover curation owner, golden-set 
 - Validate every input server-side. Video URLs: allow-listed hosts only (youtube.com, youtu.be, m.youtube.com, tiktok.com, vm.tiktok.com, instagram.com), normalised to `platform:video_id`; the server never fetches arbitrary user URLs (SSRF protection).
 - Pro entitlement and quota checked **on the server** before any paid AI call. Per-user rate limits + monthly quotas; global daily AI spend cap with alert.
 - Uploaded videos: private bucket, signed expiring upload URLs, deleted right after processing and never later than 24 h.
-- Photos, notes, transcripts never reach our server. Backups encrypted (see ARCHITECTURE).
+- Face photos, notes, transcripts never reach our server. Product photos for the makeup bag are sent once for reading and never stored (D-18). Backups encrypted (see ARCHITECTURE).
 - Tokens in expo-secure-store; HTTPS only; no personal data, URLs-with-tokens, or photo data in logs, Sentry, or analytics.
 - In-app account deletion that truly deletes server data (and offers to wipe local), plus data export (JSON + photo zip).
 - No App Tracking Transparency: we do not track across apps. Re-check before adding any ad/attribution SDK.

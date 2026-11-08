@@ -19,6 +19,7 @@ const USED_FONTS = [
   'DMSans_500Medium.',
   'DMSans_600SemiBold.',
   'DMSans_700Bold.',
+  'Caveat_500Medium.',
 ];
 const MIME = { ttf: 'font/ttf', png: 'image/png', jpg: 'image/jpeg', ico: 'image/x-icon' };
 

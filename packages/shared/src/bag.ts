@@ -1,0 +1,242 @@
+/**
+ * My makeup bag: what she owns, and how a tutorial's products map onto it.
+ * For every product in a look: "have" (she owns it), "swap" (use something she owns instead, with
+ * how-to advice) or "missing". Pure logic — used by the app and the server.
+ */
+import { productKind, type ProductKind, type ProductRef } from './routine';
+
+/** What a product is FOR (more useful than how it looks when matching). */
+export const PRODUCT_ROLES = [
+  'primer',
+  'foundation',
+  'concealer',
+  'corrector',
+  'powder',
+  'bronzer',
+  'blush',
+  'highlighter',
+  'eyeshadow',
+  'eyeliner',
+  'mascara',
+  'lashes',
+  'brow',
+  'lipstick',
+  'lip liner',
+  'gloss',
+  'lip balm',
+  'setting spray',
+  'skincare',
+  'sunscreen',
+  'brush',
+  'sponge',
+  'tool',
+  'other',
+] as const;
+export type ProductRole = (typeof PRODUCT_ROLES)[number];
+
+export interface BagItem {
+  id: string;
+  name: string;
+  brand?: string;
+  kind?: ProductKind;
+  role?: ProductRole;
+  shadeHex?: string;
+  /** On-device photo of her product (never uploaded except briefly for reading, D-18). */
+  photoUri?: string;
+  addedAt: string;
+}
+
+const ROLE_RULES: [RegExp, ProductRole][] = [
+  [/setting spray|fixing spray|setting mist/i, 'setting spray'],
+  [/sunscreen|spf/i, 'sunscreen'],
+  [/primer/i, 'primer'],
+  [/corrector/i, 'corrector'],
+  [/concealer/i, 'concealer'],
+  [/foundation|skin ?tint|bb cream|cc cream/i, 'foundation'],
+  [/setting powder|translucent|powder(?!.*(blush|bronzer))/i, 'powder'],
+  [/bronzer|contour/i, 'bronzer'],
+  [/blush/i, 'blush'],
+  [/highlight/i, 'highlighter'],
+  [/\bbrows?\b/i, 'brow'],
+  [/lip ?liner|lip pencil/i, 'lip liner'],
+  [/eye ?liner|liquid liner|gel liner|kohl/i, 'eyeliner'],
+  [/mascara/i, 'mascara'],
+  [/lash(es)?\b(?!.*curler)|lash glue/i, 'lashes'],
+  [/eyeshadow|eye shadow|shimmer|palette/i, 'eyeshadow'],
+  [/gloss|lip oil/i, 'gloss'],
+  [/balm/i, 'lip balm'],
+  [/lipstick|lip colou?r|lip tint/i, 'lipstick'],
+  [/moistu?ri[sz]er|cleanser|toner|serum|scrub|micellar/i, 'skincare'],
+  [/sponge|blender/i, 'sponge'],
+  [/brush|spoolie|swab/i, 'brush'],
+  [/curler|tweezer/i, 'tool'],
+];
+
+export function productRole(p: { name: string; role?: ProductRole }): ProductRole {
+  if (p.role && PRODUCT_ROLES.includes(p.role)) return p.role;
+  for (const [re, role] of ROLE_RULES) if (re.test(p.name)) return role;
+  return 'other';
+}
+
+/** Owned roles that can stand in for a missing one, best first, with plain-language advice. */
+const SWAPS: Partial<Record<ProductRole, { role: ProductRole; tip: string }[]>> = {
+  primer: [{ role: 'skincare', tip: 'Let your moisturizer sink in for a minute — it works as a light primer.' }],
+  foundation: [{ role: 'concealer', tip: 'Thin it with a drop of moisturizer and press it in only where you need it.' }],
+  concealer: [{ role: 'foundation', tip: 'Tap a second thin layer of foundation where you need more cover.' }],
+  corrector: [
+    { role: 'concealer', tip: 'Use a slightly warmer concealer and tap it on before the rest.' },
+    { role: 'lipstick', tip: 'A tiny dab of a peachy-red lipstick, blended thin, can color-correct dark circles.' },
+  ],
+  powder: [{ role: 'setting spray', tip: 'Skip powder and mist setting spray to lock your base.' }],
+  bronzer: [
+    { role: 'eyeshadow', tip: 'A matte warm-brown eyeshadow on a fluffy brush works as bronzer.' },
+    { role: 'blush', tip: 'A warm blush swept higher gives a sun-kissed look.' },
+  ],
+  blush: [
+    { role: 'lipstick', tip: 'Dab a little lipstick on your cheeks and blend with fingertips — a classic cream-blush trick.' },
+    { role: 'bronzer', tip: 'A light sweep of bronzer gives warmth instead.' },
+  ],
+  highlighter: [{ role: 'eyeshadow', tip: 'A shimmery eyeshadow tapped on your cheekbones works beautifully.' }],
+  eyeliner: [{ role: 'eyeshadow', tip: 'Press a dark eyeshadow along the lash line with a damp angled or thin brush.' }],
+  brow: [{ role: 'eyeshadow', tip: 'A matte brown eyeshadow on an angled brush fills brows softly.' }],
+  'lip liner': [{ role: 'lipstick', tip: 'Line with the lipstick itself using its edge, then fill in.' }],
+  gloss: [{ role: 'lip balm', tip: 'A clear balm on the center of your lips gives a similar shine.' }],
+  lipstick: [
+    { role: 'gloss', tip: 'Your gloss gives a sheerer version of the color.' },
+    { role: 'lip balm', tip: 'A tinted balm gives a softer, sheer version.' },
+  ],
+  'lip balm': [{ role: 'gloss', tip: 'Use a thin layer of gloss.' }],
+  'setting spray': [{ role: 'powder', tip: 'Lightly dust powder where you get shiny instead.' }],
+  sponge: [{ role: 'brush', tip: 'Use a dense brush with small circular motions.' }],
+  brush: [{ role: 'sponge', tip: 'A damp sponge works — or your fingertips for creams.' }],
+  eyeshadow: [{ role: 'bronzer', tip: 'A little bronzer in the crease is a great soft eyeshadow.' }],
+};
+
+/** Tools and steps where "use your fingers" is honest advice. */
+const FINGERS_OK: ProductRole[] = ['brush', 'sponge'];
+
+export type BagStatus = 'have' | 'swap' | 'missing';
+
+export interface BagMatch {
+  product: ProductRef;
+  status: BagStatus;
+  item?: BagItem;
+  tip?: string;
+}
+
+export interface BagCheck {
+  matches: BagMatch[];
+  have: number;
+  swaps: number;
+  missing: number;
+}
+
+const STOP = new Set(['the', 'a', 'an', 'and', 'with', 'for', 'of', 'in', 'my', 'shade']);
+function tokens(s: string): Set<string> {
+  return new Set(
+    s
+      .toLowerCase()
+      .replace(/[^a-z0-9 ]/g, ' ')
+      .split(/\s+/)
+      .filter((w) => w.length > 1 && !STOP.has(w)),
+  );
+}
+function nameSimilarity(a: string, b: string): number {
+  const A = tokens(a);
+  const B = tokens(b);
+  if (A.size === 0 || B.size === 0) return 0;
+  let common = 0;
+  A.forEach((w) => B.has(w) && common++);
+  return common / Math.min(A.size, B.size);
+}
+
+/** Perceptual-ish distance between two #RRGGBB colors (0 = same, ~442 = black vs white). */
+export function shadeDistance(a?: string, b?: string): number {
+  if (!a || !b) return Number.POSITIVE_INFINITY;
+  const p = (h: string) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16)) as [number, number, number];
+  const [r1, g1, b1] = p(a);
+  const [r2, g2, b2] = p(b);
+  const rm = (r1 + r2) / 2;
+  return Math.sqrt((2 + rm / 256) * (r1 - r2) ** 2 + 4 * (g1 - g2) ** 2 + (2 + (255 - rm) / 256) * (b1 - b2) ** 2);
+}
+
+/** Close enough that she'd call it the same shade family. */
+const SAME_SHADE = 120;
+
+export function checkBag(products: ProductRef[], bag: BagItem[]): BagCheck {
+  const byRole = new Map<ProductRole, BagItem[]>();
+  for (const item of bag) {
+    const r = productRole(item);
+    byRole.set(r, [...(byRole.get(r) ?? []), item]);
+  }
+  const closest = (items: BagItem[], shade?: string) =>
+    [...items].sort((x, y) => shadeDistance(x.shadeHex, shade) - shadeDistance(y.shadeHex, shade))[0];
+
+  const matches: BagMatch[] = products.map((product) => {
+    const role = productRole(product);
+    const same = byRole.get(role) ?? [];
+    if (same.length > 0) {
+      const byName = [...same].sort((x, y) => nameSimilarity(y.name, product.name) - nameSimilarity(x.name, product.name))[0] as BagItem;
+      if (nameSimilarity(byName.name, product.name) >= 0.6) return { product, status: 'have', item: byName };
+      const best = closest(same, product.shadeHex) as BagItem;
+      const d = shadeDistance(best.shadeHex, product.shadeHex);
+      if (!product.shadeHex || !best.shadeHex || d <= SAME_SHADE || role === 'mascara' || role === 'tool' || role === 'brush' || role === 'sponge') {
+        return { product, status: 'have', item: best };
+      }
+      return {
+        product,
+        status: 'swap',
+        item: best,
+        tip: d > 250 ? 'Your shade is quite different — apply a lighter layer and build slowly.' : 'A slightly different shade — blend a little more for the same effect.',
+      };
+    }
+    for (const alt of SWAPS[role] ?? []) {
+      const candidates = byRole.get(alt.role);
+      if (candidates && candidates.length > 0) {
+        return { product, status: 'swap', item: closest(candidates, product.shadeHex), tip: alt.tip };
+      }
+    }
+    if (FINGERS_OK.includes(role)) return { product, status: 'swap', tip: 'No tool needed — warm the product on your fingertips and tap it in.' };
+    return { product, status: 'missing' };
+  });
+
+  return {
+    matches,
+    have: matches.filter((m) => m.status === 'have').length,
+    swaps: matches.filter((m) => m.status === 'swap').length,
+    missing: matches.filter((m) => m.status === 'missing').length,
+  };
+}
+
+/** Suggested kind for a role (used when she adds an item by hand). */
+export function kindForRole(role: ProductRole): ProductKind {
+  const map: Partial<Record<ProductRole, ProductKind>> = {
+    primer: 'tube',
+    foundation: 'bottle',
+    concealer: 'tube',
+    corrector: 'tube',
+    powder: 'palette',
+    bronzer: 'palette',
+    blush: 'palette',
+    highlighter: 'palette',
+    eyeshadow: 'palette',
+    eyeliner: 'pencil',
+    mascara: 'mascara',
+    lashes: 'tool',
+    brow: 'pencil',
+    lipstick: 'lipstick',
+    'lip liner': 'pencil',
+    gloss: 'gloss',
+    'lip balm': 'pot',
+    'setting spray': 'spray',
+    skincare: 'pot',
+    sunscreen: 'tube',
+    brush: 'brush',
+    sponge: 'sponge',
+  };
+  return map[role] ?? 'tool';
+}
+
+export function bagItemKind(item: BagItem): ProductKind {
+  return item.kind ?? (item.role ? kindForRole(item.role) : productKind(item));
+}

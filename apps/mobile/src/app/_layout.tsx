@@ -11,6 +11,7 @@ import {
   CormorantGaramond_500Medium_Italic,
   CormorantGaramond_600SemiBold,
 } from '@expo-google-fonts/cormorant-garamond';
+import { Caveat_500Medium } from '@expo-google-fonts/caveat';
 import { DMSans_400Regular, DMSans_500Medium, DMSans_600SemiBold, DMSans_700Bold } from '@expo-google-fonts/dm-sans';
 import { ThemeProvider, useTheme } from '@/design/theme';
 import { useHydrated } from '@/lib/hooks';
@@ -31,6 +32,7 @@ function Shell() {
         <Stack.Screen name="paywall" options={{ presentation: 'modal' }} />
         <Stack.Screen name="plan/[id]" options={{ presentation: 'modal' }} />
         <Stack.Screen name="notifications" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="brief/[id]" options={{ presentation: 'modal' }} />
         <Stack.Screen name="follow/[id]" options={{ animation: 'fade', gestureEnabled: false }} />
       </Stack>
     </>
@@ -38,7 +40,7 @@ function Shell() {
 }
 
 export default function RootLayout() {
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     CormorantGaramond_500Medium,
     CormorantGaramond_500Medium_Italic,
     CormorantGaramond_600SemiBold,
@@ -46,8 +48,10 @@ export default function RootLayout() {
     DMSans_500Medium,
     DMSans_600SemiBold,
     DMSans_700Bold,
+    Caveat_500Medium,
   });
   const hydrated = useHydrated();
+  // If a font can't load (e.g. blocked), open the app with system fonts rather than a blank screen.
 
   useEffect(() => {
     ensureAnonymousSession().catch(() => {
@@ -60,7 +64,7 @@ export default function RootLayout() {
       <SafeAreaProvider>
         <QueryClientProvider client={queryClient}>
           <ThemeProvider>
-            {fontsLoaded && hydrated ? <Shell /> : <View style={{ flex: 1, backgroundColor: '#FBF7F4' }} />}
+            {(fontsLoaded || fontError) && hydrated ? <Shell /> : <View style={{ flex: 1, backgroundColor: '#FBF7F4' }} />}
           </ThemeProvider>
         </QueryClientProvider>
       </SafeAreaProvider>

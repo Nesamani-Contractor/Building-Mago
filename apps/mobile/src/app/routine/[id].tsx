@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { needsCheck, simplifyRoutine } from '@mago/shared';
 import { StepProducts } from '@/components/StepProducts';
+import { BagCheckCard, useBagCheck } from '@/components/BagCheck';
 import { Screen, TopBar, RoundButton } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
 import { Button } from '@/components/Button';
@@ -37,6 +38,8 @@ export default function RoutineDetail() {
   const [showCollections, setShowCollections] = useState(false);
 
   const productsByRef = useMemo(() => new Map(routine?.products.map((p) => [p.ref, p]) ?? []), [routine]);
+  const { check: bagCheck } = useBagCheck(routine);
+  const bagMatches = useMemo(() => (bagCheck ? new Map(bagCheck.matches.map((m) => [m.product.ref, m])) : undefined), [bagCheck]);
 
   if (!routine) {
     return (
@@ -110,7 +113,7 @@ export default function RoutineDetail() {
             label="Start this look"
             onPress={() => {
               ensureSaved();
-              router.push(`/follow/${r.id}`);
+              router.push(`/brief/${r.id}`);
             }}
             style={{ flex: 1.4 }}
           />
@@ -213,6 +216,10 @@ export default function RoutineDetail() {
       </PressableScale>
       {original ? <Button variant="ghost" label="Switch to the original" onPress={() => router.replace(`/routine/${original.id}`)} /> : null}
 
+      <View style={{ marginTop: space.xxl }}>
+        <BagCheckCard routine={r} />
+      </View>
+
       {r.products.length > 0 ? (
         <View style={{ marginTop: space.xxl, gap: space.m }}>
           <Txt variant="title3">Products in this look</Txt>
@@ -258,7 +265,7 @@ export default function RoutineDetail() {
                         {st.hint}
                       </Txt>
                     ) : null}
-                    <StepProducts products={st.productRefs.map((ref) => productsByRef.get(ref)).filter((p): p is NonNullable<typeof p> => !!p)} />
+                    <StepProducts matches={bagMatches} products={st.productRefs.map((ref) => productsByRef.get(ref)).filter((p): p is NonNullable<typeof p> => !!p)} />
                     {source === 'youtube' && st.timestampSec !== undefined ? (
                       <PressableScale accessibilityLabel={`Watch step ${offset + i + 1} in YouTube`} onPress={() => watch(st.timestampSec)} style={styles.watch}>
                         <Icon name="play" size={16} />

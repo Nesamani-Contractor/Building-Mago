@@ -18,6 +18,9 @@ Mode: **demo** (D-15). Everything below runs on the device with sample data unle
 | Me | Weekly ring, stats, glow-up timeline, badges, referral, Pro, backup, settings | |
 | Product pictures (everyone) | "Use these" on every Follow-Along step, per step and "Products in this look" on routine detail | Illustrations of the product type in its shade; real photos need a product catalog (open question). AI now returns product kind + shade. |
 | Read-aloud voice | Female English voice picked automatically; Settings → Read-aloud voice lists this device's female voices with a tap-to-preview | Voices come from the device; the web preview uses the browser's voices. |
+| My makeup bag | Scan (several photos in a row with the camera, or pick photos), review/confirm, add by hand, edit/remove, grouped list (Face, Eyes & brows, Lips, Skincare, Tools) | **Demo: Mago can't read labels yet — you name each product on the review screen.** Live: `scan-products` (Gemini vision) pre-fills names, brands, type and shade. |
+| Bag check | On every look: what you have, what to swap (which of your products + how to use it), what's missing; also on each Follow-Along step | Matching rules + tests in `packages/shared/src/bag.ts`. |
+| Stylist's note | Handwritten-style preview before a look starts: plan, bag check, what to lay out, tips | Built on the device, works offline. |
 | Paywall | Benefit headline, yearly pre-selected, trial timeline, restore, terms/privacy, Apple/Google disclosures, close always visible | **Demo purchase — no charge.** |
 | Settings | Account linking, subscription, weekly goal, notifications, backup & restore, privacy toggles, export, delete account, appearance, analytics event log | |
 | Design system | Tokens (light + dark), Reduce Motion, Dynamic Type to 200%, 44pt+ targets, VoiceOver labels | |
