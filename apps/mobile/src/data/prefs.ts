@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import { DEFAULT_VOICE_STYLE, type VoiceStyle } from '@mago/shared';
 import { deviceStorage } from './storage';
 
 export type Appearance = 'system' | 'light' | 'dark';
@@ -10,6 +11,8 @@ interface PrefsState {
   readAloud: boolean;
   /** Chosen read-aloud voice id; null = automatic (best female English voice). */
   voiceId: string | null;
+  /** Soft & husky (default), Natural or Bright. */
+  voiceStyle: VoiceStyle;
   voiceCommands: boolean;
   stepPhotos: boolean;
   savePhotosToLibrary: boolean;
@@ -26,6 +29,7 @@ const defaults = {
   appearance: 'system' as Appearance,
   readAloud: true,
   voiceId: null as string | null,
+  voiceStyle: DEFAULT_VOICE_STYLE as VoiceStyle,
   voiceCommands: false,
   stepPhotos: false,
   savePhotosToLibrary: false,

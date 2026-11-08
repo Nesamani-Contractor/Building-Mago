@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { pickReadAloudVoice, voiceLabel, type VoiceInfo } from '@mago/shared';
+import { pickReadAloudVoice, voiceLabel, VOICE_STYLES, type VoiceInfo, type VoiceStyle } from '@mago/shared';
 import { Screen, TopBar } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
 import { Card, Hairline } from '@/components/Surface';
-import { ToggleRow } from '@/components/Bits';
+import { Chip, ToggleRow } from '@/components/Bits';
 import { Icon } from '@/components/Icon';
 import { PressableScale } from '@/components/PressableScale';
 import { Skeleton, StateView } from '@/components/States';
@@ -22,6 +22,7 @@ export default function VoiceSettings() {
   const readAloud = usePrefs((s) => s.readAloud);
   const voiceId = usePrefs((s) => s.voiceId);
   const set = usePrefs((s) => s.set);
+  const voiceStyle = usePrefs((s) => s.voiceStyle);
   const [voices, setVoices] = useState<VoiceInfo[] | null>(null);
   const [auto, setAuto] = useState<VoiceInfo | undefined>();
 
@@ -51,7 +52,27 @@ export default function VoiceSettings() {
         <ToggleRow label="Read each step aloud" body="During Follow-Along" value={readAloud} onChange={(v) => set({ readAloud: v })} />
       </Card>
 
-      <Txt variant="callout" tone="secondary" style={{ marginTop: space.xl }}>
+      <Txt variant="title3" style={{ marginTop: space.xl }}>
+        How she sounds
+      </Txt>
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.s, marginTop: space.m }} accessibilityRole="radiogroup">
+        {(Object.keys(VOICE_STYLES) as VoiceStyle[]).map((k) => (
+          <Chip
+            key={k}
+            label={VOICE_STYLES[k].label}
+            selected={voiceStyle === k}
+            onPress={() => {
+              set({ voiceStyle: k });
+              speak(SAMPLE, undefined, voiceId ?? auto?.identifier, k);
+            }}
+          />
+        ))}
+      </View>
+
+      <Txt variant="title3" style={{ marginTop: space.xl }}>
+        Voice
+      </Txt>
+      <Txt variant="callout" tone="secondary" style={{ marginTop: space.s }}>
         Tap a voice to hear it. Premium and Enhanced voices sound the most natural — on iPhone and iPad you can download more in Settings → Accessibility → Spoken Content → Voices → English.
       </Txt>
 

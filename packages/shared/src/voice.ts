@@ -13,34 +13,35 @@ export interface VoiceInfo {
 
 /** Well-known female English voices across iOS, Android (Google TTS), Windows/Edge and Chrome. */
 const FEMALE = [
+  // Warm, lower, softer voices first (best for a soft/husky read)
   'ava',
   'zoe',
   'allison',
-  'samantha',
-  'susan',
-  'nicky',
+  'jenny',
+  'sonia',
   'serena',
+  'moira',
+  'libby',
+  'hazel',
+  'susan',
+  'samantha',
+  'nicky',
   'kate',
   'stephanie',
   'karen',
-  'moira',
   'tessa',
   'fiona',
   'victoria',
   'joelle',
   'aria',
-  'jenny',
   'zira',
-  'hazel',
-  'libby',
-  'sonia',
   'natasha',
   'michelle',
   'emma',
   'google us english',
   'google uk english female',
+  'tpc', // Google en-US female (warmer)
   'sfg', // Google en-US female
-  'tpc', // Google en-US female
   'tpf', // Google en-US female
   'gba', // Google en-GB female
   'female',
@@ -126,3 +127,15 @@ export function voiceLabel(v: VoiceInfo): string {
   const region = /^en[-_]gb/i.test(v.language) ? 'British' : /^en[-_]au/i.test(v.language) ? 'Australian' : /^en[-_]ie/i.test(v.language) ? 'Irish' : /^en[-_]in/i.test(v.language) ? 'Indian' : 'American';
   return `${v.name.replace(/\s*\((Enhanced|Premium)\)/i, '')} — ${region}${tier}`;
 }
+
+/**
+ * How she sounds. Device voices can't be "made husky", but a slightly lower pitch and slower,
+ * unhurried pace reads as softer and warmer. "Soft & husky" is the default (owner request).
+ */
+export const VOICE_STYLES = {
+  husky: { label: 'Soft & husky', pitch: 0.88, rate: 0.86 },
+  natural: { label: 'Natural', pitch: 1.0, rate: 0.92 },
+  bright: { label: 'Bright', pitch: 1.1, rate: 0.95 },
+} as const;
+export type VoiceStyle = keyof typeof VOICE_STYLES;
+export const DEFAULT_VOICE_STYLE: VoiceStyle = 'husky';

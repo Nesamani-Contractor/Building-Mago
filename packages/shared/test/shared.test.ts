@@ -15,6 +15,8 @@ import {
   pickReadAloudVoice,
   rankVoices,
   isLikelyMale,
+  VOICE_STYLES,
+  DEFAULT_VOICE_STYLE,
   type Routine,
 } from '../src';
 
@@ -287,5 +289,13 @@ describe('makeup bag check', () => {
     expect(shadeDistance('#FFFFFF', '#FFFFFF')).toBe(0);
     expect(shadeDistance('#000000', '#FFFFFF')).toBeGreaterThan(700);
     expect(shadeDistance(undefined, '#FFFFFF')).toBe(Number.POSITIVE_INFINITY);
+  });
+});
+
+describe('voice style', () => {
+  it('defaults to a soft, lower, slower read', () => {
+    const s = VOICE_STYLES[DEFAULT_VOICE_STYLE];
+    expect(s.pitch).toBeLessThan(1);
+    expect(s.rate).toBeLessThan(VOICE_STYLES.natural.rate);
   });
 });

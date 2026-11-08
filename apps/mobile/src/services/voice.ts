@@ -1,6 +1,6 @@
 import { Platform } from 'react-native';
 import * as Speech from 'expo-speech';
-import { pickReadAloudVoice, rankVoices, type VoiceInfo } from '@mago/shared';
+import { DEFAULT_VOICE_STYLE, pickReadAloudVoice, rankVoices, VOICE_STYLES, type VoiceInfo, type VoiceStyle } from '@mago/shared';
 import { usePrefs } from '@/data/prefs';
 
 /**
@@ -51,20 +51,17 @@ async function chosenVoice(): Promise<VoiceInfo | undefined> {
 // Warm the cache early so the first step speaks with the right voice.
 void loadVoices();
 
-/** Gentle pacing: a touch slower and softer than default. */
-const RATE = 0.92;
-const PITCH = 1.05;
-
-export function speak(text: string, onDone?: () => void, voiceOverride?: string) {
+export function speak(text: string, onDone?: () => void, voiceOverride?: string, styleOverride?: VoiceStyle) {
   Speech.stop();
   speaking = true;
   void (async () => {
     const voice = voiceOverride ?? (await chosenVoice())?.identifier;
+    const style = VOICE_STYLES[styleOverride ?? usePrefs.getState().voiceStyle ?? DEFAULT_VOICE_STYLE] ?? VOICE_STYLES[DEFAULT_VOICE_STYLE];
     Speech.speak(text, {
       language: 'en-US',
       voice,
-      rate: RATE,
-      pitch: PITCH,
+      rate: style.rate,
+      pitch: style.pitch,
       onDone: () => {
         speaking = false;
         onDone?.();
