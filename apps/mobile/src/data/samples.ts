@@ -7,6 +7,42 @@ import type { Category, Difficulty, Occasion, ProductRef, Routine, Section } fro
 
 type StepSpec = [text: string, products?: string[], hint?: string, waitSec?: number];
 
+/** Approximate shades for the sample products (drives the product pictures). */
+const SHADES: Record<string, string> = {
+  'Skin-tint foundation': '#E3B796',
+  'Skin tint': '#E6BC9C',
+  Concealer: '#EFCDB0',
+  'Peach corrector': '#F2B48F',
+  'Long-wear foundation': '#DDAF8C',
+  'Setting powder': '#F1DCC6',
+  'Warm brown eyeshadow': '#9A6A4F',
+  'Champagne shimmer': '#E9D3B0',
+  'Transition eyeshadow': '#C9937A',
+  'Deep brown eyeshadow': '#5E3B2C',
+  'Lengthening mascara': '#1E1A1C',
+  'Volumizing mascara': '#1E1A1C',
+  'Liquid liner': '#1E1A1C',
+  'Gel eyeliner': '#2A2224',
+  'Rosy cream blush': '#D9808E',
+  'Cream blush': '#E0918F',
+  'Peach blush': '#F0A88A',
+  Bronzer: '#B07A58',
+  'Liquid highlighter': '#F3DEC2',
+  'Lip liner': '#B9707A',
+  'Pink lip liner': '#D78A97',
+  'Pink-nude lipstick': '#C98583',
+  'Sheer pink lipstick': '#E59AA8',
+  'Long-wear lip color': '#A85461',
+  'Clear gloss': '#F6E9EC',
+  'Nude gloss': '#E3B3A6',
+  'Tinted lip balm': '#DE9A9C',
+  'Brow pencil': '#6B4A3A',
+  'Brow gel': '#7A5A48',
+  'Clear brow gel': '#EDE6E3',
+  'Light moisturizer': '#F7F1EC',
+  Moisturizer: '#F7F1EC',
+};
+
 function mk(
   id: string,
   title: string,
@@ -26,7 +62,12 @@ function mk(
       const refs = prods.map((p) => {
         const ref = p.toLowerCase().replace(/[^a-z0-9]+/g, '-');
         if (!products.has(ref))
-          products.set(ref, { ref, name: p, confidence: extra.lowConfidence?.includes(p) ? 0.45 : 0.9 });
+          products.set(ref, {
+            ref,
+            name: p,
+            confidence: extra.lowConfidence?.includes(p) ? 0.45 : 0.9,
+            shadeHex: SHADES[p],
+          });
         return ref;
       });
       return {

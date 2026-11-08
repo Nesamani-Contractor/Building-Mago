@@ -16,6 +16,7 @@ Mode: **demo** (D-15). Everything below runs on the device with sample data unle
 | Discover | Hero carousel, occasion circles, quick looks, because-you-saved, all looks, one-tap save | 8 Mago-written sample routines. |
 | Planner | Plan sheet (60 days, time, occasion, weekdays), month calendar with dots | Reminders are not scheduled yet. |
 | Me | Weekly ring, stats, glow-up timeline, badges, referral, Pro, backup, settings | |
+| Product pictures (Pro) | "Use these" on every Follow-Along step, per step and "Products in this look" on routine detail; free users see names + "See them with pictures · Pro" | Illustrations of the product type in its shade; real photos need a product catalog (open question). AI now returns product kind + shade. |
 | Paywall | Benefit headline, yearly pre-selected, trial timeline, restore, terms/privacy, Apple/Google disclosures, close always visible | **Demo purchase — no charge.** |
 | Settings | Account linking, subscription, weekly goal, notifications, backup & restore, privacy toggles, export, delete account, appearance, analytics event log | |
 | Design system | Tokens (light + dark), Reduce Motion, Dynamic Type to 200%, 44pt+ targets, VoiceOver labels | |

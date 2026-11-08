@@ -18,6 +18,7 @@ import { track } from '@/services/analytics';
 
 const BENEFITS: { icon: IconName; title: string; body: string }[] = [
   { icon: 'sparkle', title: 'Every tutorial, turned into steps', body: 'No monthly limit on new looks (fair use: 150 a month).' },
+  { icon: 'star', title: 'See the products for every step', body: 'A picture of what to use, in its shade, right at your mirror.' },
   { icon: 'wand', title: 'Simplify any routine', body: 'A shorter version of long looks that keeps the key effect.' },
   { icon: 'heart', title: 'Your saved looks stay yours', body: 'Everything you saved works forever, Pro or not.' },
 ];
@@ -51,7 +52,13 @@ export default function Paywall() {
   }
 
   const headline =
-    from === 'limit' ? 'You’ve used this month’s free looks' : from === 'simplify' ? 'Simplify is part of Pro' : 'Every tutorial, ready for your mirror';
+    from === 'limit'
+      ? 'You’ve used this month’s free looks'
+      : from === 'simplify'
+        ? 'Simplify is part of Pro'
+        : from === 'products'
+          ? 'See exactly what to use, step by step'
+          : 'Every tutorial, ready for your mirror';
 
   return (
     <View style={[styles.fill, { backgroundColor: c.bg }]}>

@@ -32,6 +32,23 @@ export const MIN_STEPS = 3;
 export const MAX_STEPS = 40;
 export const MAX_STEP_WORDS = 25;
 
+export const PRODUCT_KINDS = [
+  'lipstick',
+  'gloss',
+  'pencil',
+  'mascara',
+  'palette',
+  'brush',
+  'sponge',
+  'bottle',
+  'tube',
+  'pot',
+  'spray',
+  'tool',
+] as const;
+/** What the product looks like — drives the product picture. */
+export type ProductKind = (typeof PRODUCT_KINDS)[number];
+
 export interface ProductRef {
   ref: string;
   name: string;
@@ -39,6 +56,35 @@ export interface ProductRef {
   category?: string;
   /** 0–1. Below LOW_CONFIDENCE the UI shows "Check this". */
   confidence: number;
+  /** Product type for the picture. Inferred from the name when missing. */
+  kind?: ProductKind;
+  /** Approximate shade as #RRGGBB, when the tutorial shows or names one. */
+  shadeHex?: string;
+  /** Real product photo (from a licensed catalog), when available. */
+  imageUrl?: string;
+}
+
+const KIND_RULES: [RegExp, ProductKind][] = [
+  [/gloss|lip oil/i, 'gloss'],
+  [/lipstick|lip colou?r|lip tint/i, 'lipstick'],
+  [/liner|pencil/i, 'pencil'],
+  [/mascara/i, 'mascara'],
+  [/spoolie|brush|swab/i, 'brush'],
+  [/sponge|beauty blender/i, 'sponge'],
+  [/spray|mist|micellar/i, 'spray'],
+  [/cream|moisturi[sz]er|balm|pot/i, 'pot'],
+  [/liquid/i, 'bottle'],
+  [/eyeshadow|shimmer|bronzer|powder|highlighter|palette|blush/i, 'palette'],
+  [/sunscreen|spf|cleanser|scrub|gel|primer|corrector|concealer/i, 'tube'],
+  [/foundation|tint|serum|toner|liquid|bottle/i, 'bottle'],
+  [/curler|lash|glue|tweezer/i, 'tool'],
+];
+
+/** The product's kind: explicit, else inferred from its name, else a generic tool. */
+export function productKind(p: Pick<ProductRef, 'kind' | 'name'>): ProductKind {
+  if (p.kind && PRODUCT_KINDS.includes(p.kind)) return p.kind;
+  for (const [re, kind] of KIND_RULES) if (re.test(p.name)) return kind;
+  return 'tool';
 }
 
 export interface Step {
@@ -135,6 +181,12 @@ export function validateRoutine(r: Routine): ValidationIssue[] {
   r.products.forEach((p, i) => {
     if (p.confidence < 0 || p.confidence > 1)
       issues.push({ path: `products[${i}].confidence`, message: 'Confidence must be between 0 and 1' });
+    if (p.shadeHex !== undefined && !/^#[0-9a-fA-F]{6}$/.test(p.shadeHex))
+      issues.push({ path: `products[${i}].shadeHex`, message: 'Shade must be a #RRGGBB color' });
+    if (p.kind !== undefined && !PRODUCT_KINDS.includes(p.kind))
+      issues.push({ path: `products[${i}].kind`, message: `Unknown product kind "${p.kind}"` });
+    if (p.imageUrl !== undefined && !/^https:\/\//.test(p.imageUrl))
+      issues.push({ path: `products[${i}].imageUrl`, message: 'Product image must be an https URL' });
   });
   return issues;
 }

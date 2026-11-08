@@ -11,6 +11,7 @@ import {
   checkConversionQuota,
   weekKey,
   sanitizeProps,
+  productKind,
   type Routine,
 } from '../src';
 
@@ -177,5 +178,30 @@ describe('analytics sanitising', () => {
       adapter: 'youtube',
       step: 3,
     });
+  });
+});
+
+describe('product pictures', () => {
+  it.each([
+    ['Pink-nude lipstick', 'lipstick'],
+    ['Clear gloss', 'gloss'],
+    ['Brow pencil', 'pencil'],
+    ['Lengthening mascara', 'mascara'],
+    ['Warm brown eyeshadow', 'palette'],
+    ['Fluffy blending brush', 'brush'],
+    ['Damp sponge', 'sponge'],
+    ['Setting spray', 'spray'],
+    ['Rosy cream blush', 'pot'],
+    ['SPF 50 sunscreen', 'tube'],
+    ['Skin-tint foundation', 'bottle'],
+    ['Lash curler', 'tool'],
+  ])('%s → %s', (name, kind) => {
+    expect(productKind({ name })).toBe(kind);
+  });
+  it('an explicit kind wins, and bad shades are rejected', () => {
+    expect(productKind({ name: 'Mystery', kind: 'pot' })).toBe('pot');
+    const r = sample();
+    r.products[0]!.shadeHex = 'pink';
+    expect(validateRoutine(r).map((i) => i.message)).toContain('Shade must be a #RRGGBB color');
   });
 });

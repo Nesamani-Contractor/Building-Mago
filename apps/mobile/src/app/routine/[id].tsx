@@ -3,6 +3,7 @@ import { Linking, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { needsCheck, simplifyRoutine } from '@mago/shared';
+import { StepProducts } from '@/components/StepProducts';
 import { Screen, TopBar, RoundButton } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
 import { Button } from '@/components/Button';
@@ -212,6 +213,13 @@ export default function RoutineDetail() {
       </PressableScale>
       {original ? <Button variant="ghost" label="Switch to the original" onPress={() => router.replace(`/routine/${original.id}`)} /> : null}
 
+      {r.products.length > 0 ? (
+        <View style={{ marginTop: space.xxl, gap: space.m }}>
+          <Txt variant="title3">Products in this look</Txt>
+          <StepProducts products={r.products} title={`${r.products.length} products`} note />
+        </View>
+      ) : null}
+
       <View style={styles.stepsHead}>
         <Txt variant="title3">Steps</Txt>
         <PressableScale accessibilityLabel={showHints ? 'Hide tips' : 'Show tips'} onPress={() => setShowHints(!showHints)} style={styles.hintToggle}>
@@ -250,23 +258,7 @@ export default function RoutineDetail() {
                         {st.hint}
                       </Txt>
                     ) : null}
-                    {st.productRefs.length > 0 ? (
-                      <View style={styles.products}>
-                        {st.productRefs.map((ref) => {
-                          const p = productsByRef.get(ref);
-                          if (!p) return null;
-                          const check = needsCheck(p);
-                          return (
-                            <View key={ref} style={[styles.product, { backgroundColor: check ? c.warningBg : c.surfaceAlt }]}>
-                              <Txt variant="footnote" tone={check ? 'warning' : 'ink'}>
-                                {p.name}
-                                {check ? ' · Check this' : ''}
-                              </Txt>
-                            </View>
-                          );
-                        })}
-                      </View>
-                    ) : null}
+                    <StepProducts products={st.productRefs.map((ref) => productsByRef.get(ref)).filter((p): p is NonNullable<typeof p> => !!p)} />
                     {source === 'youtube' && st.timestampSec !== undefined ? (
                       <PressableScale accessibilityLabel={`Watch step ${offset + i + 1} in YouTube`} onPress={() => watch(st.timestampSec)} style={styles.watch}>
                         <Icon name="play" size={16} />
@@ -312,7 +304,5 @@ const styles = StyleSheet.create({
   hintToggle: { minHeight: 44, justifyContent: 'center' },
   warn: { flexDirection: 'row', gap: space.s, alignItems: 'center', padding: space.m, borderRadius: radius.chip, marginTop: space.s },
   step: { flexDirection: 'row', gap: space.m },
-  products: { flexDirection: 'row', flexWrap: 'wrap', gap: space.s },
-  product: { borderRadius: radius.chip, paddingHorizontal: space.m, paddingVertical: space.xs },
   watch: { flexDirection: 'row', alignItems: 'center', gap: space.xs, minHeight: 44, alignSelf: 'flex-start' },
 });

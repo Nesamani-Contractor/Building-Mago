@@ -4,13 +4,13 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useKeepAwake } from 'expo-keep-awake';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { FadeIn, SlideInLeft, SlideInRight, useReducedMotion } from 'react-native-reanimated';
-import { needsCheck } from '@mago/shared';
 import { Ambient } from '@/components/Ambient';
 import { Txt } from '@/components/Txt';
 import { Button } from '@/components/Button';
 import { Card } from '@/components/Surface';
 import { Icon } from '@/components/Icon';
 import { PhotoCapture } from '@/components/PhotoCapture';
+import { StepProducts } from '@/components/StepProducts';
 import { PressableScale } from '@/components/PressableScale';
 import { StateView } from '@/components/States';
 import { useTheme } from '@/design/theme';
@@ -217,23 +217,11 @@ export default function FollowAlong() {
           </PressableScale>
         )
       ) : null}
-      {step.productRefs.length > 0 ? (
-        <View style={styles.chips}>
-          {step.productRefs.map((ref) => {
-            const p = products.get(ref);
-            if (!p) return null;
-            const check = needsCheck(p);
-            return (
-              <View key={ref} style={[styles.product, { backgroundColor: check ? c.warningBg : c.surface, borderColor: c.hairline }]}>
-                <Txt variant="subhead" tone={check ? 'warning' : 'ink'}>
-                  {p.name}
-                  {check ? ' · Check this' : ''}
-                </Txt>
-              </View>
-            );
-          })}
-        </View>
-      ) : null}
+      <StepProducts
+        note
+        size={isWide ? 'l' : 'm'}
+        products={step.productRefs.map((ref) => products.get(ref)).filter((p): p is NonNullable<typeof p> => !!p)}
+      />
       {step.waitSec ? (
         <Card variant="outline" style={styles.timer}>
           <Icon name="clock" size={22} />
@@ -333,8 +321,6 @@ const styles = StyleSheet.create({
   segment: { flex: 1, height: 4, borderRadius: 2 },
   watch: { flexDirection: 'row', alignItems: 'center', gap: space.s, alignSelf: 'flex-start', borderRadius: radius.pill, borderWidth: 1, paddingLeft: 6, paddingRight: space.l, minHeight: 44 },
   watchIcon: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
-  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.s },
-  product: { borderRadius: radius.chip, borderWidth: 1, paddingHorizontal: space.m, paddingVertical: space.s },
   timer: { flexDirection: 'row', alignItems: 'center', gap: space.m, paddingVertical: space.m },
   voice: { flexDirection: 'row', alignItems: 'center', gap: space.s, alignSelf: 'center', borderRadius: radius.pill, borderWidth: 1, paddingHorizontal: space.l, paddingVertical: space.s },
   controls: { flexDirection: 'row', gap: space.m, alignItems: 'center' },

@@ -2,7 +2,7 @@
 // D-04: Gemini "watches" the video (public YouTube URL or uploaded file) and returns a timestamped
 // transcript + visual notes; Claude turns that into the Mago routine schema; we validate the result.
 import { env } from './http.ts';
-import { CATEGORIES, OCCASIONS, MAX_STEP_WORDS, validateRoutine, type Routine } from './core/routine.ts';
+import { CATEGORIES, OCCASIONS, MAX_STEP_WORDS, PRODUCT_KINDS, validateRoutine, type Routine } from './core/routine.ts';
 
 const GEMINI_MODEL = Deno.env.get('GEMINI_MODEL') ?? 'gemini-3.5-flash';
 const CLAUDE_MODEL = Deno.env.get('CLAUDE_MODEL') ?? 'claude-sonnet-5-5';
@@ -18,7 +18,7 @@ export interface VideoNotes {
 
 const WATCH_PROMPT = `You are watching a makeup or beauty tutorial.
 Return JSON only: {"language": "<ISO 639-1 of the spoken language>", "title": "...", "creator": "...", "durationSec": <int>, "notes": "..."}.
-In "notes", write one line per action in order, each starting with a [MM:SS] timestamp, describing what is applied, where, with which tool, and any product names shown or said. Include waiting times. Do not invent products.`;
+In "notes", write one line per action in order, each starting with a [MM:SS] timestamp, describing what is applied, where, with which tool, and any product names shown or said. Include waiting times and the colour of each product when visible (e.g. "warm brown eyeshadow"). Do not invent products.`;
 
 /** Gemini video understanding. `fileUri` is either a public YouTube URL or a Gemini File API URI. */
 export async function watchVideo(fileUri: string, mimeType?: string): Promise<VideoNotes> {
@@ -81,7 +81,15 @@ const ROUTINE_TOOL = {
         items: {
           type: 'object',
           required: ['ref', 'name', 'confidence'],
-          properties: { ref: { type: 'string' }, name: { type: 'string' }, brand: { type: 'string' }, category: { type: 'string' }, confidence: { type: 'number' } },
+          properties: {
+            ref: { type: 'string' },
+            name: { type: 'string' },
+            brand: { type: 'string' },
+            category: { type: 'string' },
+            confidence: { type: 'number' },
+            kind: { type: 'string', enum: [...PRODUCT_KINDS] },
+            shadeHex: { type: 'string', pattern: '^#[0-9a-fA-F]{6}$' },
+          },
         },
       },
     },
@@ -92,7 +100,8 @@ const SYSTEM = `You turn makeup tutorial notes into a calm, clear, follow-along 
 Rules: 3–40 steps, each step ≤ ${MAX_STEP_WORDS} words, imperative, second person ("Blend…").
 Group steps into sections like Base, Eyes, Brows, Cheeks, Lips, Finish. Put optional extra advice in "hint".
 Use the [MM:SS] timestamps for timestampSec. Use waitSec only when the video says to wait.
-Products: only those clearly shown or said; confidence 0–1 (below 0.6 means unsure). Never invent brands.`;
+Products: only those clearly shown or said; confidence 0–1 (below 0.6 means unsure). Never invent brands.
+For each product set "kind" (what it looks like: lipstick, gloss, pencil, mascara, palette, brush, sponge, bottle, tube, pot, spray, tool) and, when the video shows or names a colour, "shadeHex" as an approximate #RRGGBB.`;
 
 /** Claude: notes → validated Routine. One retry with the validation errors if the first answer fails. */
 export async function structureRoutine(notes: VideoNotes, base: Pick<Routine, 'id' | 'source' | 'creator' | 'durationSec'>): Promise<{ routine: Routine; inputTokens: number; outputTokens: number }> {
