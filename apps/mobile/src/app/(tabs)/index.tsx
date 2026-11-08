@@ -57,6 +57,21 @@ export default function Today() {
         <RoundButton icon="search" label="Search your looks" onPress={() => router.push('/(tabs)/library')} />
       </View>
 
+      <PressableScale onPress={() => router.push('/add')} accessibilityLabel="Paste a tutorial link to turn it into steps" style={{ marginBottom: space.l }}>
+        <Card variant="outline" style={styles.addCard}>
+          <View style={[styles.bannerIcon, { borderColor: c.hairlineStrong }]}>
+            <Icon name="link" size={24} />
+          </View>
+          <View style={{ flex: 1, gap: 2 }}>
+            <Txt variant="headline">Paste a tutorial link</Txt>
+            <Txt variant="footnote" tone="secondary">
+              YouTube, TikTok or Instagram → step-by-step look
+            </Txt>
+          </View>
+          <Icon name="chevronRight" size={18} />
+        </Card>
+      </PressableScale>
+
       <Carousel<Banner>
         data={banners}
         height={128}
@@ -78,6 +93,7 @@ export default function Today() {
               </View>
             </Card>
           ) : b === 'share' ? (
+            <PressableScale onPress={() => router.push('/add')} accessibilityLabel="How to save a look from another app">
             <Card style={styles.banner}>
               <View style={[styles.bannerIcon, { borderColor: c.hairlineStrong }]}>
                 <Icon name="share" size={24} />
@@ -85,10 +101,11 @@ export default function Today() {
               <View style={{ flex: 1, gap: 4 }}>
                 <Txt variant="headline">Saw a look you love?</Txt>
                 <Txt variant="callout" tone="secondary" numberOfLines={2}>
-                  Tap Share in YouTube, TikTok or Instagram, then Mago.
+                  Tap Share → Copy link, then paste it in Mago.
                 </Txt>
               </View>
             </Card>
+            </PressableScale>
           ) : (
             <PressableScale onPress={() => router.push('/paywall?from=today')} accessibilityLabel="Try Mago Pro free for 7 days">
               <Card style={styles.banner}>
@@ -229,6 +246,7 @@ function Rail({ children }: { children: React.ReactNode }) {
 const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'flex-end', gap: space.m, marginTop: space.xl, marginBottom: space.xxl },
   banner: { flexDirection: 'row', alignItems: 'center', gap: space.l, height: 128 },
+  addCard: { flexDirection: 'row', alignItems: 'center', gap: space.l, paddingVertical: space.l },
   bannerIcon: { width: 56, height: 56, borderRadius: 28, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', gap: space.l },
   between: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },

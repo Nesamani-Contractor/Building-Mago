@@ -15,6 +15,8 @@ import { fonts, radius, space } from '@/design/tokens';
 import { useAccount, conversionsUsed } from '@/data/account';
 import { startLinkImport, startUploadImport } from '@/services/importService';
 
+const SAMPLE_LINK = 'https://youtu.be/MagoDemo001';
+
 /** M-12 Add sheet: paste link · upload a video · write it myself. */
 export default function Add() {
   const router = useRouter();
@@ -34,10 +36,19 @@ export default function Add() {
   }
 
   async function paste() {
-    const text = await Clipboard.getStringAsync().catch(() => '');
-    if (!text) return setError('Your clipboard is empty. Copy the video link first.');
-    setLink(text);
-    go(text);
+    setError(null);
+    let text = '';
+    try {
+      text = await Clipboard.getStringAsync();
+    } catch {
+      text = '';
+    }
+    if (!text) {
+      // Browsers (and the web preview) often block apps from reading the clipboard.
+      setError('Couldn’t read your clipboard here. Tap the box above, then press and hold and choose Paste.');
+      return;
+    }
+    setLink(text.trim());
   }
 
   async function upload() {
@@ -53,39 +64,76 @@ export default function Add() {
 
   return (
     <Screen mood="calm" header={<TopBar title="Add a look" backIcon="close" backLabel="Close" />}>
-      <Card style={{ marginTop: space.l, gap: space.l }}>
-        <View style={styles.row}>
-          <Icon name="link" size={22} />
-          <Txt variant="headline">Paste a tutorial link</Txt>
-        </View>
+      <Txt variant="title2" accessibilityRole="header" style={{ marginTop: space.l }}>
+        Turn a tutorial into steps
+      </Txt>
+      <Card style={{ marginTop: space.l, gap: space.m }}>
+        <Txt variant="headline">How it works</Txt>
+        {[
+          'In YouTube, TikTok or Instagram, open the tutorial and tap Share → Copy link.',
+          'Come back here and paste it into the box below.',
+          'Tap Turn into steps.',
+        ].map((t, i) => (
+          <View key={i} style={styles.howRow}>
+            <View style={[styles.num, { borderColor: c.accent }]}>
+              <Txt variant="subhead">{i + 1}</Txt>
+            </View>
+            <Txt variant="callout" style={{ flex: 1 }}>
+              {t}
+            </Txt>
+          </View>
+        ))}
+      </Card>
+
+      <Txt variant="subhead" style={{ marginTop: space.xl }} nativeID="linkLabel">
+        Paste your link here
+      </Txt>
+      <View style={[styles.field, { borderColor: error ? c.danger : c.inkSecondary, backgroundColor: c.surface }]}>
+        <Icon name="link" size={20} color={c.inkSecondary} />
         <TextInput
           value={link}
           onChangeText={(t) => {
             setLink(t);
             setError(null);
           }}
-          placeholder="YouTube, TikTok or Instagram link"
+          placeholder="e.g. https://youtu.be/…"
           placeholderTextColor={c.inkSecondary}
           autoCapitalize="none"
           autoCorrect={false}
           keyboardType="url"
           returnKeyType="go"
-          onSubmitEditing={() => go(link)}
+          onSubmitEditing={() => link.trim() && go(link)}
           accessibilityLabel="Tutorial link"
-          style={[styles.input, { color: c.ink, borderColor: error ? c.danger : c.hairlineStrong, backgroundColor: c.surface }]}
+          style={[styles.input, { color: c.ink }]}
         />
-        {error ? (
-          <Txt variant="callout" tone="danger" accessibilityLiveRegion="assertive">
-            {error}
-          </Txt>
-        ) : null}
-        {link.trim() ? (
-          <Button variant="hero" label="Turn into steps" onPress={() => go(link)} />
+        {link ? (
+          <PressableScale accessibilityLabel="Clear link" onPress={() => setLink('')} style={styles.inlineBtn}>
+            <Icon name="close" size={18} />
+          </PressableScale>
         ) : (
-          <Button variant="hero" label="Paste from clipboard" icon="link" onPress={paste} />
+          <PressableScale accessibilityLabel="Paste from clipboard" onPress={paste} style={[styles.pasteBtn, { borderColor: c.ink }]}>
+            <Txt variant="subhead">Paste</Txt>
+          </PressableScale>
         )}
-      </Card>
+      </View>
+      {error ? (
+        <Txt variant="callout" tone="danger" accessibilityLiveRegion="assertive" style={{ marginTop: space.s }}>
+          {error}
+        </Txt>
+      ) : null}
+      <Button variant="hero" label="Turn into steps" disabled={!link.trim()} onPress={() => go(link)} style={{ marginTop: space.l }} />
+      <PressableScale accessibilityLabel="Try a sample link" onPress={() => {
+        setError(null);
+        setLink(SAMPLE_LINK);
+      }} style={styles.sample}>
+        <Txt variant="subhead" style={{ textDecorationLine: 'underline', textDecorationColor: c.accent }}>
+          No link handy? Try a sample link
+        </Txt>
+      </PressableScale>
 
+      <Txt variant="subhead" tone="secondary" style={{ marginTop: space.xl }}>
+        Or
+      </Txt>
       <View style={styles.grid}>
         <Option icon="upload" title="Upload a video" body="A saved video or screen recording, up to 15 min" onPress={upload} />
         <Option icon="pencil" title="Write it myself" body="Your own steps, no link needed" onPress={() => router.push('/add/manual')} />
@@ -118,7 +166,12 @@ function Option({ icon, title, body, onPress }: { icon: IconName; title: string;
 }
 
 const styles = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: space.m },
-  input: { borderWidth: 1, borderRadius: radius.chip, minHeight: 52, paddingHorizontal: space.l, fontFamily: fonts.sans, fontSize: 17 },
-  grid: { flexDirection: 'row', gap: space.m, marginTop: space.l },
+  input: { flex: 1, minHeight: 52, fontFamily: fonts.sans, fontSize: 17 },
+  grid: { flexDirection: 'row', gap: space.m, marginTop: space.s },
+  howRow: { flexDirection: 'row', alignItems: 'center', gap: space.m },
+  num: { width: 28, height: 28, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  field: { flexDirection: 'row', alignItems: 'center', gap: space.s, borderWidth: 1.5, borderRadius: radius.chip, paddingLeft: space.l, paddingRight: space.xs, minHeight: 60, marginTop: space.s },
+  inlineBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  pasteBtn: { minHeight: 44, paddingHorizontal: space.l, borderRadius: radius.pill, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  sample: { alignSelf: 'center', minHeight: 44, justifyContent: 'center', marginTop: space.s },
 });
