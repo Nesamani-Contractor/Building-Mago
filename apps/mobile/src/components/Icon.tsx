@@ -41,7 +41,8 @@ export type IconName =
   | 'info'
   | 'pin'
   | 'refresh'
-  | 'wand';
+  | 'wand'
+  | 'clipboard';
 
 interface Props {
   name: IconName;
@@ -119,6 +120,14 @@ export function Icon({ name, size = 24, color, filled = false, strokeWidth = 1.5
       break;
     case 'play':
       body = <Path {...p} fill={fillOr} d="M8 5.5v13l11-6.5z" />;
+      break;
+    case 'clipboard':
+      body = (
+        <>
+          <Rect {...p} x={6} y={4.5} width={12} height={16} rx={2} />
+          <Path {...p} d="M9.5 4.5h5v2.5h-5z" />
+        </>
+      );
       break;
     case 'link':
       body = (

@@ -30,23 +30,26 @@ export const LOOPS = {
 
 export type Vibe = 'soft' | 'clean' | 'night' | 'bold';
 export const VIBES: { id: Vibe; label: string; photo: keyof typeof PHOTOS; focus: string; meta: string }[] = [
-  { id: 'soft', label: 'Soft glam', photo: 'brows', focus: '62% 30%', meta: '12 min · 6 steps' },
-  { id: 'clean', label: 'Clean girl', photo: 'heroClean', focus: '55% 20%', meta: '8 min · 5 steps' },
-  { id: 'night', label: 'Night out', photo: 'night', focus: '50% 26%', meta: '18 min · 8 steps' },
-  { id: 'bold', label: 'Bold editorial', photo: 'vibeBold', focus: '50% 34%', meta: '15 min · 7 steps' },
+  { id: 'soft', label: 'Soft glam', photo: 'softGlam', focus: '45% 38%', meta: '12 min · 6 steps' },
+  { id: 'clean', label: 'Clean girl', photo: 'heroClean', focus: '50% 38%', meta: '8 min · 5 steps' },
+  { id: 'night', label: 'Night out', photo: 'night', focus: '50% 35%', meta: '18 min · 8 steps' },
+  { id: 'bold', label: 'Bold editorial', photo: 'vibeBold', focus: '45% 35%', meta: '15 min · 7 steps' },
 ];
 
 /** Where the subject sits in each photo, so crops keep the face/feature in frame. */
 export const PHOTO_FOCUS: Partial<Record<keyof typeof PHOTOS, string>> = {
-  softGlam: '50% 40%',
-  workFace: '70% 30%',
-  brows: '55% 30%',
-  partyLiner: '45% 40%',
-  weddingGuest: '40% 50%',
-  heroClean: '55% 20%',
-  vibeBold: '50% 34%',
-  glow: '50% 35%',
-  night: '50% 26%',
+  softGlam: '45% 38%',
+  workFace: '50% 30%',
+  glossyLips: '55% 45%',
+  brows: '55% 45%',
+  weddingGuest: '50% 32%',
+  dewySkin: '50% 40%',
+  partyLiner: '50% 42%',
+  sunkissed: '50% 30%',
+  heroClean: '50% 38%',
+  vibeBold: '45% 35%',
+  glow: '40% 40%',
+  night: '50% 35%',
 };
 
 const BY_ROUTINE: Record<string, keyof typeof PHOTOS> = {
@@ -61,7 +64,7 @@ const BY_ROUTINE: Record<string, keyof typeof PHOTOS> = {
 };
 
 const BY_CATEGORY: Record<Category, keyof typeof PHOTOS> = {
-  Eyes: 'softGlam',
+  Eyes: 'brows',
   Lips: 'glossyLips',
   'Face/Base': 'workFace',
   Brows: 'brows',
@@ -104,10 +107,10 @@ export function sectionImage(section: string, fallback: LookImage): LookImage {
   const s = section.toLowerCase();
   if (s.includes('prep') || s.includes('skin')) return photo('dewySkin');
   if (s.includes('base') || s.includes('face')) return photo('sunkissed');
-  if (s.includes('eye')) return { ...photo('softGlam'), focus: '55% 40%' };
-  if (s.includes('brow')) return photo('brows');
-  if (s.includes('cheek') || s.includes('blush')) return { ...photo('brows'), focus: '45% 60%' };
-  if (s.includes('lip')) return { ...photo('glossyLips'), focus: '45% 70%' };
+  if (s.includes('eye')) return photo('brows');
+  if (s.includes('brow')) return { ...photo('brows'), focus: '55% 25%' };
+  if (s.includes('cheek') || s.includes('blush')) return { ...photo('softGlam'), focus: '40% 55%' };
+  if (s.includes('lip')) return { ...photo('glossyLips'), focus: '55% 55%' };
   if (s.includes('finish') || s.includes('set')) return photo('glow');
   return fallback;
 }

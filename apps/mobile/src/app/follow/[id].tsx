@@ -209,6 +209,16 @@ export default function FollowAlong() {
     </View>
   );
 
+  // Encouraging, specific progress — never guilt (12-video notes #8; CLAUDE.md copy rules).
+  const half = Math.floor(steps.length / 2);
+  const nextSection = steps[idx + 1]?.section;
+  const cheer =
+    steps.length >= 6 && idx === half
+      ? `Halfway there${nextSection && nextSection !== step.section ? ` — ${nextSection.toLowerCase()} next` : ''}.`
+      : steps.length >= 4 && idx === steps.length - 2
+        ? 'One more step after this.'
+        : null;
+
   const stepBody = (
     <Animated.View key={idx} entering={entering} style={{ gap: space.s }}>
       <Eyebrow>{step.section}</Eyebrow>
@@ -236,6 +246,11 @@ export default function FollowAlong() {
             <Icon name="arrowRight" size={15} color={c.primary} strokeWidth={1.8} />
           </PressableScale>
         </View>
+      ) : null}
+      {cheer ? (
+        <Txt variant="subhead" accessibilityLiveRegion="polite" style={{ color: c.primary, marginTop: space.s }}>
+          {cheer}
+        </Txt>
       ) : null}
     </Animated.View>
   );

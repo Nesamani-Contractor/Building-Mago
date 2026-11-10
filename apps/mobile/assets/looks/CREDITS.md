@@ -8,17 +8,17 @@ All photos carry the same 'Porcelain Luxe' colour grade. Full list with screens 
 
 | File | Unsplash photo |
 |---|---|
-| `soft-glam.jpg` | https://images.unsplash.com/photo-1709477542149-f4e0e21d590b |
-| `work-face.jpg` | https://images.unsplash.com/photo-1512053512703-f21123c8e9d1 |
-| `glossy-lips.jpg` | https://images.unsplash.com/photo-1487412947147-5cebf100ffc2 |
-| `brows.jpg` | https://images.unsplash.com/photo-1709477542170-f11ee7d471a0 |
-| `wedding-guest.jpg` | https://images.unsplash.com/photo-1613966802194-d46a163af70d |
-| `dewy-skin.jpg` | https://images.unsplash.com/photo-1643185450492-6ba77dea00f6 |
-| `party-liner.jpg` | https://images.unsplash.com/photo-1709477542153-5bedab2b5657 |
-| `sunkissed.jpg` | https://images.unsplash.com/photo-1515688594390-b649af70d282 |
+| `soft-glam.jpg` | https://images.unsplash.com/photo-1594465919760-441fe5908ab0 (Amir Seilsepour) |
+| `work-face.jpg` | https://images.unsplash.com/photo-1699206791200-414d95e68450 (Dmitriy Ilkevich) |
+| `glossy-lips.jpg` | https://images.unsplash.com/photo-1635814442700-446512be496a (Jesús Boscán) |
+| `brows.jpg` | https://images.unsplash.com/photo-1595550912256-b24059bb08e8 (Taylor Heery) |
+| `wedding-guest.jpg` | https://images.unsplash.com/photo-1700519459316-55040ddad86c (Alireza Skndari) |
+| `dewy-skin.jpg` | https://images.unsplash.com/photo-1581182815808-b6eb627a8798 (Fleur Kaan) |
+| `party-liner.jpg` | https://images.unsplash.com/photo-1611826585949-b0ccabd2c1a4 (Roxana Maria) |
+| `sunkissed.jpg` | https://images.unsplash.com/photo-1593351799227-75df2026356b (Divine Effiong) |
 | `palette.jpg` | https://images.unsplash.com/photo-1487412912498-0447578fcca8 |
 | `flatlay.jpg` | https://images.unsplash.com/photo-1583241800324-2b3b0683a1b2 |
-| `hero-clean.jpg` | https://images.unsplash.com/photo-1544717304-a2db4a7b16ee |
-| `vibe-bold.jpg` | https://images.unsplash.com/photo-1616683693504-3ea7e9ad6fec |
-| `glow.jpg` | https://images.unsplash.com/photo-1581182800629-7d90925ad072 |
-| `night.jpg` | https://images.unsplash.com/photo-1616358278773-e5e4154a336f |
+| `hero-clean.jpg` | https://images.unsplash.com/photo-1674932668403-33398b81c92f (Yoad Shejtman) |
+| `vibe-bold.jpg` | https://images.unsplash.com/photo-1440589473619-3cde28941638 (Roksolana Zasiadko) |
+| `glow.jpg` | https://images.unsplash.com/photo-1551184451-76b762941ad6 (Kamila Maciejewska) |
+| `night.jpg` | https://images.unsplash.com/photo-1596205521983-9c372fb3d4f1 (Amir Seilsepour) |

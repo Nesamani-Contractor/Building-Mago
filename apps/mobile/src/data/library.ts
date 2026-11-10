@@ -74,6 +74,12 @@ const DEFAULT_COLLECTIONS: Collection[] = [
   { id: 'col-date', name: 'Date night', createdAt: '2026-11-01T00:00:00.000Z' },
 ];
 
+/** A dot on the Library tab after she saves something new, so she knows where it went (cleared when she opens Library). */
+export const useSaveDot = create<{ dot: boolean; setDot: (dot: boolean) => void }>()((set) => ({
+  dot: false,
+  setDot: (dot) => set({ dot }),
+}));
+
 export const useLibrary = create<LibraryState>()(
   persist(
     (set) => ({
@@ -81,7 +87,9 @@ export const useLibrary = create<LibraryState>()(
       collections: DEFAULT_COLLECTIONS,
       imports: {},
       save: (r, extra) =>
-        set((s) => ({
+        set((s) => {
+          if (!s.items[r.id]) useSaveDot.getState().setDot(true);
+          return {
           items: {
             ...s.items,
             [r.id]: s.items[r.id] ?? {
@@ -94,7 +102,8 @@ export const useLibrary = create<LibraryState>()(
               ...extra,
             },
           },
-        })),
+          };
+        }),
       update: (id, patch) =>
         set((s) => {
           const cur = s.items[id];

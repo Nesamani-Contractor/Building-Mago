@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native'
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
-import type { Category, Occasion, Routine } from '@mago/shared';
+import { OCCASIONS, type Category, type Occasion, type Routine } from '@mago/shared';
 import { Screen } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
 import { Eyebrow, LookPhoto, OccasionTile, RoutineTile, SectionHeader } from '@/components/Bits';
@@ -41,10 +41,10 @@ export default function Discover() {
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
-  const { cat } = useLocalSearchParams<{ cat?: string }>();
+  const { cat, occ: occParam } = useLocalSearchParams<{ cat?: string; occ?: string }>();
   const items = useLibrary((s) => s.items);
   const [vibe, setVibe] = useState<Vibe>('soft');
-  const [occ, setOcc] = useState<Occasion | null>(null);
+  const [occ, setOcc] = useState<Occasion | null>(() => (OCCASIONS as readonly string[]).includes(occParam ?? '') ? (occParam as Occasion) : null);
   const heroH = Math.min(620, Math.round(height * 0.66));
   const colW = Math.floor((Math.min(width, layout.maxContentWidth) - space.xl * 2 - space.m) / 2);
 

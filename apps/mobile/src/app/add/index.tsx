@@ -5,7 +5,7 @@ import * as Clipboard from 'expo-clipboard';
 import * as DocumentPicker from 'expo-document-picker';
 import { checkConversionQuota } from '@mago/shared';
 import { Screen, TopBar } from '@/components/Screen';
-import { Eyebrow, LookPhoto } from '@/components/Bits';
+import { LookPhoto } from '@/components/Bits';
 import { AboveKeyboard } from '@/lib/keyboard';
 import { routineImage } from '@/design/media';
 import { SAMPLE_ROUTINES } from '@/data/samples';
@@ -68,47 +68,32 @@ export default function Add() {
 
   const sample = SAMPLE_ROUTINES[0];
   const refresh = new Date(quota.refreshesOn).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  const has = link.trim().length > 0;
+  const quotaLine = acct.isPro ? 'Ready in about a minute' : `${quota.remaining} of ${quota.limit} free looks left · refreshes ${refresh}`;
 
   return (
     <Screen
       mood="calm"
-      header={
-        <TopBar
-          backIcon="close"
-          backLabel="Close"
-          right={
-            <Txt variant="footnote" tone="secondary" style={{ paddingRight: space.s }}>
-              {acct.isPro ? `${quota.remaining} unveils left this month` : `${quota.remaining} of ${quota.limit} free unveils left`}
-            </Txt>
-          }
-        />
-      }
+      header={<TopBar backIcon="close" backLabel="Close" />}
       footer={
         <AboveKeyboard>
-          <Button label="Unveil" disabled={!link.trim()} onPress={() => go(link)} />
+          <Button label={has ? 'Unveil this look' : 'Paste a link to start'} disabled={!has} onPress={() => go(link)} />
           <Txt variant="footnote" tone="secondary" align="center" style={{ marginTop: space.s }}>
-            Ready in about a minute · free to see, no sign-up
+            {quotaLine}
           </Txt>
         </AboveKeyboard>
       }
     >
-      <View style={{ gap: 6, marginTop: space.s }}>
-        <Eyebrow>Unveil a look</Eyebrow>
-        <Txt variant="display" accessibilityRole="header">
-          Paste any GRWM.
+      <View style={{ gap: space.xs }}>
+        <Txt variant="title1" accessibilityRole="header">
+          Unveil a look
         </Txt>
-        <Txt variant="body" tone="secondary">
-          We slow it down into calm steps — every product, every shade.
+        <Txt variant="callout" tone="secondary">
+          Paste a YouTube, TikTok or Instagram link. We’ll turn it into calm steps.
         </Txt>
       </View>
 
-      <View
-        style={[
-          styles.field,
-          { backgroundColor: c.surface, borderColor: error ? c.danger : focused ? c.primary : c.hairline },
-          focused && { shadowColor: c.shadow, shadowOpacity: 0.08, shadowRadius: 24, shadowOffset: { width: 0, height: 10 } },
-        ]}
-      >
+      <View style={[styles.field, { backgroundColor: c.surface, borderColor: error ? c.danger : focused || has ? c.primary : c.hairlineStrong }]}>
         <Icon name="link" size={20} color={c.inkSecondary} />
         <TextInput
           value={link}
@@ -119,90 +104,73 @@ export default function Add() {
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
           autoFocus={Platform.OS !== 'web' && !params.link}
-          placeholder="YouTube, TikTok or Instagram link"
+          placeholder="Paste a link"
           placeholderTextColor={c.inkSecondary}
           autoCapitalize="none"
           autoCorrect={false}
           keyboardType="url"
           returnKeyType="go"
-          onSubmitEditing={() => link.trim() && go(link)}
+          onSubmitEditing={() => has && go(link)}
           accessibilityLabel="Tutorial link"
           style={[styles.input, { color: c.ink }]}
         />
-        {link ? (
-          <PressableScale accessibilityLabel="Clear link" onPress={() => setLink('')} style={styles.inlineBtn}>
-            <Icon name="close" size={18} />
+        {has ? (
+          <PressableScale accessibilityLabel="Clear link" onPress={() => setLink('')} style={[styles.inlineBtn, { backgroundColor: c.surfaceAlt }]}>
+            <Icon name="close" size={16} />
           </PressableScale>
-        ) : (
-          <PressableScale accessibilityLabel="Paste from clipboard" onPress={paste} style={[styles.pasteBtn, { backgroundColor: c.primary }]}>
-            <Txt variant="subhead" style={{ color: c.inkOnPrimary, fontWeight: '600' }}>
-              Paste
-            </Txt>
-          </PressableScale>
-        )}
+        ) : null}
       </View>
       {error ? (
         <Txt variant="callout" tone="danger" accessibilityLiveRegion="assertive" style={{ marginTop: space.s }}>
           {error}
         </Txt>
-      ) : (
-        <Txt variant="footnote" tone="secondary" style={{ marginTop: space.s, paddingHorizontal: space.s }}>
-          In the app: Share → Copy link. Looks someone already unveiled are free and instant.
-        </Txt>
-      )}
+      ) : null}
 
-      <View style={styles.divider}>
-        <View style={[styles.rule, { backgroundColor: c.hairlineStrong }]} />
-        <Txt variant="footnote" tone="secondary">
-          No link handy?
-        </Txt>
-        <View style={[styles.rule, { backgroundColor: c.hairlineStrong }]} />
-      </View>
+      {!has ? (
+        <PressableScale accessibilityLabel="Use the link you copied" onPress={paste} scaleTo={0.985} style={[styles.clip, { backgroundColor: c.surfaceAlt }]}>
+          <View style={[styles.clipIcon, { backgroundColor: c.surface }]}>
+            <Icon name="clipboard" size={18} color={c.primary} />
+          </View>
+          <View style={{ flex: 1, gap: 1 }}>
+            <Txt variant="headline" style={{ fontSize: 15, lineHeight: 20 }}>
+              Use the link you copied
+            </Txt>
+            <Txt variant="footnote" tone="secondary">
+              In the app: Share → Copy link
+            </Txt>
+          </View>
+        </PressableScale>
+      ) : null}
 
       {sample ? (
         <PressableScale
-          accessibilityLabel={`Try it on a sample look: ${sample.title}, ${sample.totalTimeMin} minutes`}
+          accessibilityLabel={`No link handy? Try a sample look: ${sample.title}, ${sample.totalTimeMin} minutes`}
           onPress={() => {
             track('unveil_sample_started');
             router.push(`/unveil/${sample.id}`);
           }}
           scaleTo={0.985}
-          style={[styles.sampleCard, { backgroundColor: c.surface, shadowColor: c.shadow }]}
+          style={[styles.sample, { backgroundColor: c.surface }]}
         >
-          <View style={styles.sampleThumb}>
-            <LookPhoto image={routineImage(sample)} style={StyleSheet.absoluteFill} />
-            <View style={styles.sampleDur}>
-              <Icon name="play" size={10} color="#FBF7F4" filled />
-              <Txt variant="caption" style={{ color: '#FBF7F4', fontSize: 11, fontWeight: '600' }}>
-                {sample.totalTimeMin}:00
-              </Txt>
-            </View>
-          </View>
-          <View style={{ flex: 1, gap: 4 }}>
-            <Eyebrow>Sample look</Eyebrow>
-            <Txt variant="title3" style={{ fontFamily: fonts.serif, fontWeight: '400', fontSize: 26, lineHeight: 28 }}>
-              {sample.title}
+          <LookPhoto image={routineImage(sample)} style={styles.sampleThumb} />
+          <View style={{ flex: 1, gap: 2 }}>
+            <Txt variant="footnote" tone="secondary">
+              No link handy? Try a sample
             </Txt>
-            <View style={styles.sampleCta}>
-              <Txt variant="subhead" style={{ color: c.primary, fontWeight: '600' }}>
-                Try it on a sample look
-              </Txt>
-              <Icon name="arrowRight" size={16} color={c.primary} strokeWidth={1.8} />
-            </View>
+            <Txt variant="headline">{sample.title}</Txt>
+            <Txt variant="footnote" style={{ color: c.primary, fontWeight: '600' }}>
+              {sample.totalTimeMin} min · free
+            </Txt>
           </View>
+          <Icon name="chevronRight" size={20} color={c.inkSecondary} />
         </PressableScale>
       ) : null}
 
-      <View style={[styles.options, { borderTopColor: c.hairlineStrong }]}>
-        <Option icon="upload" title="Upload a video" body="A saved video or screen recording, up to 15 min" onPress={upload} />
-        <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: c.hairlineStrong }} />
-        <Option icon="pencil" title="Write it myself" body="Your own steps, no link needed" onPress={() => router.push('/add/manual')} />
+      <View style={{ marginTop: space.xl }}>
+        <Option icon="upload" title="Upload a video" body="From your photos, up to 15 min" onPress={upload} />
+        <View style={{ height: StyleSheet.hairlineWidth, backgroundColor: c.hairlineStrong, marginLeft: 38 }} />
+        <Option icon="pencil" title="Write my own steps" body="No video needed" onPress={() => router.push('/add/manual')} />
       </View>
-      {!acct.isPro ? (
-        <Txt variant="footnote" tone="secondary" align="center" style={{ marginTop: space.l }}>
-          Free unveils refresh {refresh}.
-        </Txt>
-      ) : null}
     </Screen>
   );
 }
@@ -225,15 +193,11 @@ function Option({ icon, title, body, onPress }: { icon: IconName; title: string;
 
 const styles = StyleSheet.create({
   input: { flex: 1, minWidth: 0, minHeight: 52, fontFamily: fonts.sans, fontSize: 17 },
-  field: { flexDirection: 'row', alignItems: 'center', gap: space.s, borderWidth: 1.5, borderRadius: radius.pill, paddingLeft: space.l, paddingRight: 6, minHeight: 60, marginTop: space.xxl },
-  divider: { flexDirection: 'row', alignItems: 'center', gap: space.m, marginTop: space.xxl },
-  rule: { flex: 1, height: StyleSheet.hairlineWidth },
-  sampleCard: { flexDirection: 'row', alignItems: 'center', gap: space.l, padding: space.m, borderRadius: radius.card, marginTop: space.l, shadowOpacity: 0.1, shadowRadius: 24, shadowOffset: { width: 0, height: 12 }, elevation: 3 },
-  sampleThumb: { width: 100, height: 132, borderRadius: radius.thumb, overflow: 'hidden', transform: [{ rotate: '-3deg' }] },
-  sampleDur: { position: 'absolute', left: 6, bottom: 6, flexDirection: 'row', alignItems: 'center', gap: 4, height: 22, paddingHorizontal: 8, borderRadius: 11, backgroundColor: 'rgba(42,30,38,0.6)' },
-  sampleCta: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: space.xs },
-  options: { marginTop: space.xxl, borderTopWidth: StyleSheet.hairlineWidth },
-  option: { flexDirection: 'row', alignItems: 'center', gap: space.l, paddingVertical: space.l, minHeight: 72 },
-  inlineBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  pasteBtn: { minHeight: 48, paddingHorizontal: space.l, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
+  field: { flexDirection: 'row', alignItems: 'center', gap: space.s, borderWidth: 2, borderRadius: radius.pill, paddingLeft: space.l, paddingRight: 6, minHeight: 56, marginTop: space.xl },
+  inlineBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  clip: { flexDirection: 'row', alignItems: 'center', gap: space.m, minHeight: 60, padding: space.m, borderRadius: radius.card, marginTop: space.m },
+  clipIcon: { width: 36, height: 36, borderRadius: radius.chip, alignItems: 'center', justifyContent: 'center' },
+  sample: { flexDirection: 'row', alignItems: 'center', gap: space.m, padding: space.m, borderRadius: radius.card, marginTop: space.m },
+  sampleThumb: { width: 56, height: 72, borderRadius: radius.thumb },
+  option: { flexDirection: 'row', alignItems: 'center', gap: space.l, minHeight: 64 },
 });

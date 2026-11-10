@@ -96,11 +96,11 @@ export function TopBar({
   );
 }
 
-export function RoundButton({ icon, label, onPress, onPhoto }: { icon: IconName; label: string; onPress: () => void; onPhoto?: boolean }) {
+export function RoundButton({ icon, label, onPress, onPhoto, filled, selected }: { icon: IconName; label: string; onPress: () => void; onPhoto?: boolean; filled?: boolean; selected?: boolean }) {
   const { c } = useTheme();
   return (
-    <PressableScale accessibilityLabel={label} onPress={onPress} style={[styles.round, onPhoto && { backgroundColor: c.glassOnPhoto }]}>
-      <Icon name={icon} size={onPhoto ? 20 : 22} color={onPhoto ? c.inkOnPhoto : c.ink} />
+    <PressableScale accessibilityLabel={label} accessibilityState={selected === undefined ? undefined : { selected }} onPress={onPress} style={[styles.round, onPhoto && { backgroundColor: c.glassOnPhoto }]}>
+      <Icon name={icon} size={onPhoto ? 20 : 22} color={onPhoto ? c.inkOnPhoto : c.ink} filled={filled} />
     </PressableScale>
   );
 }

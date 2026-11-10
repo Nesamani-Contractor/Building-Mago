@@ -9,6 +9,7 @@ import { Icon, type IconName } from '@/components/Icon';
 import { Txt } from '@/components/Txt';
 import { PressableScale } from '@/components/PressableScale';
 import { haptic } from '@/design/haptics';
+import { useSaveDot } from '@/data/library';
 
 const TABS: Record<string, { label: string; icon: IconName }> = {
   index: { label: 'Home', icon: 'home' },
@@ -26,25 +27,32 @@ function TabBar({ state, navigateToTab }: BottomTabBarProps) {
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const dot = useSaveDot((s) => s.dot);
+  const setDot = useSaveDot((s) => s.setDot);
   const items = state.routes.map((r, i) => ({ route: r, i }));
   const render = ({ route, i }: { route: (typeof state.routes)[number]; i: number }) => {
     const meta = TABS[route.name];
     if (!meta) return null;
     const active = state.index === i;
     const col = active ? c.primary : c.ink;
+    const showDot = route.name === 'library' && dot && !active;
     return (
       <PressableScale
         key={route.key}
         accessibilityRole="tab"
         accessibilityState={{ selected: active }}
-        accessibilityLabel={meta.label}
+        accessibilityLabel={showDot ? `${meta.label}, new save` : meta.label}
         onPress={() => {
           if (!active) haptic.select();
+          if (route.name === 'library') setDot(false);
           navigateToTab(route.key);
         }}
         style={[styles.tab, !active && { opacity: 0.6 }]}
       >
-        <Icon name={meta.icon} size={24} color={col} filled={active} />
+        <View>
+          <Icon name={meta.icon} size={24} color={col} filled={active} />
+          {showDot ? <View style={[styles.dot, { backgroundColor: c.primary, borderColor: c.surface }]} /> : null}
+        </View>
         <Txt variant="tab" style={{ color: col, fontWeight: active ? '600' : '500' }}>
           {meta.label}
         </Txt>
@@ -68,10 +76,7 @@ function TabBar({ state, navigateToTab }: BottomTabBarProps) {
           }}
           style={[styles.add, { backgroundColor: c.primary }]}
         >
-          <Icon name="plus" size={18} color={c.inkOnPrimary} strokeWidth={1.9} />
-          <Txt variant="subhead" style={{ color: c.inkOnPrimary, fontWeight: '600', fontSize: 14 }}>
-            Unveil
-          </Txt>
+          <Icon name="plus" size={22} color={c.inkOnPrimary} strokeWidth={2} />
         </PressableScale>
         {items.slice(2).map(render)}
       </View>
@@ -104,5 +109,6 @@ const styles = StyleSheet.create({
   },
   clip: { borderRadius: layout.tabBarHeight / 2, overflow: 'hidden' },
   tab: { flex: 1, minWidth: 44, height: 56, alignItems: 'center', justifyContent: 'center', gap: 3 },
-  add: { height: 48, paddingHorizontal: 16, borderRadius: 24, flexDirection: 'row', gap: 6, alignItems: 'center', justifyContent: 'center', marginHorizontal: 4 },
+  dot: { position: 'absolute', top: -1, right: -3, width: 9, height: 9, borderRadius: 5, borderWidth: 2 },
+  add: { width: 56, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center', marginHorizontal: 4 },
 });

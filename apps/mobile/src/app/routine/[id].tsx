@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Linking, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -9,7 +9,7 @@ import { BagCheckCard, useBagCheck } from '@/components/BagCheck';
 import { Screen, TopBar, RoundButton } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
 import { Button } from '@/components/Button';
-import { Chip, Eyebrow, LookPhoto, routineMeta, stepCount } from '@/components/Bits';
+import { Chip, Eyebrow, LookPhoto, stepCount } from '@/components/Bits';
 import { Icon } from '@/components/Icon';
 import { StateView } from '@/components/States';
 import { PressableScale } from '@/components/PressableScale';
@@ -39,6 +39,11 @@ export default function RoutineDetail() {
   const skill = useProfile((s) => s.skill);
   const [showHints, setShowHints] = useState(showHintsByDefault(skill));
   const [showCollections, setShowCollections] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => () => {
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+  }, []);
 
   const productsByRef = useMemo(() => new Map(routine?.products.map((p) => [p.ref, p]) ?? []), [routine]);
   const { check: bagCheck } = useBagCheck(routine);
@@ -59,12 +64,27 @@ export default function RoutineDetail() {
   const sourceLabel = source === 'youtube' ? 'YouTube' : source === 'upload' ? 'Your video' : source === 'manual' ? (r.creator?.name === 'Mago sample' ? 'Mago sample' : 'Written by you') : source;
   const checkCount = r.products.filter(needsCheck).length;
 
+  function flash(msg: string) {
+    setToast(msg);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(null), 2200);
+  }
+
   function ensureSaved() {
     if (!saved) {
       lib.save(r);
       haptic.success();
       track('routine_saved', { source: 'detail' });
+      flash('Saved to Library');
     }
+  }
+
+  function toggleSave() {
+    if (saved) {
+      lib.remove(r.id);
+      haptic.select();
+      flash('Removed from Library');
+    } else ensureSaved();
   }
 
   function simplify() {
@@ -91,26 +111,13 @@ export default function RoutineDetail() {
       mood="none"
       edgeToEdge
       footer={
-        <View style={{ flexDirection: 'row', gap: space.m }}>
-          <Button
-            variant="secondary"
-            label="Plan"
-            icon="calendar"
-            onPress={() => {
-              ensureSaved();
-              router.push(`/plan/${r.id}`);
-            }}
-            style={{ flex: 0.8 }}
-          />
-          <Button
-            label="Start this look"
-            onPress={() => {
-              ensureSaved();
-              router.push(`/brief/${r.id}`);
-            }}
-            style={{ flex: 1.4 }}
-          />
-        </View>
+        <Button
+          label={`Start the look · ${r.totalTimeMin} min`}
+          onPress={() => {
+            ensureSaved();
+            router.push(`/brief/${r.id}`);
+          }}
+        />
       }
     >
       {/* Full-bleed hero photo with glass controls over it. */}
@@ -119,10 +126,7 @@ export default function RoutineDetail() {
         <LinearGradient colors={['rgba(10,6,8,0.38)', 'rgba(10,6,8,0)']} style={styles.heroTopScrim} />
         <View style={[styles.heroBar, { top: insets.top + space.s }]}>
           <RoundButton onPhoto icon="chevronLeft" label="Back" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
-          <View style={{ flexDirection: 'row', gap: space.s }}>
-            {saved ? <RoundButton onPhoto icon="pencil" label="Edit steps" onPress={() => router.push(`/add/manual?edit=${r.id}`)} /> : null}
-            <RoundButton onPhoto icon="share" label="Share" onPress={() => router.push(`/share/${r.id}`)} />
-          </View>
+          <RoundButton onPhoto icon="bookmark" filled={!!saved} selected={!!saved} label={saved ? 'Saved to Library. Tap to remove' : 'Save this look'} onPress={toggleSave} />
         </View>
         {source === 'youtube' && r.source.videoId ? (
           <PressableScale accessibilityLabel="Watch the tutorial in YouTube" onPress={() => watch()} style={[styles.heroWatch, { backgroundColor: c.glassOnPhoto }]}>
@@ -154,12 +158,16 @@ export default function RoutineDetail() {
           {r.title}
         </Txt>
         <Txt variant="callout" tone="secondary">
-          {routineMeta(r)}
-          {' · '}
           {sourceLabel}
           {r.creator && r.creator.name !== 'Mago sample' && r.creator.name !== 'You' ? ` · ${r.creator.name}` : ''}
           {saved && saved.doneCount > 0 ? ` · Done ${saved.doneCount}×` : ''}
         </Txt>
+      </View>
+
+      <View style={styles.stats} accessible accessibilityLabel={`${r.totalTimeMin} minutes, ${stepCount(r)} steps${bagCheck ? `, ${bagCheck.have + bagCheck.swaps} of ${r.products.length} products covered by your bag` : `, ${r.products.length} products`}`}>
+        <Stat value={String(r.totalTimeMin)} label="minutes" />
+        <Stat value={String(stepCount(r))} label="steps" />
+        {bagCheck ? <Stat value={String(bagCheck.have + bagCheck.swaps)} of={r.products.length} label="in your bag" /> : <Stat value={String(r.products.length)} label="products" />}
       </View>
 
       <View style={styles.actions}>
@@ -174,14 +182,16 @@ export default function RoutineDetail() {
         />
         <IconAction icon="bookmark" label="Collections" active={showCollections} onPress={() => setShowCollections(!showCollections)} />
         <IconAction
-          icon="pin"
-          label={saved?.pinned ? 'Pinned' : 'Pin'}
-          active={!!saved?.pinned}
+          icon="calendar"
+          label="Plan"
+          active={false}
           onPress={() => {
             ensureSaved();
-            lib.togglePinned(r.id);
+            router.push(`/plan/${r.id}`);
           }}
         />
+        <IconAction icon="share" label="Share" active={false} onPress={() => router.push(`/share/${r.id}`)} />
+        {saved ? <IconAction icon="pencil" label="Edit" active={false} onPress={() => router.push(`/add/manual?edit=${r.id}`)} /> : null}
       </View>
       {showCollections ? (
         <View style={styles.chips}>
@@ -283,11 +293,19 @@ export default function RoutineDetail() {
           style={{ marginTop: space.xl }}
         />
       ) : null}
+      {toast ? (
+        <View pointerEvents="none" accessibilityLiveRegion="polite" style={[styles.toast, { backgroundColor: c.ink, bottom: 104 + insets.bottom }]}>
+          <Icon name="check" size={14} color={c.bg} strokeWidth={2.2} />
+          <Txt variant="subhead" style={{ color: c.bg }}>
+            {toast}
+          </Txt>
+        </View>
+      ) : null}
     </Screen>
   );
 }
 
-function IconAction({ icon, label, active, onPress }: { icon: 'heart' | 'bookmark' | 'pin'; label: string; active: boolean; onPress: () => void }) {
+function IconAction({ icon, label, active, onPress }: { icon: 'heart' | 'bookmark' | 'calendar' | 'share' | 'pencil'; label: string; active: boolean; onPress: () => void }) {
   const { c } = useTheme();
   return (
     <PressableScale
@@ -308,6 +326,24 @@ function IconAction({ icon, label, active, onPress }: { icon: 'heart' | 'bookmar
   );
 }
 
+function Stat({ value, of, label }: { value: string; of?: number; label: string }) {
+  return (
+    <View style={{ flex: 1, gap: 2 }}>
+      <Txt variant="title3" style={{ fontSize: 28, lineHeight: 32, fontVariant: ['tabular-nums'] }}>
+        {value}
+        {of !== undefined ? (
+          <Txt variant="headline" tone="secondary">
+            /{of}
+          </Txt>
+        ) : null}
+      </Txt>
+      <Txt variant="footnote" tone="secondary">
+        {label}
+      </Txt>
+    </View>
+  );
+}
+
 function fmt(sec: number) {
   return `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
 }
@@ -318,7 +354,9 @@ const styles = StyleSheet.create({
   heroBar: { position: 'absolute', left: space.l, right: space.l, flexDirection: 'row', justifyContent: 'space-between' },
   heroWatch: { position: 'absolute', left: space.xl, bottom: space.xl, flexDirection: 'row', alignItems: 'center', gap: space.s, minHeight: 44, paddingHorizontal: space.l, borderRadius: radius.pill },
   banner: { flexDirection: 'row', alignItems: 'center', gap: space.m, marginTop: space.l, padding: space.m, borderRadius: radius.thumb },
-  actions: { flexDirection: 'row', gap: space.xl, marginTop: space.xl },
+  stats: { flexDirection: 'row', gap: space.m, marginTop: space.xl },
+  actions: { flexDirection: 'row', gap: space.m, marginTop: space.xl },
+  toast: { position: 'absolute', alignSelf: 'center', flexDirection: 'row', alignItems: 'center', gap: space.s, height: 40, paddingHorizontal: space.l, borderRadius: 20 },
   iconAction: { alignItems: 'center', gap: 4, minWidth: 64, minHeight: 56, justifyContent: 'center' },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: space.s, marginTop: space.m },
   simplify: { flexDirection: 'row', alignItems: 'center', gap: space.l, marginTop: space.xl, padding: space.l, borderRadius: radius.thumb },
