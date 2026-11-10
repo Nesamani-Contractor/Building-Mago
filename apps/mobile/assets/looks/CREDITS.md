@@ -4,6 +4,8 @@ Demo photography for sample looks, Discover, onboarding and the paywall.
 All photos are free to use under the [Unsplash License](https://unsplash.com/license) (commercial use allowed, no attribution required — credited here anyway).
 Replace with a commissioned Mago shoot before launch.
 
+All photos carry the same 'Porcelain Luxe' colour grade. Full list with screens used: `assets/media/manifest.json`.
+
 | File | Unsplash photo |
 |---|---|
 | `soft-glam.jpg` | https://images.unsplash.com/photo-1709477542149-f4e0e21d590b |
@@ -16,3 +18,7 @@ Replace with a commissioned Mago shoot before launch.
 | `sunkissed.jpg` | https://images.unsplash.com/photo-1515688594390-b649af70d282 |
 | `palette.jpg` | https://images.unsplash.com/photo-1487412912498-0447578fcca8 |
 | `flatlay.jpg` | https://images.unsplash.com/photo-1583241800324-2b3b0683a1b2 |
+| `hero-clean.jpg` | https://images.unsplash.com/photo-1544717304-a2db4a7b16ee |
+| `vibe-bold.jpg` | https://images.unsplash.com/photo-1616683693504-3ea7e9ad6fec |
+| `glow.jpg` | https://images.unsplash.com/photo-1581182800629-7d90925ad072 |
+| `night.jpg` | https://images.unsplash.com/photo-1616358278773-e5e4154a336f |

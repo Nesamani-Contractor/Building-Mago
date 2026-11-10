@@ -29,7 +29,7 @@ export default function ImportProgress() {
     if (job?.status === 'ready' && job.routineId && !done.current) {
       done.current = true;
       haptic.success();
-      const target = `/routine/${job.routineId}?fresh=1`;
+      const target = `/unveil/${job.routineId}`;
       // Ask for notifications only after the first successful import, with a pre-permission screen.
       if (!notificationsAsked) router.replace(`/notifications?next=${encodeURIComponent(target)}`);
       else router.replace(target as never);

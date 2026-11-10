@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Linking, PanResponder, ScrollView, StyleSheet, View, useWindowDimensions, type StyleProp, type ViewStyle } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useKeepAwake } from 'expo-keep-awake';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -16,13 +15,13 @@ import { useBagCheck } from '@/components/BagCheck';
 import { PressableScale } from '@/components/PressableScale';
 import { StateView } from '@/components/States';
 import { useTheme } from '@/design/theme';
-import { layout, palette, radius, space } from '@/design/tokens';
-import { routineImage } from '@/design/media';
+import { layout, radius, space } from '@/design/tokens';
+import { routineImage, sectionImage, sectionLoop } from '@/design/media';
+import { GlassButton, LoopVideo, PhotoScrim, Segments, TiltSheen } from '@/components/Wow';
 import { haptic } from '@/design/haptics';
 import { useRoutine } from '@/lib/routines';
 import { useSessions } from '@/data/sessions';
 import { usePrefs } from '@/data/prefs';
-import { useProfile, showHintsByDefault } from '@/data/profile';
 import { useLibrary } from '@/data/library';
 import { speak, stopSpeaking, voiceCommandsAvailable } from '@/services/voice';
 import { track } from '@/services/analytics';
@@ -32,7 +31,8 @@ type Phase = 'before' | 'steps' | 'after';
 /** S-14 → S-15 → S-16. The hero screen: one step at a time, readable at arm's length. */
 export default function FollowAlong() {
   useKeepAwake();
-  const { id, session: resumeId } = useLocalSearchParams<{ id: string; session?: string }>();
+  const { id, session: resumeId, step: stepParam } = useLocalSearchParams<{ id: string; session?: string; step?: string }>();
+  const startStep = stepParam ? Math.max(0, parseInt(stepParam, 10) || 0) : 0;
   const router = useRouter();
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
@@ -43,15 +43,13 @@ export default function FollowAlong() {
   const start = useSessions((s) => s.start);
   const patch = useSessions((s) => s.patch);
   const prefs = usePrefs();
-  const skill = useProfile((s) => s.skill);
   const markDone = useLibrary((s) => s.markDone);
 
   const [sessionId] = useState(() => (resumeId && sessions[resumeId] ? resumeId : id ? start(id) : ''));
   const session = sessions[sessionId];
-  const [phase, setPhase] = useState<Phase>(() => (session && session.stepIndex > 0 ? 'steps' : 'before'));
-  const [idx, setIdx] = useState(session?.stepIndex ?? 0);
+  const [phase, setPhase] = useState<Phase>(() => (startStep > 0 || (session && session.stepIndex > 0) ? 'steps' : 'before'));
+  const [idx, setIdx] = useState(startStep > 0 ? startStep : (session?.stepIndex ?? 0));
   const [dir, setDir] = useState<1 | -1>(1);
-  const [showHint, setShowHint] = useState(showHintsByDefault(skill));
   // Timer belongs to one step; moving to another step resets it without an extra effect.
   const [timerState, setTimerState] = useState<{ idx: number; left: number } | null>(null);
   const timer = timerState && timerState.idx === idx ? timerState.left : null;
@@ -131,12 +129,7 @@ export default function FollowAlong() {
     router.back();
   }
 
-  const glass = { backgroundColor: c.glassOnPhoto };
-  const closeButton = (
-    <PressableScale accessibilityLabel="Pause and close. You can resume for 7 days." onPress={close} style={[styles.round, glass]}>
-      <Icon name="close" size={20} color={c.inkOnPhoto} />
-    </PressableScale>
-  );
+  const closeButton = <GlassButton icon="close" accessibilityLabel="Pause and close. You can resume for 7 days." onPress={close} />;
 
   if (phase === 'before' || phase === 'after') {
     return (
@@ -176,47 +169,41 @@ export default function FollowAlong() {
   const isLast = idx === steps.length - 1;
   const stepProducts = step.productRefs.map((ref) => products.get(ref)).filter((p): p is NonNullable<typeof p> => !!p);
 
+  const loop = routine.id.startsWith('sample-') ? sectionLoop(step.section) : undefined;
   const media = (
-    <View style={[styles.media, isWide ? styles.mediaWide : { height: Math.round(height * 0.5) }]}>
-      <LookPhoto image={routineImage(routine)} style={StyleSheet.absoluteFill} accessibilityLabel={`${routine.title}, ${step.section}`} />
-      <LinearGradient colors={['rgba(10,6,8,0.45)', 'rgba(10,6,8,0)']} style={styles.mediaTopScrim} />
+    <View style={[styles.media, isWide ? styles.mediaWide : { height: Math.round(height * 0.52) }]}>
+      {loop ? (
+        <LoopVideo key={`loop-${step.section}`} video={loop.video} poster={loop.poster} style={StyleSheet.absoluteFill} accessibilityLabel={`${step.section} clip`} />
+      ) : (
+        <LookPhoto image={sectionImage(step.section, routineImage(routine))} style={StyleSheet.absoluteFill} accessibilityLabel={`${routine.title}, ${step.section}`} />
+      )}
+      <TiltSheen />
+      <PhotoScrim top height={160} />
       <View style={[styles.mediaTop, { top: (isWide ? space.xl : insets.top) + space.s }]}>
-        <View style={styles.segments} accessibilityElementsHidden>
-          {steps.map((s, i) => (
-            <View key={s.id} style={[styles.segment, { backgroundColor: i <= idx ? c.inkOnPhoto : 'rgba(255,248,244,0.35)' }]} />
-          ))}
-        </View>
+        <Segments count={steps.length} active={idx} progress={1} />
         <View style={styles.mediaBar}>
           {closeButton}
           <Txt variant="subhead" style={{ color: c.inkOnPhoto, fontWeight: '600' }} accessibilityLabel={`Step ${idx + 1} of ${steps.length}`}>
             Step {idx + 1} of {steps.length}
           </Txt>
-          <PressableScale
-            accessibilityLabel={prefs.readAloud ? 'Read-aloud is on. Turn it off' : 'Turn on read-aloud'}
-            accessibilityState={{ selected: prefs.readAloud }}
+          <GlassButton
+            icon="speaker"
+            label="Read aloud"
+            selected={prefs.readAloud}
+            accessibilityLabel={prefs.readAloud ? 'Read aloud is on. Turn it off' : 'Turn on read aloud'}
             onPress={() => {
               if (prefs.readAloud) stopSpeaking();
               prefs.set({ readAloud: !prefs.readAloud });
               haptic.select();
             }}
-            style={[styles.round, prefs.readAloud ? { backgroundColor: c.inkOnPhoto } : glass]}
-          >
-            <Icon name="speaker" size={20} color={prefs.readAloud ? palette.plum : c.inkOnPhoto} />
-          </PressableScale>
+          />
         </View>
       </View>
       <View style={[styles.mediaBottom, { bottom: isWide ? space.xl : space.x5 }]}>
         {canWatch ? (
-          <PressableScale accessibilityLabel="Watch this step in YouTube" onPress={watch} style={[styles.watch, glass]}>
-            <Icon name="play" size={16} color={c.inkOnPhoto} filled />
-            <Txt variant="subhead" style={{ color: c.inkOnPhoto, fontWeight: '600' }}>
-              Watch this step
-            </Txt>
-          </PressableScale>
+          <GlassButton icon="play" label="Watch this step" accessibilityLabel="Watch this step in YouTube" onPress={watch} />
         ) : (
-          <PressableScale accessibilityLabel="Read this step again" onPress={() => speak(step.text)} style={[styles.round, glass]}>
-            <Icon name="refresh" size={20} color={c.inkOnPhoto} />
-          </PressableScale>
+          <GlassButton icon="refresh" label="Hear it again" accessibilityLabel="Read this step again" onPress={() => speak(step.text)} />
         )}
       </View>
     </View>
@@ -229,23 +216,25 @@ export default function FollowAlong() {
         {step.text}
       </Txt>
       {step.hint ? (
-        showHint ? (
-          <PressableScale accessibilityLabel="Hide tip" onPress={() => setShowHint(false)} scaleTo={0.99}>
-            <Txt variant="body" tone="secondary" style={{ marginTop: 2 }}>
-              {step.hint}
+        <View style={styles.coach}>
+          <View style={[styles.coachRule, { backgroundColor: c.primary }]} />
+          <Txt variant="callout" style={{ flex: 1 }}>
+            <Txt variant="callout" style={{ fontWeight: '600' }}>
+              Coach:{' '}
             </Txt>
-          </PressableScale>
-        ) : (
-          <PressableScale accessibilityLabel="Show tip" onPress={() => setShowHint(true)} style={{ minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' }}>
-            <Txt variant="subhead" style={{ color: c.primary }}>
-              Show tip
-            </Txt>
-          </PressableScale>
-        )
+            {step.hint}
+          </Txt>
+        </View>
       ) : null}
       {stepProducts.length > 0 ? (
         <View style={{ marginTop: space.l }}>
           <StepProducts note matches={bagMatches} size={isWide ? 'l' : 'm'} products={stepProducts} />
+          <PressableScale accessibilityLabel="See every product in this look" onPress={() => router.push(`/products/${routine.id}`)} style={styles.allProducts}>
+            <Txt variant="subhead" style={{ color: c.primary, fontWeight: '600' }}>
+              See every product
+            </Txt>
+            <Icon name="arrowRight" size={15} color={c.primary} strokeWidth={1.8} />
+          </PressableScale>
         </View>
       ) : null}
     </Animated.View>
@@ -397,8 +386,9 @@ const styles = StyleSheet.create({
   mediaTop: { position: 'absolute', left: space.l, right: space.l, gap: 14 },
   mediaBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   mediaBottom: { position: 'absolute', left: space.l },
-  segments: { flexDirection: 'row', gap: 4 },
-  segment: { flex: 1, height: 3, borderRadius: 2 },
+  coach: { flexDirection: 'row', gap: space.m, marginTop: space.s },
+  coachRule: { width: 2, borderRadius: 1, alignSelf: 'stretch' },
+  allProducts: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 44, alignSelf: 'flex-start' },
   watch: { flexDirection: 'row', alignItems: 'center', gap: space.s, borderRadius: radius.pill, paddingHorizontal: space.l, minHeight: 44 },
   sheet: { flex: 1, marginTop: -24, borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, borderCurve: 'continuous' },
   timerLink: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6, minHeight: 44 },

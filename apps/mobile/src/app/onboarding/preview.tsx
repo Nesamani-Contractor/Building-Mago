@@ -51,7 +51,7 @@ export default function Preview() {
       footer={
         <View style={{ gap: space.xs }}>
           <Button label="Try my first look" onPress={() => finish(starters[0]?.id)} />
-          <Button variant="ghost" label="Go to Today" onPress={() => finish()} />
+          <Button variant="ghost" label="Go to Home" onPress={() => finish()} />
         </View>
       }
     >

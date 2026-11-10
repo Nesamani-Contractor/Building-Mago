@@ -50,6 +50,11 @@ export const ANALYTICS_EVENTS = [
   'bag_item_added',
   'bag_check_viewed',
   'stylist_note_viewed',
+  // WOW v2 (D-21): The Unveil, onboarding story, vibe picker.
+  'unveil_complete',
+  'unveil_sample_started',
+  'onb_story_viewed',
+  'vibe_selected',
 ] as const;
 export type AnalyticsEvent = (typeof ANALYTICS_EVENTS)[number];
 export type AnalyticsProps = Record<string, string | number | boolean>;

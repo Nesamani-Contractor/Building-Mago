@@ -14,6 +14,7 @@ import {
 import { ThemeProvider, useTheme } from '@/design/theme';
 import { useHydrated } from '@/lib/hooks';
 import { ensureAnonymousSession } from '@/services/supabase';
+import { KeyboardRoot } from '@/lib/keyboard';
 
 const queryClient = new QueryClient();
 
@@ -32,6 +33,8 @@ function Shell() {
         <Stack.Screen name="notifications" options={{ presentation: 'modal' }} />
         <Stack.Screen name="brief/[id]" options={{ presentation: 'modal' }} />
         <Stack.Screen name="follow/[id]" options={{ animation: 'fade', gestureEnabled: false }} />
+        <Stack.Screen name="unveil/[id]" options={{ animation: 'fade' }} />
+        <Stack.Screen name="products/[id]" />
       </Stack>
     </>
   );
@@ -55,11 +58,13 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
+        <KeyboardRoot>
         <QueryClientProvider client={queryClient}>
           <ThemeProvider>
-            {(fontsLoaded || fontError) && hydrated ? <Shell /> : <View style={{ flex: 1, backgroundColor: '#FAF7F4' }} />}
+            {(fontsLoaded || fontError) && hydrated ? <Shell /> : <View style={{ flex: 1, backgroundColor: '#FBF7F4' }} />}
           </ThemeProvider>
         </QueryClientProvider>
+        </KeyboardRoot>
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );

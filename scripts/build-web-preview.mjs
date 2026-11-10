@@ -16,14 +16,14 @@ const USED_FONTS = [
   'CormorantGaramond_500Medium_Italic.',
   'CormorantGaramond_600SemiBold.',
 ];
-const MIME = { ttf: 'font/ttf', png: 'image/png', jpg: 'image/jpeg', ico: 'image/x-icon' };
+const MIME = { ttf: 'font/ttf', png: 'image/png', jpg: 'image/jpeg', ico: 'image/x-icon', mp4: 'video/mp4' };
 
 const html = readFileSync(join(dist, 'index.html'), 'utf8');
 const scripts = [...html.matchAll(/<script src="([^"]+)" defer><\/script>/g)].map((m) => m[1]);
 let inlined = 0;
 
 function inlineAssets(js) {
-  return js.replace(/"(\/assets\/[^"]+\.(ttf|png|jpg))"/g, (whole, path, ext) => {
+  return js.replace(/"(\/assets\/[^"]+\.(ttf|png|jpg|mp4))"/g, (whole, path, ext) => {
     if (ext === 'ttf' && !USED_FONTS.some((f) => path.includes(`/${f}`))) return whole;
     const file = join(dist, decodeURIComponent(path));
     if (!existsSync(file)) return whole;

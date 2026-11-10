@@ -1,120 +1,160 @@
-import { useMemo, type ReactNode } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import React, { useMemo, useRef, useState, type ReactNode } from 'react';
+import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Screen } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
-import { Eyebrow, LookHero, RoutineRow, RoutineTile, SectionHeader, StreakRing, stepCount } from '@/components/Bits';
-import { Icon } from '@/components/Icon';
+import { LookPhoto, RoutineRow, stepCount } from '@/components/Bits';
+import { Icon, type IconName } from '@/components/Icon';
 import { PressableScale } from '@/components/PressableScale';
 import { useTheme } from '@/design/theme';
-import { layout, radius, space } from '@/design/tokens';
+import { fonts, layout, radius, space } from '@/design/tokens';
+import { photo, routineImage, type LookImage } from '@/design/media';
+import { haptic } from '@/design/haptics';
 import { useLibrary, IMPORT_STAGES } from '@/data/library';
-import { useSessions, resumableSession, plansOn } from '@/data/sessions';
+import { useSessions, resumableSession } from '@/data/sessions';
 import { useProfile } from '@/data/profile';
-import { useAccount } from '@/data/account';
 import { SAMPLE_ROUTINES } from '@/data/samples';
-import { greeting, todayLabel, useStreak } from '@/lib/hooks';
-import { findRoutine, startersFor } from '@/lib/routines';
-import { useBag } from '@/data/bag';
+import { findRoutine } from '@/lib/routines';
+import { extractFirstUrl } from '@mago/shared';
 
-function lookOfTheMoment(now = new Date()): string {
-  const h = now.getHours();
-  if (h < 12) return 'This morning’s look';
-  if (h < 17) return 'Today’s look';
-  return 'Tonight’s look';
-}
+type CategoryId = 'makeup' | 'skincare' | 'hair' | 'nails' | 'tools';
+const CATEGORIES: { id: CategoryId; label: string; image: LookImage }[] = [
+  { id: 'makeup', label: 'Makeup', image: { ...photo('palette'), focus: '30% 55%' } },
+  { id: 'skincare', label: 'Skincare', image: photo('dewySkin') },
+  { id: 'hair', label: 'Hair', image: { ...photo('heroClean'), focus: '30% 30%' } },
+  { id: 'nails', label: 'Nails', image: { ...photo('brows'), focus: '88% 18%' } },
+  { id: 'tools', label: 'Tools', image: { ...photo('flatlay'), focus: '70% 45%' } },
+];
 
 /**
- * Today (Porter editorial): date + greeting, ONE hero look on a full photo, a quiet paste
- * field, then "pick up where you left off" and photo rails. At most one contextual tip.
+ * Home — "Discover Your Beauty" (rose accents, D-21). Header · serif hero · search-or-paste ·
+ * category circles · New Looks banner · Trending Now. Plus her in-progress look and imports.
  */
-export default function Today() {
+export default function Home() {
   const router = useRouter();
   const { c } = useTheme();
+  const name = useProfile((s) => s.name);
   const items = useLibrary((s) => s.items);
   const imports = useLibrary((s) => s.imports);
   const sessions = useSessions((s) => s.sessions);
-  const plans = useSessions((s) => s.plans);
-  const goal = useProfile((s) => s.goal);
-  const name = useProfile((s) => s.name);
-  const isPro = useAccount((s) => s.isPro);
-  const streak = useStreak();
-  const bagCount = useBag((s) => s.items.length);
+  const [query, setQuery] = useState('');
+  const input = useRef<React.ComponentRef<typeof TextInput>>(null);
 
-  const saved = useMemo(() => Object.values(items).sort((a, b) => b.savedAt.localeCompare(a.savedAt)), [items]);
-  const completed = useMemo(() => Object.values(sessions).filter((s) => s.completedAt).length, [sessions]);
   const resume = resumableSession(sessions);
   const resumeRoutine = resume ? findRoutine(resume.routineId) : undefined;
-  const todayPlan = plansOn(plans, new Date()).sort((a, b) => (a.time ?? '').localeCompare(b.time ?? ''))[0];
-  const planRoutine = todayPlan ? findRoutine(todayPlan.routineId) : undefined;
   const inFlight = Object.values(imports).filter((j) => j.status === 'processing' || j.status === 'pending_offline');
-  const starters = startersFor(goal);
+  const trending = useMemo(() => [...SAMPLE_ROUTINES].sort((a, b) => stepCount(a) - stepCount(b)), []);
+  const fresh = useMemo(() => SAMPLE_ROUTINES.filter((r) => !items[r.id]), [items]);
 
-  const hero = planRoutine ?? saved.find((s) => s.routine.id !== resumeRoutine?.id)?.routine ?? starters[0] ?? SAMPLE_ROUTINES[0];
-  const heroEyebrow = planRoutine
-    ? todayPlan?.time
-      ? `Today at ${todayPlan.time}`
-      : 'Planned for today'
-    : saved.length === 0
-      ? 'Your first look'
-      : lookOfTheMoment();
-  const yourLooks = saved.filter((s) => s.routine.id !== hero?.id).map((s) => s.routine);
-  const picked = (saved.length === 0 ? starters : []).filter((r) => r.id !== hero?.id);
-  const fromDiscover = SAMPLE_ROUTINES.filter((r) => !items[r.id] && r.id !== hero?.id && !picked.some((p) => p.id === r.id)).slice(0, 6);
+  function submit() {
+    const q = query.trim();
+    if (!q) return;
+    if (extractFirstUrl(q)) router.push(`/add?link=${encodeURIComponent(q)}`);
+    else router.push(`/(tabs)/library?q=${encodeURIComponent(q)}`);
+  }
 
-  // One contextual tip at most, and only once she has done a look or two.
-  const tip: 'pro' | 'bag' | null = !isPro && completed >= 2 ? 'pro' : bagCount === 0 && completed >= 1 ? 'bag' : null;
+  function openCategory(id: CategoryId) {
+    haptic.select();
+    if (id === 'tools') router.push('/bag');
+    else router.push(`/(tabs)/discover?cat=${id}`);
+  }
 
   return (
-    <Screen mood="warm" bottomInset={layout.tabBarSpace}>
+    <Screen mood="home" bottomInset={layout.tabBarSpace}>
       <View style={styles.header}>
-        <View style={{ flex: 1, gap: 6 }}>
-          <Eyebrow>{todayLabel()}</Eyebrow>
-          <Txt variant="display" accessibilityRole="header">
-            {name ? `${greeting()}, ${name}` : greeting()}
+        <PressableScale accessibilityLabel="Open your profile" onPress={() => router.push('/(tabs)/me')} style={[styles.avatar, { backgroundColor: c.home.tint, borderColor: c.home.card }]}>
+          <Txt variant="headline" style={{ fontFamily: fonts.serifSemibold, fontSize: 18, color: c.home.accentText }}>
+            {(name?.trim()[0] ?? 'M').toUpperCase()}
           </Txt>
+        </PressableScale>
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <RoundWhite icon="calendar" label="Planner" onPress={() => router.push('/planner')} />
+          <RoundWhite icon="search" label="Search" onPress={() => input.current?.focus()} />
         </View>
-        {completed > 0 ? (
-          <PressableScale onPress={() => router.push('/(tabs)/me')} accessibilityLabel={`${streak.thisWeekCount} of ${streak.weeklyGoal} looks this week. Open your progress`}>
-            <StreakRing done={streak.thisWeekCount} goal={streak.weeklyGoal} size={44} />
-          </PressableScale>
-        ) : null}
       </View>
 
-      {hero ? (
-        <LookHero
-          routine={hero}
-          eyebrow={heroEyebrow}
-          meta={`${hero.totalTimeMin} min · ${stepCount(hero)} steps`}
-          action="Start"
-          onPress={() => router.push(`/routine/${hero.id}`)}
-          onAction={() => router.push(`/brief/${hero.id}`)}
+      <View style={{ marginTop: space.l }}>
+        <Txt variant="display" accessibilityRole="header" style={styles.heroLine}>
+          Discover
+        </Txt>
+        <Txt variant="display" style={[styles.heroLine, { color: c.home.accentText }]}>
+          Your Beauty
+        </Txt>
+        <Txt variant="footnote" tone="secondary" style={{ marginTop: space.s }}>
+          Turn any beauty video into easy follow-along steps.
+        </Txt>
+      </View>
+
+      <View style={[styles.search, { backgroundColor: c.home.card }, cardShadow(c.shadow)]}>
+        <Icon name="search" size={18} color={c.inkSecondary} />
+        <TextInput
+          ref={input}
+          value={query}
+          onChangeText={setQuery}
+          onSubmitEditing={submit}
+          placeholder="Search looks or paste a video link…"
+          placeholderTextColor={c.inkSecondary}
+          returnKeyType="search"
+          autoCapitalize="none"
+          autoCorrect={false}
+          accessibilityLabel="Search your looks, or paste a video link to unveil it"
+          style={[styles.searchInput, { color: c.ink }]}
         />
-      ) : null}
+        <PressableScale
+          accessibilityLabel={query.trim() ? 'Go' : 'Unveil a look'}
+          onPress={() => (query.trim() ? submit() : router.push('/add'))}
+          style={[styles.searchBtn, { backgroundColor: c.home.tint }]}
+        >
+          <Icon name={query.trim() ? 'arrowRight' : 'sliders'} size={18} color={c.home.fill} />
+        </PressableScale>
+      </View>
+
+      <View style={styles.cats} accessibilityRole="menu">
+        {CATEGORIES.map((cat) => (
+          <PressableScale key={cat.id} accessibilityRole="button" accessibilityLabel={cat.label} onPress={() => openCategory(cat.id)} style={styles.cat}>
+            <View style={[styles.catCircle, { backgroundColor: c.home.tint }, cardShadow(c.shadow)]}>
+              <LookPhoto image={cat.image} style={StyleSheet.absoluteFill} />
+            </View>
+            <Txt variant="caption" tone="secondary" style={{ fontSize: 11 }}>
+              {cat.label}
+            </Txt>
+          </PressableScale>
+        ))}
+      </View>
 
       <PressableScale
-        onPress={() => router.push('/add')}
-        accessibilityLabel="Paste a tutorial link to turn it into steps"
+        accessibilityLabel="New looks. Fresh tutorials for you. Explore"
+        onPress={() => router.push('/(tabs)/discover')}
         scaleTo={0.985}
-        style={[styles.paste, { backgroundColor: c.surfaceAlt }]}
+        style={[styles.banner, cardShadow(c.shadow)]}
       >
-        <Icon name="link" size={20} color={c.inkSecondary} />
-        <Txt variant="body" tone="secondary" style={{ flex: 1 }}>
-          Paste a tutorial link
-        </Txt>
-        <Icon name="plus" size={20} color={c.inkSecondary} />
+        <LinearGradient colors={[c.home.bannerFrom, c.home.bannerTo]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+        <View style={styles.bannerImage}>
+          <LookPhoto image={{ ...photo('flatlay'), focus: '55% 50%' }} style={StyleSheet.absoluteFill} />
+          <LinearGradient colors={[c.home.bannerFrom, 'rgba(248,217,211,0)']} start={{ x: 0, y: 0.5 }} end={{ x: 0.45, y: 0.5 }} style={StyleSheet.absoluteFill} />
+        </View>
+        <View style={styles.bannerText}>
+          <Txt variant="title3" style={{ fontFamily: fonts.serifSemibold, fontSize: 26, lineHeight: 26, color: c.ink }}>
+            {'New\nLooks'}
+          </Txt>
+          <Txt variant="footnote" style={{ color: c.ink, opacity: 0.8 }}>
+            Fresh tutorials for you
+          </Txt>
+          <View style={[styles.pill, { backgroundColor: c.home.fill }]}>
+            <Txt variant="caption" style={{ color: c.home.onFill, fontWeight: '600' }}>
+              Explore
+            </Txt>
+            <Icon name="arrowRight" size={13} color={c.home.onFill} strokeWidth={2} />
+          </View>
+        </View>
       </PressableScale>
 
       {inFlight.map((j) => (
-        <PressableScale
-          key={j.id}
-          onPress={() => router.push(`/import/${j.id}`)}
-          accessibilityLabel="Open import in progress"
-          style={[styles.notice, { backgroundColor: c.surface }]}
-        >
-          <Icon name={j.status === 'pending_offline' ? 'wifiOff' : 'sparkle'} size={20} color={c.inkSecondary} />
+        <PressableScale key={j.id} onPress={() => router.push(`/import/${j.id}`)} accessibilityLabel="Open the look being unveiled" style={[styles.notice, { backgroundColor: c.home.card }, cardShadow(c.shadow)]}>
+          <Icon name={j.status === 'pending_offline' ? 'wifiOff' : 'sparkle'} size={20} color={c.home.fill} />
           <View style={{ flex: 1, gap: 2 }}>
-            <Txt variant="headline">{j.status === 'pending_offline' ? 'Waiting for a connection' : 'Writing your steps…'}</Txt>
+            <Txt variant="headline">{j.status === 'pending_offline' ? 'Waiting for a connection' : 'Unveiling your look…'}</Txt>
             <Txt variant="footnote" tone="secondary">
               {j.status === 'pending_offline' ? 'We’ll start as soon as you’re online.' : IMPORT_STAGES[j.stage]}
             </Txt>
@@ -125,104 +165,114 @@ export default function Today() {
 
       {resume && resumeRoutine ? (
         <>
-          <SectionHeader title="Pick up where you left off" />
-          <View style={{ marginTop: space.m }}>
-            <RoutineRow
-              routine={resumeRoutine}
-              subtitle={`Step ${resume.stepIndex + 1} of ${stepCount(resumeRoutine)}`}
-              progress={(resume.stepIndex + 1) / stepCount(resumeRoutine)}
-              onPress={() => router.push(`/follow/${resumeRoutine.id}?session=${resume.id}`)}
-            />
-          </View>
+          <SectionTitle title="Pick up where you left off" />
+          <RoutineRow
+            routine={resumeRoutine}
+            subtitle={`Step ${resume.stepIndex + 1} of ${stepCount(resumeRoutine)}`}
+            progress={(resume.stepIndex + 1) / stepCount(resumeRoutine)}
+            onPress={() => router.push(`/follow/${resumeRoutine.id}?session=${resume.id}`)}
+          />
         </>
       ) : null}
 
-      {yourLooks.length > 0 ? (
+      <SectionTitle title="Trending Now" onPress={() => router.push('/(tabs)/discover')} />
+      <Rail>
+        {trending.map((r) => (
+          <TrendCard key={r.id} title={r.title} caption={`${stepCount(r)} steps · ${r.totalTimeMin} min`} image={routineImage(r)} onPress={() => router.push(`/unveil/${r.id}`)} />
+        ))}
+      </Rail>
+
+      {fresh.length > 0 ? (
         <>
-          <SectionHeader title="Your looks" action="See all" onAction={() => router.push('/(tabs)/library')} />
+          <SectionTitle title="New this week" onPress={() => router.push('/(tabs)/discover')} />
           <Rail>
-            {yourLooks.slice(0, 8).map((r) => (
-              <RoutineTile key={r.id} routine={r} onPress={() => router.push(`/routine/${r.id}`)} />
+            {fresh.slice(0, 6).map((r) => (
+              <TrendCard key={r.id} wide title={r.title} caption={`${r.totalTimeMin} min · ${r.occasion[0] ?? r.category}`} image={routineImage(r)} onPress={() => router.push(`/routine/${r.id}`)} />
             ))}
           </Rail>
         </>
-      ) : null}
-
-      {picked.length > 0 ? (
-        <>
-          <SectionHeader title="Picked for you" />
-          <Rail>
-            {picked.map((r) => (
-              <RoutineTile key={r.id} routine={r} onPress={() => router.push(`/routine/${r.id}`)} />
-            ))}
-          </Rail>
-        </>
-      ) : null}
-
-      {tip ? (
-        <PressableScale
-          onPress={() => router.push(tip === 'pro' ? '/paywall?from=today' : '/bag/scan')}
-          accessibilityLabel={tip === 'pro' ? 'Try Mago Pro free for 7 days' : 'Scan your makeup bag'}
-          style={[styles.notice, { backgroundColor: c.surface, marginTop: space.x4 }]}
-        >
-          <View style={{ flex: 1, gap: 4 }}>
-            <Eyebrow>{tip === 'pro' ? 'Mago Pro' : 'Your makeup bag'}</Eyebrow>
-            <Txt variant="headline">{tip === 'pro' ? 'Every tutorial, no monthly limit' : 'See what you already own'}</Txt>
-            <Txt variant="footnote" tone="secondary">
-              {tip === 'pro' ? '7 days free, then $39.99 a year.' : 'Scan once — every look shows have, swap or missing.'}
-            </Txt>
-          </View>
-          <Icon name="chevronRight" size={20} color={c.inkSecondary} />
-        </PressableScale>
-      ) : null}
-
-      {fromDiscover.length > 0 ? (
-        <>
-          <SectionHeader title="From Discover" action="See all" onAction={() => router.push('/(tabs)/discover')} />
-          <Rail>
-            {fromDiscover.map((r) => (
-              <RoutineTile key={r.id} routine={r} onPress={() => router.push(`/routine/${r.id}`)} />
-            ))}
-          </Rail>
-        </>
-      ) : null}
-
-      {planRoutine === undefined && saved.length > 0 ? (
-        <PressableScale onPress={() => router.push('/planner')} accessibilityLabel="Open planner" style={styles.planner}>
-          <Icon name="calendar" size={18} color={c.inkSecondary} />
-          <Txt variant="subhead" tone="secondary">
-            Plan a look for later this week
-          </Txt>
-        </PressableScale>
       ) : null}
     </Screen>
   );
 }
 
+function cardShadow(color: string) {
+  return { shadowColor: color, shadowOpacity: 0.08, shadowRadius: 16, shadowOffset: { width: 0, height: 4 }, elevation: 2 } as const;
+}
+
+function RoundWhite({ icon, label, onPress }: { icon: IconName; label: string; onPress: () => void }) {
+  const { c } = useTheme();
+  return (
+    <PressableScale accessibilityLabel={label} onPress={onPress} style={styles.hit}>
+      <View style={[styles.round, { backgroundColor: c.home.card }, cardShadow(c.shadow)]}>
+        <Icon name={icon} size={18} color={c.ink} />
+      </View>
+    </PressableScale>
+  );
+}
+
+function SectionTitle({ title, onPress }: { title: string; onPress?: () => void }) {
+  const { c } = useTheme();
+  const body = (
+    <View style={styles.sectionRow}>
+      <Txt variant="headline" accessibilityRole="header">
+        {title}
+      </Txt>
+      {onPress ? <Icon name="chevronRight" size={16} color={c.ink} strokeWidth={1.8} /> : null}
+    </View>
+  );
+  return onPress ? (
+    <PressableScale accessibilityLabel={`${title}, see all`} onPress={onPress} style={styles.section}>
+      {body}
+    </PressableScale>
+  ) : (
+    <View style={styles.section}>{body}</View>
+  );
+}
+
+function TrendCard({ title, caption, image, onPress, wide }: { title: string; caption: string; image: LookImage; onPress: () => void; wide?: boolean }) {
+  const w = wide ? 150 : 110;
+  const h = wide ? 190 : 110;
+  return (
+    <PressableScale accessibilityLabel={`${title}. ${caption}`} onPress={onPress} style={{ width: w, gap: 6 }}>
+      <LookPhoto image={image} style={{ width: w, height: h, borderRadius: radius.thumb }} />
+      <View style={{ gap: 1 }}>
+        <Txt variant="caption" numberOfLines={2} style={{ fontWeight: '600', fontSize: 12, lineHeight: 16 }}>
+          {title}
+        </Txt>
+        <Txt variant="caption" tone="secondary" style={{ fontSize: 11, lineHeight: 14 }}>
+          {caption}
+        </Txt>
+      </View>
+    </PressableScale>
+  );
+}
+
 function Rail({ children }: { children: ReactNode }) {
   return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      style={{ marginHorizontal: -space.xl }}
-      contentContainerStyle={{ paddingHorizontal: space.xl, gap: space.m, paddingTop: space.m }}
-    >
+    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -space.xl }} contentContainerStyle={{ paddingHorizontal: space.xl, gap: space.m, paddingTop: space.s }}>
       {children}
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  header: { flexDirection: 'row', alignItems: 'flex-end', gap: space.m, marginTop: space.l, marginBottom: space.xxl },
-  paste: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: space.m,
-    minHeight: 52,
-    paddingHorizontal: space.l,
-    borderRadius: radius.pill,
-    marginTop: space.l,
-  },
-  notice: { flexDirection: 'row', alignItems: 'center', gap: space.m, padding: space.l, borderRadius: radius.thumb, marginTop: space.m },
-  planner: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: space.s, minHeight: 44, marginTop: space.x3 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: space.s },
+  avatar: { width: 40, height: 40, borderRadius: 20, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },
+  hit: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  round: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  heroLine: { fontFamily: fonts.serifSemibold, fontSize: 38, lineHeight: 40, letterSpacing: -0.6 },
+  search: { flexDirection: 'row', alignItems: 'center', gap: 10, height: 52, borderRadius: 26, paddingLeft: space.l, paddingRight: 6, marginTop: space.l },
+  searchInput: { flex: 1, minWidth: 0, height: 48, fontFamily: fonts.sans, fontSize: 15 },
+  searchBtn: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },
+  cats: { flexDirection: 'row', justifyContent: 'space-between', marginTop: space.xxl },
+  cat: { width: 64, alignItems: 'center', gap: 6 },
+  catCircle: { width: 56, height: 56, borderRadius: 28, overflow: 'hidden' },
+  banner: { height: 150, borderRadius: radius.card, overflow: 'hidden', marginTop: space.xxl },
+  bannerImage: { position: 'absolute', right: -24, top: 0, bottom: 0, width: '62%' },
+  bannerText: { flex: 1, justifyContent: 'space-between', padding: 18, width: '55%' },
+  pill: { alignSelf: 'flex-start', flexDirection: 'row', alignItems: 'center', gap: 6, height: 32, paddingHorizontal: 14, borderRadius: 16 },
+  notice: { flexDirection: 'row', alignItems: 'center', gap: space.m, padding: space.l, borderRadius: radius.card, marginTop: space.l },
+  section: { marginTop: space.xxl, minHeight: 32, justifyContent: 'center', alignSelf: 'flex-start' },
+  sectionRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
 });

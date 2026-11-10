@@ -13,7 +13,7 @@ import { OfflineBanner } from './States';
 interface ScreenProps {
   children: ReactNode;
   scroll?: boolean;
-  mood?: 'warm' | 'calm' | 'reveal' | 'none';
+  mood?: 'warm' | 'calm' | 'reveal' | 'home' | 'none';
   /** Extra space at the bottom (e.g. above the tab bar or a sticky button). */
   bottomInset?: number;
   footer?: ReactNode;
@@ -34,7 +34,7 @@ export function Screen({ children, scroll = true, mood = 'calm', bottomInset = 0
     <View style={[styles.column, contentStyle]}>{children}</View>
   );
   return (
-    <View style={[styles.fill, { backgroundColor: c.bg }]}>
+    <View style={[styles.fill, { backgroundColor: mood === 'home' ? c.home.bg : c.bg }]}>
       {mood !== 'none' ? <Ambient mood={mood} /> : null}
       <View style={{ paddingTop: edgeToEdge ? 0 : insets.top }}>
         <OfflineBanner />

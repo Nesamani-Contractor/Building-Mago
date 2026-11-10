@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { CATEGORIES, OCCASIONS } from '@mago/shared';
 import { Screen } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
@@ -24,7 +24,14 @@ export default function Library() {
   const items = useLibrary((s) => s.items);
   const collections = useLibrary((s) => s.collections);
   const addCollection = useLibrary((s) => s.addCollection);
-  const [q, setQ] = useState('');
+  const params = useLocalSearchParams<{ q?: string }>();
+  const [q, setQ] = useState(params.q ?? '');
+  // A new search from Home updates the box (adjust state while rendering, no effect needed).
+  const [seenQ, setSeenQ] = useState(params.q);
+  if (params.q !== seenQ) {
+    setSeenQ(params.q);
+    if (params.q !== undefined) setQ(params.q);
+  }
   const [filter, setFilter] = useState<Filter>('all');
   const [newCol, setNewCol] = useState<string | null>(null);
 

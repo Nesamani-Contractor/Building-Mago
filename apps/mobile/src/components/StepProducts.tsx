@@ -12,7 +12,7 @@ import { ProductArt } from './ProductArt';
 /** Product pictures are shown to everyone (owner decision, D-16 revised). Flip to gate them behind Pro. */
 export const PRODUCT_PICTURES_ARE_PRO = false;
 
-const KIND_LABEL: Record<ProductKind, string> = {
+export const KIND_LABEL: Record<ProductKind, string> = {
   lipstick: 'Lipstick',
   gloss: 'Gloss',
   pencil: 'Pencil',

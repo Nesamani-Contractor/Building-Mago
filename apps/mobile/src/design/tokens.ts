@@ -1,70 +1,83 @@
 import { Platform } from 'react-native';
 
 /**
- * Mago design tokens — "Luxury v2 · A · Porter editorial" (decision D-20, 8 Nov 2026).
- * Replaces Warm luxury A (D-13). Screens must use these tokens; no hard-coded colors, sizes,
+ * Mago design tokens — "WOW v2 · Porcelain Luxe" (decision D-21, 9 Nov 2026): plum main flow,
+ * rose accents on the Home tab only, gold reserved for achievement. Replaces D-20 palette. Screens must use these tokens; no hard-coded colors, sizes,
  * radii or durations in screens.
  *
  * One strong color (Plum) in the UI; every other color comes from photography.
- * Contrast (WCAG AA), checked:
- *   ink #1F1418 on porcelain #FAF7F4 ≈ 17:1 · on blush #FBE7E9 ≈ 15:1
- *   inkSecondary #6B5A60 on porcelain ≈ 6.4:1 · on blush ≈ 5.6:1
- *   onPrimary #FFF8F4 on plum #4A1F35 ≈ 13:1
- *   champagne #B8956A is NEVER text — progress, selected marks and one detail per screen only.
- *   dark: ink #F6EEE9 on #140E11 ≈ 17:1 · inkSecondary #BBA9B0 ≈ 8.6:1
+ * Contrast (WCAG AA), checked 9 Nov:
+ *   ink #2A1E26 on porcelain #FBF7F4 15:1 · inkSecondary #7C6A73 on porcelain 4.7:1, on white 5.0:1
+ *   (never secondary text on the sunken fill — 4.4:1) · porcelain on plum 10.5:1
+ *   Home: white on roseFill #B5504E 5.0:1 · roseText #C45F5D 3.8:1 → large text (≥ 24pt) only;
+ *   roseAccent #D9716F is for dots, rings and icons, never text. success #3E7457 on white 5.3:1.
+ *   inkTertiary #9C8A92 3.0:1 → inactive/large only. Dark: ink 16:1, secondary 8.9:1.
  */
 
 export const palette = {
-  porcelain: '#FAF7F4',
+  porcelain: '#FBF7F4',
   white: '#FFFFFF',
-  sunken: '#F2ECE7',
-  ink: '#1F1418',
-  inkSecondary: '#6B5A60',
-  inkTertiary: '#9C8D92',
-  plum: '#4A1F35',
-  onPlum: '#FFF8F4',
-  champagne: '#B8956A',
-  blush: '#FBE7E9',
-  blushDeep: '#F1CCD3',
-  blushRow: '#FFF7F7',
-  // Blush background wash (Today and tab screens).
-  washTop: '#F6D9DE',
-  washMid: '#F9E4E6',
-  washLow: '#FCEFEE',
-  washEnd: '#FDF6F3',
-  glowRose: '#EAB2C0',
-  glowPetal: '#F4C8CE',
+  sunken: '#F6EEE9',
+  ink: '#2A1E26',
+  inkSecondary: '#7C6A73',
+  inkTertiary: '#9C8A92',
+  plum: '#5B2A4A',
+  onPlum: '#FBF7F4',
+  blush: '#EBC9C4',
+  blushDeep: '#E2B5B0',
+  blushRow: '#FFFFFF',
+  /** Gold means ONE thing: achievement (Unveil complete, Pro badge, milestones). */
+  gold: '#C9A46A',
+  champagne: '#C9A46A',
+  // Rose — Home tab accents ("Discover Your Beauty").
+  homeBg: '#FCF5F3',
+  roseAccent: '#D9716F',
+  roseText: '#C45F5D',
+  roseFill: '#B5504E',
+  roseTint: '#F7E4E0',
+  heroTop: '#FBEDEA',
+  heroBottom: '#F5DCD7',
+  bannerFrom: '#F8D9D3',
+  bannerTo: '#EFC1BA',
+  // Blush wash for tab screens.
+  washTop: '#F7E6E3',
+  washMid: '#F9EEEB',
+  washLow: '#FBF4F1',
+  washEnd: '#FBF7F4',
+  glowRose: '#EBC9C4',
+  glowPetal: '#F2D6D1',
   // Night
-  nightBg: '#140E11',
-  nightSurface: '#1E161A',
-  nightSunken: '#271D22',
+  nightBg: '#16101A',
+  nightSurface: '#201820',
+  nightSunken: '#2A2028',
   nightInk: '#F6EEE9',
-  nightSecondary: '#BBA9B0',
-  nightTertiary: '#8C7C82',
-  /** Kept for type art and shade swatches only (never UI chrome). */
+  nightSecondary: '#BFAEB6',
+  nightTertiary: '#8E7E86',
+  /** Shade swatches / product art only (never UI chrome). */
   peach: '#F6C9B4',
   rose: '#E8A5B5',
   lilac: '#CDB8E6',
-  gold: '#B8956A',
 } as const;
 
 export interface ColorScheme {
   bg: string;
-  /** Raised content (sheets, list rows on blush). */
+  /** Raised content (cards, list rows on blush). */
   surface: string;
   /** Sunken fills: chips, inputs, secondary buttons, product tiles. */
   surfaceAlt: string;
-  /** Floating glass (tab bar, buttons over photos). */
+  /** Floating glass (tab bar, controls). */
   glass: string;
   glassOnPhoto: string;
+  glassEdge: string;
   ink: string;
   inkSecondary: string;
   inkTertiary: string;
   inkOnPrimary: string;
   inkOnPhoto: string;
   primary: string;
-  /** Champagne — decoration only, never text. */
+  /** Gold — achievement only, never text. */
   accent: string;
+  gold: string;
   hairline: string;
   hairlineStrong: string;
   track: string;
@@ -80,64 +93,108 @@ export interface ColorScheme {
   wash: readonly [string, string, string, string];
   glowOpacity: number;
   blurTint: 'light' | 'dark';
+  /** Rose accents (Home tab). */
+  home: {
+    bg: string;
+    heroTop: string;
+    heroBottom: string;
+    accent: string;
+    accentText: string;
+    fill: string;
+    onFill: string;
+    tint: string;
+    bannerFrom: string;
+    bannerTo: string;
+    card: string;
+  };
 }
 
 export const light: ColorScheme = {
   bg: palette.porcelain,
-  surface: palette.blushRow,
+  surface: palette.white,
   surfaceAlt: palette.sunken,
-  glass: 'rgba(255,244,246,0.82)',
-  glassOnPhoto: 'rgba(20,14,16,0.42)',
+  glass: 'rgba(251,247,244,0.74)',
+  glassOnPhoto: 'rgba(255,255,255,0.16)',
+  glassEdge: 'rgba(255,255,255,0.38)',
   ink: palette.ink,
   inkSecondary: palette.inkSecondary,
   inkTertiary: palette.inkTertiary,
   inkOnPrimary: palette.onPlum,
   inkOnPhoto: palette.onPlum,
   primary: palette.plum,
-  accent: palette.champagne,
-  hairline: 'rgba(31,20,24,0.08)',
-  hairlineStrong: 'rgba(31,20,24,0.16)',
-  track: 'rgba(74,31,53,0.12)',
-  overlay: 'rgba(31,20,24,0.38)',
-  scrim: 'rgba(20,10,14,0.72)',
-  success: '#2F6B4F',
+  accent: palette.gold,
+  gold: palette.gold,
+  hairline: 'rgba(42,30,38,0.08)',
+  hairlineStrong: 'rgba(42,30,38,0.16)',
+  track: 'rgba(91,42,74,0.12)',
+  overlay: 'rgba(42,30,38,0.38)',
+  scrim: 'rgba(42,30,38,0.80)',
+  success: '#3E7457',
   warningBg: '#FBEBD8',
   warningInk: '#7A4B00',
-  danger: '#A23B3B',
-  shadow: '#964060',
-  mediaTint: palette.blushDeep,
+  danger: '#B3394B',
+  shadow: '#5B2A4A',
+  mediaTint: palette.blush,
   wash: [palette.washTop, palette.washMid, palette.washLow, palette.washEnd],
   glowOpacity: 1,
   blurTint: 'light',
+  home: {
+    bg: palette.homeBg,
+    heroTop: palette.heroTop,
+    heroBottom: palette.heroBottom,
+    accent: palette.roseAccent,
+    accentText: palette.roseText,
+    fill: palette.roseFill,
+    onFill: '#FFFFFF',
+    tint: palette.roseTint,
+    bannerFrom: palette.bannerFrom,
+    bannerTo: palette.bannerTo,
+    card: palette.white,
+  },
 };
 
 export const dark: ColorScheme = {
   bg: palette.nightBg,
   surface: palette.nightSurface,
   surfaceAlt: palette.nightSunken,
-  glass: 'rgba(30,22,26,0.80)',
-  glassOnPhoto: 'rgba(20,14,16,0.50)',
+  glass: 'rgba(32,24,32,0.78)',
+  glassOnPhoto: 'rgba(20,14,18,0.40)',
+  glassEdge: 'rgba(255,255,255,0.18)',
   ink: palette.nightInk,
   inkSecondary: palette.nightSecondary,
   inkTertiary: palette.nightTertiary,
   inkOnPrimary: '#3A1428',
   inkOnPhoto: palette.onPlum,
-  primary: palette.blushDeep,
-  accent: '#D4B48C',
+  primary: palette.blush,
+  accent: '#D8B87E',
+  gold: '#D8B87E',
   hairline: 'rgba(246,238,233,0.10)',
   hairlineStrong: 'rgba(246,238,233,0.20)',
   track: 'rgba(246,238,233,0.14)',
   overlay: 'rgba(0,0,0,0.55)',
-  scrim: 'rgba(8,4,6,0.78)',
+  scrim: 'rgba(8,4,6,0.80)',
   success: '#8FD1AE',
   warningBg: '#3A2A10',
   warningInk: '#F5D28F',
   danger: '#F29AA8',
   shadow: '#000000',
   mediaTint: '#3A2A30',
-  wash: ['#2A1A21', '#1E1418', '#170F13', palette.nightBg],
+  wash: ['#2A1A21', '#1E1418', '#19111A', palette.nightBg],
   glowOpacity: 0.45,
   blurTint: 'dark',
+  home: {
+    bg: palette.nightBg,
+    heroTop: '#2A1A20',
+    heroBottom: '#22161C',
+    accent: '#F0A09D',
+    accentText: '#F0A09D',
+    fill: '#F0A09D',
+    onFill: '#3A1414',
+    tint: '#33222A',
+    bannerFrom: '#3A2328',
+    bannerTo: '#4A2A30',
+    card: palette.nightSurface,
+  },
 };
 
 /** 4-pt base grid. */
@@ -158,8 +215,8 @@ export const space = {
 /** One radius per size, continuous corners. */
 export const radius = {
   chip: 10,
-  thumb: 16,
-  card: 24,
+  thumb: 14,
+  card: 20,
   sheet: 32,
   pill: 999,
 } as const;
@@ -207,8 +264,11 @@ export type TypeVariant = keyof typeof type;
 
 /** Springs: critically damped by default; slight bounce only after a flick. */
 export const motion = {
+  /** Default: critically damped (damping ratio 1.0, response ≈ 0.35 s). Colour/opacity never bounce. */
   spring: { damping: 26, stiffness: 300, mass: 1 },
+  /** Momentum / gesture (damping ratio ≈ 0.8) — only after a flick or for The Unveil. */
   flick: { damping: 20, stiffness: 260, mass: 1 },
+  unveil: { damping: 15, stiffness: 140, mass: 1 },
   pressScale: 0.97,
   fast: 160,
   step: 250,

@@ -11,16 +11,16 @@ import { PressableScale } from '@/components/PressableScale';
 import { haptic } from '@/design/haptics';
 
 const TABS: Record<string, { label: string; icon: IconName }> = {
-  index: { label: 'Today', icon: 'home' },
-  library: { label: 'Looks', icon: 'bookmark' },
+  index: { label: 'Home', icon: 'home' },
+  library: { label: 'Library', icon: 'bookmark' },
   discover: { label: 'Discover', icon: 'compass' },
   me: { label: 'Me', icon: 'person' },
 };
 
 /**
- * Floating glass tab bar (Porter editorial): a rounded pill that floats above the home
- * indicator, content scrolls underneath. Today · Looks · (+) · Discover · Me.
- * Active tab changes two things: filled icon + ink color, semibold label.
+ * Floating glass tab bar (WOW v2): a rounded pill that floats above the home indicator,
+ * content scrolls underneath. Home · Library · (+ Unveil) · Discover · Me.
+ * Active tab changes two things: filled icon + plum tint, semibold label; inactive at 60%.
  */
 function TabBar({ state, navigateToTab }: BottomTabBarProps) {
   const { c } = useTheme();
@@ -31,7 +31,7 @@ function TabBar({ state, navigateToTab }: BottomTabBarProps) {
     const meta = TABS[route.name];
     if (!meta) return null;
     const active = state.index === i;
-    const col = active ? c.ink : c.inkSecondary;
+    const col = active ? c.primary : c.ink;
     return (
       <PressableScale
         key={route.key}
@@ -42,7 +42,7 @@ function TabBar({ state, navigateToTab }: BottomTabBarProps) {
           if (!active) haptic.select();
           navigateToTab(route.key);
         }}
-        style={styles.tab}
+        style={[styles.tab, !active && { opacity: 0.6 }]}
       >
         <Icon name={meta.icon} size={24} color={col} filled={active} />
         <Txt variant="tab" style={{ color: col, fontWeight: active ? '600' : '500' }}>
@@ -60,15 +60,18 @@ function TabBar({ state, navigateToTab }: BottomTabBarProps) {
         </View>
         {items.slice(0, 2).map(render)}
         <PressableScale
-          accessibilityLabel="Add a tutorial"
-          accessibilityHint="Paste a link, upload a video or write a routine"
+          accessibilityLabel="Unveil a look"
+          accessibilityHint="Paste a video link, try a sample, or upload a video"
           onPress={() => {
             haptic.select();
             router.push('/add');
           }}
           style={[styles.add, { backgroundColor: c.primary }]}
         >
-          <Icon name="plus" size={22} color={c.inkOnPrimary} strokeWidth={1.75} />
+          <Icon name="plus" size={18} color={c.inkOnPrimary} strokeWidth={1.9} />
+          <Txt variant="subhead" style={{ color: c.inkOnPrimary, fontWeight: '600', fontSize: 14 }}>
+            Unveil
+          </Txt>
         </PressableScale>
         {items.slice(2).map(render)}
       </View>
@@ -80,8 +83,8 @@ export default function TabsLayout() {
   const { c } = useTheme();
   return (
     <Tabs tabBar={(p) => <TabBar {...p} />} screenOptions={{ headerShown: false, sceneStyle: { backgroundColor: c.bg } }}>
-      <Tabs.Screen name="index" options={{ title: 'Today' }} />
-      <Tabs.Screen name="library" options={{ title: 'Looks' }} />
+      <Tabs.Screen name="index" options={{ title: 'Home' }} />
+      <Tabs.Screen name="library" options={{ title: 'Library' }} />
       <Tabs.Screen name="discover" options={{ title: 'Discover' }} />
       <Tabs.Screen name="me" options={{ title: 'Me' }} />
     </Tabs>
@@ -101,5 +104,5 @@ const styles = StyleSheet.create({
   },
   clip: { borderRadius: layout.tabBarHeight / 2, overflow: 'hidden' },
   tab: { flex: 1, minWidth: 44, height: 56, alignItems: 'center', justifyContent: 'center', gap: 3 },
-  add: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginHorizontal: 6 },
+  add: { height: 48, paddingHorizontal: 16, borderRadius: 24, flexDirection: 'row', gap: 6, alignItems: 'center', justifyContent: 'center', marginHorizontal: 4 },
 });

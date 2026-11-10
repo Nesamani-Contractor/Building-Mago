@@ -4,6 +4,8 @@ import { useTheme } from '@/design/theme';
 
 /** One icon set: thin 1.5px outline, plum (ink) by default. */
 export type IconName =
+  | 'arrowRight'
+  | 'sliders'
   | 'home'
   | 'library'
   | 'plus'
@@ -96,6 +98,18 @@ export function Icon({ name, size = 24, color, filled = false, strokeWidth = 1.5
       break;
     case 'chevronRight':
       body = <Path {...p} d="M9 5l7 7-7 7" />;
+      break;
+    case 'arrowRight':
+      body = <Path {...p} d="M5 12h14M13 6l6 6-6 6" />;
+      break;
+    case 'sliders':
+      body = (
+        <>
+          <Path {...p} d="M4 7h10M18 7h2M4 17h4M12 17h8" />
+          <Circle {...p} cx={16} cy={7} r={2} />
+          <Circle {...p} cx={10} cy={17} r={2} />
+        </>
+      );
       break;
     case 'chevronLeft':
       body = <Path {...p} d="M15 5l-7 7 7 7" />;

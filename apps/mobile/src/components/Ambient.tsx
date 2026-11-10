@@ -6,7 +6,7 @@ import { useTheme } from '@/design/theme';
 
 const GRAIN = require('../../assets/grain.png');
 
-type Mood = 'warm' | 'calm' | 'reveal';
+type Mood = 'warm' | 'calm' | 'reveal' | 'home';
 
 /**
  * Page light (Porter editorial). "warm" = the blush wash used on Today and the tabs: a soft
@@ -18,7 +18,7 @@ export function Ambient({ mood = 'warm', height: heightProp }: { mood?: Mood; he
   const { width, height: winH } = useWindowDimensions();
   const height = heightProp ?? winH;
   const k = c.glowOpacity;
-  const [w0, w1, w2, w3] = c.wash;
+  const [w0, w1, w2, w3] = mood === 'home' ? ([c.home.heroTop, c.home.heroBottom, c.home.bg, c.home.bg] as const) : c.wash;
   const washStrength = mood === 'calm' ? 0.45 : 1;
   return (
     <View pointerEvents="none" style={[styles.wrap, { height }]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
@@ -26,8 +26,8 @@ export function Ambient({ mood = 'warm', height: heightProp }: { mood?: Mood; he
         <Defs>
           <LinearGradient id="wash" x1="0" y1="0" x2="0" y2="1">
             <Stop offset="0" stopColor={w0} stopOpacity={washStrength} />
-            <Stop offset={mood === 'calm' ? '0.22' : '0.36'} stopColor={w1} stopOpacity={mood === 'calm' ? 0.25 : 1} />
-            <Stop offset="0.7" stopColor={w2} stopOpacity={mood === 'calm' ? 0 : 1} />
+            <Stop offset={mood === 'calm' ? '0.22' : mood === 'home' ? '0.26' : '0.36'} stopColor={w1} stopOpacity={mood === 'calm' ? 0.25 : 1} />
+            <Stop offset={mood === 'home' ? '0.42' : '0.7'} stopColor={w2} stopOpacity={mood === 'calm' ? 0 : 1} />
             <Stop offset="1" stopColor={w3} stopOpacity={mood === 'calm' ? 0 : 1} />
           </LinearGradient>
           <RadialGradient id="g1" cx="50%" cy="50%" r="50%">
