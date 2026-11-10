@@ -1,6 +1,16 @@
-# Build status — 8 Nov 2026
+# Build status — 9 Nov 2026
 
 Mode: **demo** (D-15). Everything below runs on the device with sample data unless marked otherwise.
+
+## 9 Nov — Rose redesign (D-20)
+The whole app now uses the **Rose** look from the owner's reference UI and the "Rose · Home hero" board: blush page, white cards with soft rose shadows, DM Serif Display + Inter, rose buttons, category circles, gradient promo banner.
+- **Home** rebuilt to the reference layout: avatar + bell + search, "Discover / Your Beauty" hero, search pill (a pasted video link goes straight to Add), 5 category circles → Discover, promo banner carousel (New looks, makeup bag, share tip, Pro), Trending Now rail, Today's / Your next look, Your week, Pinned, Recently saved.
+- **Discover** rebuilt like the reference category screen: filter chips, occasion circles, 2-column look cards (heart to save, "Save look" / "Start look"), Quick looks, Recommended for you.
+- **Follow-Along** rebuilt: deep-rose stage with the step's products drawn large, frosted controls (close, step count, read-aloud), right rail (Watch, Tip, Steps), white step sheet that springs in, coach tip, products, timer, big Next. New "All steps" list to jump to any step. iPad: stage left, step panel right.
+- **Routine detail** hero now shows the look's products as a flat-lay.
+- **Tab bar:** Home · Discover · (+) · Library · Profile.
+- Every other screen picks up the new tokens automatically (checked: onboarding, Library, Profile, Add, stylist's note, makeup bag, paywall, settings, planner, glow-up, dark mode).
+- Imagery is still illustration (product types in their shades). The reference's photos can't ship until we license real, model-released photography.
 
 ## Works now (demo)
 | Area | Screens | Notes |

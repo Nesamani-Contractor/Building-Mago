@@ -1,61 +1,48 @@
-import { Platform, StyleSheet, View, type StyleProp, type ViewProps, type ViewStyle } from 'react-native';
-import { BlurView } from 'expo-blur';
+import { StyleSheet, View, type StyleProp, type ViewProps, type ViewStyle } from 'react-native';
 import { useTheme } from '@/design/theme';
 import { radius, softShadow, space } from '@/design/tokens';
 import { Txt } from './Txt';
 
 interface CardProps extends ViewProps {
-  /** glass = frosted (white 70% + blur), porcelain = solid, outline = gold hairline. */
+  /**
+   * glass   = white card, very soft rose shadow (default — the rose spec has no hard borders)
+   * porcelain = soft rose-tinted well (secondary blocks inside a white page)
+   * outline = white with a hairline, for quiet inline rows
+   */
   variant?: 'glass' | 'porcelain' | 'outline';
   padded?: boolean;
   style?: StyleProp<ViewStyle>;
 }
 
-/** Cards: 24px radius, frosted glass or porcelain, very soft warm shadow (plum at 6%). */
+/** Cards: 16px radius, white, soft shadow 0 4 16 rgba(150,90,85,0.08). */
 export function Card({ variant = 'glass', padded = true, style, children, ...rest }: CardProps) {
   const { c } = useTheme();
   const base: ViewStyle = {
     borderRadius: radius.card,
-    padding: padded ? space.xl : 0,
-    ...softShadow(c),
+    padding: padded ? space.l : 0,
+    backgroundColor: c.surface,
   };
-  if (variant === 'glass') {
-    return (
-      <View style={[base, { backgroundColor: 'transparent' }, style]} {...rest}>
-        <View style={[StyleSheet.absoluteFill, { borderRadius: radius.card, overflow: 'hidden' }]}>
-          {Platform.OS !== 'android' ? <BlurView intensity={30} tint={c.blurTint} style={StyleSheet.absoluteFill} /> : null}
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: Platform.OS === 'android' ? c.surface : c.glass }]} />
-        </View>
-        {children}
-      </View>
-    );
-  }
+  const look: ViewStyle =
+    variant === 'porcelain'
+      ? { backgroundColor: c.surface, ...softShadow(c) }
+      : variant === 'outline'
+        ? { borderWidth: StyleSheet.hairlineWidth * 2, borderColor: c.hairline }
+        : softShadow(c);
   return (
-    <View
-      style={[
-        base,
-        { backgroundColor: variant === 'porcelain' ? c.bg : c.surface },
-        { borderWidth: StyleSheet.hairlineWidth * 2, borderColor: c.hairline },
-        style,
-      ]}
-      {...rest}
-    >
+    <View style={[base, look, style]} {...rest}>
       {children}
     </View>
   );
 }
 
-/** Gold-outline badge with ink text (gold is never used for text). */
+/** Small rose pill tag: petal fill, rose text. */
 export function Badge({ label, style }: { label: string; style?: StyleProp<ViewStyle> }) {
   const { c } = useTheme();
   return (
-    <View
-      style={[
-        { borderWidth: 1, borderColor: c.accent, borderRadius: radius.chip, paddingHorizontal: space.m, paddingVertical: space.xs },
-        style,
-      ]}
-    >
-      <Txt variant="caption">{label}</Txt>
+    <View style={[{ backgroundColor: c.tint, borderRadius: radius.pill, paddingHorizontal: space.m, paddingVertical: space.xs }, style]}>
+      <Txt variant="caption" style={{ color: c.accentText }}>
+        {label}
+      </Txt>
     </View>
   );
 }

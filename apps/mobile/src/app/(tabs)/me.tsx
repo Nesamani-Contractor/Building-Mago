@@ -3,6 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { earnedBadges, nextBadge } from '@mago/shared';
+import { SerifHero } from '@/components/Rose';
 import { Screen } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
 import { Card, Hairline } from '@/components/Surface';
@@ -37,9 +38,7 @@ export default function Me() {
 
   return (
     <Screen mood="calm" bottomInset={layout.tabBarSpace}>
-      <Txt variant="display" accessibilityRole="header" style={{ marginTop: space.xl }}>
-        Me
-      </Txt>
+      <SerifHero line1="Your" line2="Profile" style={{ marginTop: space.l }} />
 
       <Card style={[styles.stats, { marginTop: space.xl }]}>
         <StreakRing done={streak.thisWeekCount} goal={streak.weeklyGoal} size={72} />

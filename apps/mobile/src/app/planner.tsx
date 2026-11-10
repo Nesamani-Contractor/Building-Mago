@@ -9,7 +9,7 @@ import { StateView } from '@/components/States';
 import { Icon } from '@/components/Icon';
 import { PressableScale } from '@/components/PressableScale';
 import { useTheme } from '@/design/theme';
-import { space } from '@/design/tokens';
+import { space, fonts } from '@/design/tokens';
 import { haptic } from '@/design/haptics';
 import { plansOn, useSessions } from '@/data/sessions';
 import { findRoutine } from '@/lib/routines';
@@ -70,7 +70,7 @@ export default function Planner() {
                 }}
                 style={[styles.cell, styles.day, sel && { backgroundColor: c.primary }]}
               >
-                <Txt variant="callout" style={{ color: sel ? c.inkOnPrimary : c.ink, fontFamily: key === today ? 'DMSans_700Bold' : undefined }}>
+                <Txt variant="callout" style={{ color: sel ? c.inkOnPrimary : c.ink, fontFamily: key === today ? fonts.sansBold : undefined }}>
                   {d.getDate()}
                 </Txt>
                 <View style={[styles.dot, { backgroundColor: has ? (sel ? c.inkOnPrimary : c.accent) : 'transparent' }]} />

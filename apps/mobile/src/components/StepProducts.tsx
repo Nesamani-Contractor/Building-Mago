@@ -2,7 +2,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { needsCheck, productKind, type BagMatch, type ProductKind, type ProductRef } from '@mago/shared';
 import { useTheme } from '@/design/theme';
-import { radius, space } from '@/design/tokens';
+import { radius, space, fonts } from '@/design/tokens';
 import { useAccount } from '@/data/account';
 import { Txt } from './Txt';
 import { Icon } from './Icon';
@@ -41,7 +41,7 @@ export function ProductCard({ product, size = 'm', match }: { product: ProductRe
     >
       <ProductArt product={product} size={art} />
       <View style={{ gap: 2, alignSelf: 'stretch' }}>
-        <Txt variant={size === 'l' ? 'subhead' : 'footnote'} numberOfLines={2} style={{ fontFamily: 'DMSans_600SemiBold' }}>
+        <Txt variant={size === 'l' ? 'subhead' : 'footnote'} numberOfLines={2} style={{ fontFamily: fonts.sansSemibold }}>
           {product.name}
         </Txt>
         <Txt variant="caption" tone="secondary" numberOfLines={1}>
@@ -136,7 +136,7 @@ export function StepProducts({
           <View key={`tip-${m.product.ref}`} style={[styles.swapTip, { borderColor: c.hairlineStrong }]}>
             <Icon name="refresh" size={16} />
             <Txt variant="footnote" style={{ flex: 1 }}>
-              <Txt variant="footnote" style={{ fontFamily: 'DMSans_600SemiBold' }}>
+              <Txt variant="footnote" style={{ fontFamily: fonts.sansSemibold }}>
                 {m.item ? `Swap: your ${m.item.name}. ` : 'Swap: fingertips. '}
               </Txt>
               {m.tip}

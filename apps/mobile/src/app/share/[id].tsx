@@ -47,17 +47,17 @@ export default function ShareCard() {
       </View>
 
       <View style={[styles.card, { aspectRatio: format === 'story' ? 9 / 16 : 1, width: format === 'story' ? '72%' : '100%' }]} accessibilityLabel={`Preview of share card for ${routine.title}`}>
-        <LinearGradient colors={[palette.champagne, palette.peach, palette.rose]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+        <LinearGradient colors={[palette.blushTop, palette.bannerA, palette.bannerB]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
         {withPhoto && photo ? <Image source={{ uri: photo }} style={StyleSheet.absoluteFill} contentFit="cover" /> : null}
         <View style={styles.cardInner}>
-          <Txt variant="caption" style={{ color: palette.plum, letterSpacing: 2 }}>
+          <Txt variant="caption" style={{ color: palette.ink, letterSpacing: 2 }}>
             MAGO
           </Txt>
           <View style={[styles.panel, { backgroundColor: 'rgba(251,247,244,0.86)' }]}>
-            <Txt variant={format === 'story' ? 'title2' : 'title1'} style={{ color: palette.plum }}>
+            <Txt variant={format === 'story' ? 'title2' : 'title1'} style={{ color: palette.ink }}>
               {routine.title}
             </Txt>
-            <Txt variant="footnote" style={{ color: palette.plumSecondary }}>
+            <Txt variant="footnote" style={{ color: palette.inkSecondary }}>
               {stepCount(routine)} steps · {routine.totalTimeMin} min
             </Txt>
           </View>

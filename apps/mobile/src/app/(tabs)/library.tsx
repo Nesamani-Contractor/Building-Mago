@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { CATEGORIES, OCCASIONS } from '@mago/shared';
+import { SerifHero } from '@/components/Rose';
 import { Screen } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
 import { Card } from '@/components/Surface';
@@ -23,7 +24,14 @@ export default function Library() {
   const items = useLibrary((s) => s.items);
   const collections = useLibrary((s) => s.collections);
   const addCollection = useLibrary((s) => s.addCollection);
-  const [q, setQ] = useState('');
+  const params = useLocalSearchParams<{ q?: string }>();
+  const [q, setQ] = useState(params.q ?? '');
+  // A new search from Home updates the box (adjusting state during render, not in an effect).
+  const [seenQ, setSeenQ] = useState(params.q);
+  if (params.q !== seenQ) {
+    setSeenQ(params.q);
+    if (params.q) setQ(params.q);
+  }
   const [filter, setFilter] = useState<Filter>('all');
   const [newCol, setNewCol] = useState<string | null>(null);
 
@@ -50,9 +58,7 @@ export default function Library() {
 
   return (
     <Screen mood="calm" bottomInset={layout.tabBarSpace}>
-      <Txt variant="display" accessibilityRole="header" style={{ marginTop: space.xl }}>
-        Library
-      </Txt>
+      <SerifHero line1="Your" line2="Library" style={{ marginTop: space.l }} />
       <Txt variant="callout" tone="secondary" style={{ marginTop: space.xs }}>
         {all.length === 0 ? 'Your saved looks live here, on your phone.' : `${all.length} ${all.length === 1 ? 'look' : 'looks'} saved`}
       </Txt>

@@ -39,7 +39,10 @@ export type IconName =
   | 'info'
   | 'pin'
   | 'refresh'
-  | 'wand';
+  | 'wand'
+  | 'sliders'
+  | 'bag'
+  | 'list';
 
 interface Props {
   name: IconName;
@@ -66,6 +69,26 @@ export function Icon({ name, size = 24, color, filled = false, strokeWidth = 1.5
           <Path {...p} d="M14 4.5l4.2-1.1 3 16.6-4.2 1.1z" />
         </>
       );
+      break;
+    case 'sliders':
+      body = (
+        <>
+          <Path {...p} d="M4 7h10M18 7h2M4 17h4M12 17h8" />
+          <Circle {...p} cx={16} cy={7} r={2} />
+          <Circle {...p} cx={10} cy={17} r={2} />
+        </>
+      );
+      break;
+    case 'bag':
+      body = (
+        <>
+          <Path {...p} fill={fillOr} d="M5.5 8h13l-1 12h-11z" />
+          <Path {...p} d="M9 8V6.5a3 3 0 0 1 6 0V8" />
+        </>
+      );
+      break;
+    case 'list':
+      body = <Path {...p} d="M9 6h11M9 12h11M9 18h11M4.5 6h.01M4.5 12h.01M4.5 18h.01" />;
       break;
     case 'plus':
       body = <Path {...p} d="M12 5v14M5 12h14" />;

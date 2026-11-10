@@ -64,14 +64,14 @@ export default function Paywall() {
       <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 240 }} showsVerticalScrollIndicator={false}>
         <LinearGradient colors={signatureGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.header, { paddingTop: insets.top + space.x5 }]}>
           <View style={styles.column}>
-            <Txt variant="caption" style={{ color: palette.plum, letterSpacing: 2 }}>
+            <Txt variant="caption" style={{ color: palette.ink, letterSpacing: 2 }}>
               MAGO PRO
             </Txt>
-            <Txt variant="title1" style={{ color: palette.plum, marginTop: space.s }} accessibilityRole="header">
+            <Txt variant="title1" style={{ color: palette.ink, marginTop: space.s }} accessibilityRole="header">
               {headline}
             </Txt>
             {from === 'limit' ? (
-              <Txt variant="callout" style={{ color: palette.plum, marginTop: space.s }}>
+              <Txt variant="callout" style={{ color: palette.ink, marginTop: space.s }}>
                 Your saved looks always stay free. Pro removes the monthly limit.
               </Txt>
             ) : null}

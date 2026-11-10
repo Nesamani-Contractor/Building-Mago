@@ -9,7 +9,7 @@ import { palette } from '@/design/tokens';
  * Product picture. Uses a real catalog photo when `imageUrl` exists; otherwise a clean illustration
  * of the product type, filled with its shade. (Illustrations, not photos of any brand's product.)
  */
-export function ProductArt({ product, size = 72 }: { product: ProductRef; size?: number }) {
+export function ProductArt({ product, size = 72, bare }: { product: ProductRef; size?: number; /** No background well — for compositions. */ bare?: boolean }) {
   const { c } = useTheme();
   if (product.imageUrl) {
     return (
@@ -21,8 +21,8 @@ export function ProductArt({ product, size = 72 }: { product: ProductRef; size?:
       />
     );
   }
-  const shade = product.shadeHex ?? palette.champagne;
-  const ink = palette.plum;
+  const shade = product.shadeHex ?? palette.blushTop;
+  const ink = palette.ink;
   const body = '#F4EEEA';
   const cap = '#3A2A33';
   const s = { stroke: ink, strokeWidth: 1.5, strokeLinejoin: 'round' as const, strokeLinecap: 'round' as const };
@@ -88,7 +88,7 @@ export function ProductArt({ product, size = 72 }: { product: ProductRef; size?:
     case 'sponge':
       art = (
         <G {...s}>
-          <Path d="M32 10c9 0 15 14 15 26 0 9-7 16-15 16s-15-7-15-16c0-12 6-26 15-26z" fill={shade === palette.champagne ? '#F2B9C4' : shade} />
+          <Path d="M32 10c9 0 15 14 15 26 0 9-7 16-15 16s-15-7-15-16c0-12 6-26 15-26z" fill={shade === palette.blushTop ? '#F2B9C4' : shade} />
         </G>
       );
       break;
@@ -105,7 +105,7 @@ export function ProductArt({ product, size = 72 }: { product: ProductRef; size?:
     case 'tube':
       art = (
         <G {...s}>
-          <Path d="M22 12h20l-3 34H25z" fill={shade === palette.champagne ? body : shade} />
+          <Path d="M22 12h20l-3 34H25z" fill={shade === palette.blushTop ? body : shade} />
           <Rect x={25} y={46} width={14} height={10} rx={2} fill={cap} />
           <Path d="M24 18h16" />
         </G>
@@ -123,7 +123,7 @@ export function ProductArt({ product, size = 72 }: { product: ProductRef; size?:
     case 'spray':
       art = (
         <G {...s}>
-          <Rect x={20} y={22} width={24} height={34} rx={6} fill={shade === palette.champagne ? '#EFE4F2' : shade} />
+          <Rect x={20} y={22} width={24} height={34} rx={6} fill={shade === palette.blushTop ? '#EFE4F2' : shade} />
           <Rect x={27} y={12} width={10} height={10} rx={2} fill={cap} />
           <Path d="M37 15h5M44 12l3-2M44 17l3 2" />
         </G>
@@ -142,7 +142,7 @@ export function ProductArt({ product, size = 72 }: { product: ProductRef; size?:
 
   return (
     <View
-      style={{ width: size, height: size, borderRadius: size * 0.22, backgroundColor: c.surfaceAlt, alignItems: 'center', justifyContent: 'center' }}
+      style={{ width: size, height: size, borderRadius: size * 0.22, backgroundColor: bare ? 'transparent' : c.surfaceAlt, alignItems: 'center', justifyContent: 'center' }}
       accessible
       accessibilityRole="image"
       accessibilityLabel={product.name}

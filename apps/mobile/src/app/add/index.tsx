@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import * as DocumentPicker from 'expo-document-picker';
 import { checkConversionQuota } from '@mago/shared';
@@ -22,7 +22,8 @@ export default function Add() {
   const router = useRouter();
   const { c } = useTheme();
   const acct = useAccount();
-  const [link, setLink] = useState('');
+  const params = useLocalSearchParams<{ url?: string }>();
+  const [link, setLink] = useState(params.url ?? '');
   const [error, setError] = useState<string | null>(null);
   const quota = checkConversionQuota(conversionsUsed(acct), acct.isPro, new Date());
 
@@ -111,8 +112,8 @@ export default function Add() {
             <Icon name="close" size={18} />
           </PressableScale>
         ) : (
-          <PressableScale accessibilityLabel="Paste from clipboard" onPress={paste} style={[styles.pasteBtn, { borderColor: c.ink }]}>
-            <Txt variant="subhead">Paste</Txt>
+          <PressableScale accessibilityLabel="Paste from clipboard" onPress={paste} style={[styles.pasteBtn, { backgroundColor: c.tint }]}>
+            <Txt variant="subhead" style={{ color: c.accentText }}>Paste</Txt>
           </PressableScale>
         )}
       </View>
@@ -166,12 +167,12 @@ function Option({ icon, title, body, onPress }: { icon: IconName; title: string;
 }
 
 const styles = StyleSheet.create({
-  input: { flex: 1, minHeight: 52, fontFamily: fonts.sans, fontSize: 17 },
+  input: { flex: 1, minWidth: 0, minHeight: 52, fontFamily: fonts.sans, fontSize: 16 },
   grid: { flexDirection: 'row', gap: space.m, marginTop: space.s },
   howRow: { flexDirection: 'row', alignItems: 'center', gap: space.m },
   num: { width: 28, height: 28, borderRadius: 14, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  field: { flexDirection: 'row', alignItems: 'center', gap: space.s, borderWidth: 1.5, borderRadius: radius.chip, paddingLeft: space.l, paddingRight: space.xs, minHeight: 60, marginTop: space.s },
+  field: { flexDirection: 'row', alignItems: 'center', gap: space.s, borderWidth: 1.5, borderRadius: radius.chip, paddingLeft: space.l, paddingRight: 8, minHeight: 60, marginTop: space.s },
   inlineBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  pasteBtn: { minHeight: 44, paddingHorizontal: space.l, borderRadius: radius.pill, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  pasteBtn: { minHeight: 44, flexShrink: 0, paddingHorizontal: space.l, borderRadius: radius.pill, alignItems: 'center', justifyContent: 'center' },
   sample: { alignSelf: 'center', minHeight: 44, justifyContent: 'center', marginTop: space.s },
 });

@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, View, type StyleProp, type ViewStyle } from 're
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useTheme } from '@/design/theme';
-import { layout, space } from '@/design/tokens';
+import { layout, softShadow, space } from '@/design/tokens';
 import { Ambient } from './Ambient';
 import { PressableScale } from './PressableScale';
 import { Icon, type IconName } from './Icon';
@@ -79,7 +79,7 @@ export function TopBar({
       <PressableScale
         accessibilityLabel={backLabel}
         onPress={onBack ?? (() => (router.canGoBack() ? router.back() : router.replace('/')))}
-        style={[styles.round, { backgroundColor: c.glass, borderColor: c.hairline }]}
+        style={[styles.round, { backgroundColor: c.surface }, softShadow(c)]}
       >
         <Icon name={backIcon} size={20} />
       </PressableScale>
@@ -98,7 +98,7 @@ export function TopBar({
 export function RoundButton({ icon, label, onPress }: { icon: IconName; label: string; onPress: () => void }) {
   const { c } = useTheme();
   return (
-    <PressableScale accessibilityLabel={label} onPress={onPress} style={[styles.round, { backgroundColor: c.glass, borderColor: c.hairline }]}>
+    <PressableScale accessibilityLabel={label} onPress={onPress} style={[styles.round, { backgroundColor: c.surface }, softShadow(c)]}>
       <Icon name={icon} size={20} />
     </PressableScale>
   );
@@ -127,7 +127,6 @@ const styles = StyleSheet.create({
     width: layout.tapMin,
     height: layout.tapMin,
     borderRadius: layout.tapMin / 2,
-    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },

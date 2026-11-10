@@ -9,7 +9,7 @@ import { Card } from '@/components/Surface';
 import { StateView } from '@/components/States';
 import { PressableScale } from '@/components/PressableScale';
 import { BagThumb, roleLabel } from '@/components/BagItemForm';
-import { space } from '@/design/tokens';
+import { space, fonts } from '@/design/tokens';
 import { useBag } from '@/data/bag';
 
 const GROUPS: { title: string; roles: ProductRole[] }[] = [
@@ -74,7 +74,7 @@ function Tile({ item, onPress }: { item: BagItem; onPress: () => void }) {
     <PressableScale onPress={onPress} accessibilityLabel={`${item.name}, ${roleLabel(item.role ?? productRole(item))}. Edit`} style={styles.tileWrap}>
       <Card style={styles.tile}>
         <BagThumb item={item} size={72} />
-        <Txt variant="footnote" numberOfLines={2} align="center" style={{ fontFamily: 'DMSans_600SemiBold' }}>
+        <Txt variant="footnote" numberOfLines={2} align="center" style={{ fontFamily: fonts.sansSemibold }}>
           {item.name}
         </Txt>
         <Txt variant="caption" tone="secondary" numberOfLines={1}>

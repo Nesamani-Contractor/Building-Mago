@@ -11,6 +11,7 @@ import { Button } from '@/components/Button';
 import { Card, Badge, Hairline } from '@/components/Surface';
 import { Chip, routineMeta, stepCount } from '@/components/Bits';
 import { Icon } from '@/components/Icon';
+import { ProductArt } from '@/components/ProductArt';
 import { StateView } from '@/components/States';
 import { PressableScale } from '@/components/PressableScale';
 import { useTheme } from '@/design/theme';
@@ -122,10 +123,19 @@ export default function RoutineDetail() {
     >
       {/* Full-bleed artwork with a warm fade into the background. */}
       <View style={[styles.hero, { marginHorizontal: -space.xl }]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
-        <LinearGradient colors={isDark ? ['#3A2632', c.bg] : [palette.champagne, palette.peach, c.bg]} locations={isDark ? [0, 1] : [0, 0.55, 1]} style={StyleSheet.absoluteFill} />
-        <View style={[styles.heroMark, { borderColor: c.hairlineStrong, backgroundColor: c.glass }]}>
-          {source === 'youtube' ? <Icon name="play" size={26} /> : <Icon name="sparkle" size={26} />}
+        <LinearGradient colors={isDark ? ['#3A2828', c.bg] : [palette.bannerA, palette.bannerB, c.bg]} locations={isDark ? [0, 1] : [0, 0.6, 1]} style={StyleSheet.absoluteFill} />
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          {routine.products.slice(0, 3).map((p, i, arr) => (
+            <View key={p.ref} style={{ marginLeft: i === 0 ? 0 : -24, transform: [{ rotate: arr.length > 1 ? `${(i - (arr.length - 1) / 2) * 12}deg` : '-6deg' }, { translateY: i === 1 ? -10 : 6 }] }}>
+              <ProductArt product={p} size={110} bare />
+            </View>
+          ))}
         </View>
+        {source === 'youtube' ? (
+          <View style={[styles.heroMark, { backgroundColor: c.surface, position: 'absolute', right: space.xl, bottom: space.x3 }]}>
+            <Icon name="play" size={20} color={c.accentText} filled />
+          </View>
+        ) : null}
       </View>
 
       {fresh ? (
@@ -301,8 +311,8 @@ function fmt(sec: number) {
 }
 
 const styles = StyleSheet.create({
-  hero: { height: 200, alignItems: 'center', justifyContent: 'center', borderBottomLeftRadius: radius.card, borderBottomRightRadius: radius.card, overflow: 'hidden' },
-  heroMark: { width: 64, height: 64, borderRadius: 32, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  hero: { height: 240, alignItems: 'center', justifyContent: 'center', borderBottomLeftRadius: radius.card, borderBottomRightRadius: radius.card, overflow: 'hidden' },
+  heroMark: { width: 48, height: 48, borderRadius: 24, alignItems: 'center', justifyContent: 'center' },
   banner: { flexDirection: 'row', alignItems: 'center', gap: space.m, marginTop: space.l, paddingVertical: space.m },
   metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: space.s },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: space.s, marginTop: space.l },

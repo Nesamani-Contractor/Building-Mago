@@ -14,13 +14,14 @@ import Svg, { Circle, Defs, LinearGradient as SvgGradient, Stop, Text as SvgText
 import { LinearGradient } from 'expo-linear-gradient';
 import type { Category, Routine } from '@mago/shared';
 import { useTheme } from '@/design/theme';
-import { fonts, layout, palette, radius, space } from '@/design/tokens';
+import { fonts, layout, palette, radius, softShadow, space } from '@/design/tokens';
 import { haptic } from '@/design/haptics';
 import { PressableScale } from './PressableScale';
 import { Txt } from './Txt';
 import { Icon, type IconName } from './Icon';
+import { ProductArt } from './ProductArt';
 
-/** Selectable chip (filters, onboarding answers). Selected = plum fill. */
+/** Selectable chip (filters, onboarding answers). Selected = rose fill, white text; else white with hairline. */
 export function Chip({
   label,
   selected,
@@ -44,7 +45,7 @@ export function Chip({
       }}
       style={[
         styles.chip,
-        { borderColor: selected ? c.primary : c.hairlineStrong, backgroundColor: selected ? c.primary : 'transparent' },
+        { borderColor: selected ? c.primary : c.hairlineStrong, backgroundColor: selected ? c.primary : c.surface },
       ]}
     >
       {icon ? <Icon name={icon} size={18} color={selected ? c.inkOnPrimary : c.ink} /> : null}
@@ -81,11 +82,12 @@ export function ChoiceCard({
       }}
       style={[
         styles.choice,
-        { backgroundColor: c.surface, borderColor: selected ? c.primary : c.hairline, borderWidth: selected ? 1.5 : 1 },
+        { backgroundColor: c.surface, borderColor: selected ? c.accent : 'transparent', borderWidth: 1.5 },
+        softShadow(c),
       ]}
     >
-      <View style={[styles.choiceIcon, { borderColor: c.hairlineStrong }]}>
-        <Icon name={icon} size={22} />
+      <View style={[styles.choiceIcon, { backgroundColor: c.tint }]}>
+        <Icon name={icon} size={22} color={c.accentText} />
       </View>
       <View style={{ flex: 1, gap: 2 }}>
         <Txt variant="headline">{title}</Txt>
@@ -102,16 +104,28 @@ export function ChoiceCard({
   );
 }
 
-export function SectionHeader({ title, action, onAction }: { title: string; action?: string; onAction?: () => void }) {
+export function SectionHeader({ title, action, onAction, chevron }: { title: string; action?: string; onAction?: () => void; chevron?: boolean }) {
   const { c } = useTheme();
-  return (
-    <View style={styles.sectionHeader}>
-      <Txt variant="title3" accessibilityRole="header">
+  const titleEl = (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.xs }}>
+      <Txt variant="headline" accessibilityRole="header">
         {title}
       </Txt>
+      {chevron ? <Icon name="chevronRight" size={16} strokeWidth={1.8} /> : null}
+    </View>
+  );
+  return (
+    <View style={styles.sectionHeader}>
+      {chevron && onAction ? (
+        <PressableScale onPress={onAction} accessibilityLabel={`${title}, see all`} style={styles.link}>
+          {titleEl}
+        </PressableScale>
+      ) : (
+        titleEl
+      )}
       {action && onAction ? (
         <PressableScale onPress={onAction} accessibilityLabel={action} style={styles.link}>
-          <Txt variant="subhead" style={{ textDecorationLine: 'underline', textDecorationColor: c.accent }}>
+          <Txt variant="footnote" style={{ color: c.accentText, fontFamily: fonts.sansSemibold }}>
             {action}
           </Txt>
         </PressableScale>
@@ -131,12 +145,11 @@ export function StreakRing({ done, goal, size = 64 }: { done: number; goal: numb
     <Svg width={size} height={size}>
       <Defs>
         <SvgGradient id="ring" x1="0" y1="0" x2="1" y2="1">
-          <Stop offset="0" stopColor={palette.champagne} />
-          <Stop offset="0.5" stopColor={palette.peach} />
+          <Stop offset="0" stopColor={palette.bannerB} />
           <Stop offset="1" stopColor={palette.rose} />
         </SvgGradient>
       </Defs>
-      <Circle cx={size / 2} cy={size / 2} r={r} stroke={c.accent} strokeWidth={1} fill="none" />
+      <Circle cx={size / 2} cy={size / 2} r={r} stroke={c.tint} strokeWidth={6} fill="none" />
       {frac > 0 ? (
         <Circle
           cx={size / 2}
@@ -162,7 +175,7 @@ export function ProgressBar({ value, style }: { value: number; style?: StyleProp
   const { c } = useTheme();
   return (
     <View style={[{ height: 3, borderRadius: 2, backgroundColor: c.track, overflow: 'hidden' }, style]} accessibilityRole="progressbar" accessibilityValue={{ min: 0, max: 100, now: Math.round(value * 100) }}>
-      <View style={{ width: `${Math.max(0, Math.min(1, value)) * 100}%`, height: 3, backgroundColor: c.primary }} />
+      <View style={{ width: `${Math.max(0, Math.min(1, value)) * 100}%`, height: 3, backgroundColor: c.accent }} />
     </View>
   );
 }
@@ -179,37 +192,54 @@ const CATEGORY_ICON: Record<Category, IconName> = {
 };
 
 /**
- * Routine artwork. Real photos/thumbnails come from the source in production; in demo mode a
- * soft warm tile with the category mark (a quiet placeholder, not decoration for its own sake).
+ * Routine artwork. Real thumbnails come from the source in production. In demo mode: a blush
+ * "flat-lay" — the look's own products drawn in their shades on a soft rose gradient
+ * (illustrations of product types, never a brand's product photo).
  */
 export function RoutineThumb({ routine, size = 56, wide }: { routine: Routine; size?: number; wide?: boolean }) {
-  const { c, isDark } = useTheme();
+  const { isDark } = useTheme();
   const tones: Record<string, readonly [string, string]> = {
-    Lips: [palette.peach, palette.rose],
-    Eyes: [palette.champagne, palette.peach],
-    Skincare: [palette.champagne, '#EFE6DD'],
-    Brows: ['#EFE2D6', palette.champagne],
-    'Full look': [palette.champagne, palette.rose],
+    Lips: [palette.bannerA, palette.bannerB],
+    Eyes: [palette.blushTop, palette.bannerA],
+    Skincare: [palette.blush, palette.petal],
+    Brows: [palette.petal, palette.blushMid],
+    'Full look': [palette.blushMid, palette.bannerB],
   };
-  const [a, b] = tones[routine.category] ?? [palette.champagne, palette.peach];
+  const [a, b] = tones[routine.category] ?? [palette.blushTop, palette.blushMid];
+  const items = routine.products.slice(0, size >= 96 ? 3 : 1);
+  const art = size >= 96 ? size * 0.46 : size * 0.78;
   return (
     <LinearGradient
-      colors={isDark ? ['#3A2632', '#2A1A24'] : [a, b]}
+      colors={isDark ? ['#3A2828', '#2A1C1C'] : [a, b]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={{
         width: wide ? '100%' : size,
         height: size,
-        borderRadius: wide ? radius.card : radius.thumb,
+        borderRadius: radius.thumb,
         alignItems: 'center',
         justifyContent: 'center',
+        flexDirection: 'row',
+        overflow: 'hidden',
       }}
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
     >
-      <View style={{ opacity: 0.7 }}>
-        <Icon name={CATEGORY_ICON[routine.category]} size={Math.min(28, size * 0.4)} color={c.ink} />
-      </View>
+      {items.length === 0 ? (
+        <Icon name={CATEGORY_ICON[routine.category]} size={Math.min(28, size * 0.4)} color={palette.roseText} />
+      ) : (
+        items.map((p, i) => (
+          <View
+            key={p.ref}
+            style={{
+              marginLeft: i === 0 ? 0 : -art * 0.28,
+              transform: [{ rotate: items.length > 1 ? `${(i - 1) * 12}deg` : '-8deg' }, { translateY: i === 1 ? -art * 0.06 : art * 0.04 }],
+            }}
+          >
+            <ProductArt product={p} size={art} bare />
+          </View>
+        ))
+      )}
     </LinearGradient>
   );
 }
@@ -223,24 +253,26 @@ export function routineMeta(r: Routine): string {
   return `${stepCount(r)} steps · about ${r.totalTimeMin} min · ${level}`;
 }
 
-/** Ulta-style tile for rails (thumbnail on top, title below). */
-export function RoutineTile({ routine, onPress, width = 168, badge }: { routine: Routine; onPress: () => void; width?: number; badge?: string }) {
+/** Rail tile: rounded art on top, 12pt semibold title, caption below (rose "Trending" card). */
+export function RoutineTile({ routine, onPress, width = 140, badge }: { routine: Routine; onPress: () => void; width?: number; badge?: string }) {
   return (
     <PressableScale onPress={onPress} accessibilityLabel={`${routine.title}. ${routineMeta(routine)}`} style={{ width, gap: space.s }}>
       <View>
-        <RoutineThumb routine={routine} size={Math.round(width * 0.72)} wide />
+        <RoutineThumb routine={routine} size={width} wide />
         {badge ? (
           <View style={{ position: 'absolute', top: space.s, left: space.s }}>
             <BadgeLight label={badge} />
           </View>
         ) : null}
       </View>
-      <Txt variant="headline" numberOfLines={2}>
-        {routine.title}
-      </Txt>
-      <Txt variant="footnote" tone="secondary" numberOfLines={1}>
-        {stepCount(routine)} steps · {routine.totalTimeMin} min
-      </Txt>
+      <View style={{ gap: 1 }}>
+        <Txt variant="footnote" numberOfLines={2} style={{ fontFamily: fonts.sansSemibold }}>
+          {routine.title}
+        </Txt>
+        <Txt variant="caption" tone="secondary" numberOfLines={1}>
+          {stepCount(routine)} steps · {routine.totalTimeMin} min
+        </Txt>
+      </View>
     </PressableScale>
   );
 }
@@ -248,8 +280,8 @@ export function RoutineTile({ routine, onPress, width = 168, badge }: { routine:
 function BadgeLight({ label }: { label: string }) {
   const { c } = useTheme();
   return (
-    <View style={{ backgroundColor: c.glass, borderColor: c.accent, borderWidth: 1, borderRadius: radius.chip, paddingHorizontal: space.s, paddingVertical: 2 }}>
-      <Txt variant="caption">{label}</Txt>
+    <View style={{ backgroundColor: c.surface, borderRadius: radius.pill, paddingHorizontal: space.s, paddingVertical: 2 }}>
+      <Txt variant="caption" style={{ color: c.accentText }}>{label}</Txt>
     </View>
   );
 }
@@ -362,7 +394,7 @@ export function Carousel<T>({ data, render, height = 196 }: { data: T[]; render:
       {data.length > 1 ? (
         <View style={styles.dots} accessibilityLabel={`Slide ${index + 1} of ${data.length}`}>
           {data.map((_, i) => (
-            <View key={i} style={[styles.dot, { borderColor: c.ink, backgroundColor: i === index ? c.ink : 'transparent' }]} />
+            <View key={i} style={[styles.dot, { width: i === index ? 18 : 6, backgroundColor: i === index ? c.accent : c.tintStrong }]} />
           ))}
         </View>
       ) : null}
@@ -375,10 +407,10 @@ export function CircleTile({ label, icon, onPress }: { label: string; icon: Icon
   const { c } = useTheme();
   return (
     <PressableScale onPress={onPress} accessibilityLabel={label} style={{ alignItems: 'center', gap: space.s, width: 76 }}>
-      <View style={[styles.circle, { backgroundColor: c.surface, borderColor: c.hairlineStrong }]}>
-        <Icon name={icon} size={26} />
+      <View style={[styles.circle, { backgroundColor: c.tint }, softShadow(c)]}>
+        <Icon name={icon} size={24} color={c.accentText} />
       </View>
-      <Txt variant="footnote" align="center" numberOfLines={1}>
+      <Txt variant="caption" tone="secondary" align="center" numberOfLines={1}>
         {label}
       </Txt>
     </PressableScale>
@@ -403,13 +435,13 @@ const styles = StyleSheet.create({
     borderRadius: radius.card,
     minHeight: 72,
   },
-  choiceIcon: { width: 44, height: 44, borderRadius: 22, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  choiceIcon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   radio: { width: 24, height: 24, borderRadius: 12, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
-  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginTop: space.l },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: space.xxl },
   link: { minHeight: layout.tapMin, justifyContent: 'center' },
   row: { flexDirection: 'row', alignItems: 'center', gap: space.l, paddingVertical: space.m, minHeight: 72 },
   listRow: { flexDirection: 'row', alignItems: 'center', gap: space.l, minHeight: 56, paddingVertical: space.m },
-  dots: { flexDirection: 'row', justifyContent: 'center', gap: space.s },
-  dot: { width: 7, height: 7, borderRadius: 4, borderWidth: 1 },
-  circle: { width: 68, height: 68, borderRadius: 34, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  dots: { flexDirection: 'row', justifyContent: 'center', gap: 6 },
+  dot: { height: 6, borderRadius: 3 },
+  circle: { width: 56, height: 56, borderRadius: 28, alignItems: 'center', justifyContent: 'center' },
 });
