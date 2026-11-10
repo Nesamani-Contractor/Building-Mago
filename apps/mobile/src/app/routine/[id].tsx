@@ -123,7 +123,7 @@ export default function RoutineDetail() {
       {/* Full-bleed hero photo with glass controls over it. */}
       <View style={[styles.hero, { marginHorizontal: -space.xl, height: Math.min(520, Math.round(height * 0.58)) }]}>
         <LookPhoto image={routineImage(r)} style={StyleSheet.absoluteFill} accessibilityLabel={r.title} />
-        <LinearGradient colors={['rgba(10,6,8,0.38)', 'rgba(10,6,8,0)']} style={styles.heroTopScrim} />
+        <LinearGradient colors={['rgba(10,6,8,0.55)', 'rgba(10,6,8,0)']} style={styles.heroTopScrim} />
         <View style={[styles.heroBar, { top: insets.top + space.s }]}>
           <RoundButton onPhoto icon="chevronLeft" label="Back" onPress={() => (router.canGoBack() ? router.back() : router.replace('/'))} />
           <RoundButton onPhoto icon="bookmark" filled={!!saved} selected={!!saved} label={saved ? 'Saved to Library. Tap to remove' : 'Save this look'} onPress={toggleSave} />
@@ -350,7 +350,7 @@ function fmt(sec: number) {
 
 const styles = StyleSheet.create({
   hero: { overflow: 'hidden', borderBottomLeftRadius: radius.sheet, borderBottomRightRadius: radius.sheet, borderCurve: 'continuous' },
-  heroTopScrim: { position: 'absolute', top: 0, left: 0, right: 0, height: 140 },
+  heroTopScrim: { position: 'absolute', top: 0, left: 0, right: 0, height: 170 },
   heroBar: { position: 'absolute', left: space.l, right: space.l, flexDirection: 'row', justifyContent: 'space-between' },
   heroWatch: { position: 'absolute', left: space.xl, bottom: space.xl, flexDirection: 'row', alignItems: 'center', gap: space.s, minHeight: 44, paddingHorizontal: space.l, borderRadius: radius.pill },
   banner: { flexDirection: 'row', alignItems: 'center', gap: space.m, marginTop: space.l, padding: space.m, borderRadius: radius.thumb },

@@ -114,7 +114,7 @@ export const light: ColorScheme = {
   surface: palette.white,
   surfaceAlt: palette.sunken,
   glass: 'rgba(251,247,244,0.74)',
-  glassOnPhoto: 'rgba(255,255,255,0.16)',
+  glassOnPhoto: 'rgba(42,30,38,0.34)',
   glassEdge: 'rgba(255,255,255,0.38)',
   ink: palette.ink,
   inkSecondary: palette.inkSecondary,
