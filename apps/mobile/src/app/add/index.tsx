@@ -60,7 +60,7 @@ export default function Add() {
     const res = await DocumentPicker.getDocumentAsync({ type: 'video/*', copyToCacheDirectory: true, multiple: false });
     if (res.canceled || !res.assets[0]) return;
     const a = res.assets[0];
-    const r = startUploadImport({ uri: a.uri, name: a.name, size: a.size ?? undefined });
+    const r = startUploadImport({ uri: a.uri, name: a.name, size: a.size ?? undefined, mimeType: a.mimeType ?? undefined });
     if (r.kind === 'invalid') return setError(r.message);
     if (r.kind === 'limit') return router.replace('/paywall?from=limit');
     if (r.kind === 'job') router.replace(`/import/${r.jobId}`);

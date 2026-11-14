@@ -48,7 +48,7 @@ export default function ImportProgress() {
     const res = await DocumentPicker.getDocumentAsync({ type: 'video/*', copyToCacheDirectory: true });
     if (res.canceled || !res.assets[0]) return;
     const a = res.assets[0];
-    const r = startUploadImport({ uri: a.uri, name: a.name, size: a.size ?? undefined });
+    const r = startUploadImport({ uri: a.uri, name: a.name, size: a.size ?? undefined, mimeType: a.mimeType ?? undefined });
     if (r.kind === 'job') router.replace(`/import/${r.jobId}`);
     if (r.kind === 'limit') router.replace('/paywall?from=limit');
   }

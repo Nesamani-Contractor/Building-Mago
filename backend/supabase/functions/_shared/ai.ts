@@ -3,6 +3,8 @@
 // transcript + visual notes; Claude turns that into the Mago routine schema; we validate the result.
 import { env } from './http.ts';
 import { CATEGORIES, OCCASIONS, MAX_STEP_WORDS, PRODUCT_KINDS, validateRoutine, type Routine } from './core/routine.ts';
+import { OWNER_PROMPT, WATCH_RULES } from './core/watch.ts';
+export { OWNER_PROMPT };
 
 const GEMINI_MODEL = Deno.env.get('GEMINI_MODEL') ?? 'gemini-3.5-flash';
 const CLAUDE_MODEL = Deno.env.get('CLAUDE_MODEL') ?? 'claude-sonnet-5-5';
@@ -16,22 +18,13 @@ export interface VideoNotes {
   notes: string;
 }
 
-/**
- * PRD FR-SHR-04 — the owner's extraction prompt, verbatim, followed by Mago's output contract.
- * Gemini watches the whole video and reads EVERY signal: speech, on-screen captions/text, product
- * packaging shown to camera, and the visible actions — because many beauty videos are silent,
- * music-only, or just show products with no talking.
- */
-export const OWNER_PROMPT = `You are an expert makeup artist. Review the attached video/YouTube video in the link and prepare a step by step make up tutorial. Your output should include the following details from the video: 1. An appropriate title for the makeup routine 2. Category tags for the makeup routine. It will be things like "Date Night", "5 Mins lip gloss", "10 min workday" etc. 3. An estimated time to complete the makeup. 4. Complete list of products used in the makeup with brand name, shade, product name etc. Prepare this as a list and get images from Internet to show the products. 5. A step by step make up instruction with required product and estimated quantity. Generate visuals to show the step being performed. Generate instructions for 3 type of users:  a. expert in makeup - need a brief one liner about the steps with the product and estimated quantity. b. Intermediate in makeup - Need a bit more detail on how to complete the step along with required product and estimated quantity. c. Novice/New to makeup: A detailed instruction on how to complete this step along with product name and estimated quantity. 6. When any step requires some wait before the next step, capture it in the step by step breakdown and indicate how much time the user needs to wait before going to the next step. 7. Include the start and end timestamps for each of these steps from the original video.  8. Keep the maximum number of steps to under 10.`;
-
+// Gemini hears AND sees the whole video, so it covers all three kinds of video (talking, captions
+// only, silent) — the rules live in core/watch.ts, shared with the app's preview watcher.
 const WATCH_PROMPT = `${OWNER_PROMPT}
 
-How to watch (Mago rules):
-- Watch the WHOLE video. It may have speech, on-screen captions or text, only background music, random noise, or no sound at all. Use every signal: what is said, what is written on screen, what packaging is held up to the camera, and what you see being applied.
-- Products: read brand, product name and shade from speech, captions, and packaging labels shown to the camera. If a product is only seen, describe it (e.g. "warm brown matte eyeshadow") and mark it unbranded. Never invent a brand or shade.
-- Do not produce the product images or step visuals yourself; Mago supplies those.
-Return JSON only: {"language": "<ISO 639-1 of the spoken or on-screen language, 'xx' if none>", "title": "...", "creator": "...", "durationSec": <int>, "notes": "..."}.
-In "notes", write one line per action in order, each starting with [MM:SS-MM:SS] (start and end), describing what is applied, where, with which tool, how much (quantity), any waiting time, and every product with brand, product name and shade exactly as said, written or shown, plus its colour.`;
+${WATCH_RULES}
+Return JSON only: {"language": "<ISO 639-1 of the spoken or on-screen language, 'xx' if there is neither>", "videoStyle": "narrated" | "captions_only" | "silent_visual", "title": "...", "creator": "...", "durationSec": <int>, "notes": "..."}.
+In "notes", write one line per action in order, each starting with [MM:SS-MM:SS] (start and end), describing what is applied, where, with which tool, how much (quantity), any waiting time, and every product with brand, product name and shade exactly as said, written or shown, plus its colour. If the video shows no beauty routine, return notes "NOT_BEAUTY".`;
 
 /** Gemini video understanding. `fileUri` is either a public YouTube URL or a Gemini File API URI. */
 export async function watchVideo(fileUri: string, mimeType?: string): Promise<VideoNotes> {
@@ -50,6 +43,53 @@ export async function watchVideo(fileUri: string, mimeType?: string): Promise<Vi
   const parsed = JSON.parse(text) as VideoNotes;
   if (!parsed.notes || typeof parsed.notes !== 'string') throw new Error('gemini_empty');
   return parsed;
+}
+
+/**
+ * Gemini File API: upload her video (from our private bucket) so Gemini can watch it, wait until
+ * it is processed, and return its URI. Always pair with deleteGeminiFile() once the notes are back.
+ */
+export async function uploadToGemini(video: Blob, mimeType: string, displayName: string): Promise<{ uri: string; name: string }> {
+  const key = env('GEMINI_API_KEY');
+  const start = await fetch('https://generativelanguage.googleapis.com/upload/v1beta/files', {
+    method: 'POST',
+    headers: {
+      'x-goog-api-key': key,
+      'X-Goog-Upload-Protocol': 'resumable',
+      'X-Goog-Upload-Command': 'start',
+      'X-Goog-Upload-Header-Content-Length': String(video.size),
+      'X-Goog-Upload-Header-Content-Type': mimeType,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ file: { display_name: displayName.slice(0, 60) } }),
+    signal: AbortSignal.timeout(30_000),
+  });
+  const uploadUrl = start.headers.get('x-goog-upload-url');
+  if (!start.ok || !uploadUrl) throw new Error(`gemini_upload_start_${start.status}`);
+  const up = await fetch(uploadUrl, {
+    method: 'POST',
+    headers: { 'X-Goog-Upload-Offset': '0', 'X-Goog-Upload-Command': 'upload, finalize', 'Content-Length': String(video.size) },
+    body: video,
+    signal: AbortSignal.timeout(300_000),
+  });
+  if (!up.ok) throw new Error(`gemini_upload_${up.status}`);
+  let file = (await up.json())?.file as { uri: string; name: string; state?: string };
+  // Videos are processed before they can be used: poll until ACTIVE (max ~2 min).
+  for (let i = 0; i < 40 && file?.state === 'PROCESSING'; i++) {
+    await new Promise((r) => setTimeout(r, 3000));
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/${file.name}`, { headers: { 'x-goog-api-key': key } });
+    if (res.ok) file = await res.json();
+  }
+  if (!file?.uri || file.state !== 'ACTIVE') throw new Error('gemini_file_not_ready');
+  return { uri: file.uri, name: file.name };
+}
+
+export async function deleteGeminiFile(name: string): Promise<void> {
+  try {
+    await fetch(`https://generativelanguage.googleapis.com/v1beta/${name}`, { method: 'DELETE', headers: { 'x-goog-api-key': env('GEMINI_API_KEY') } });
+  } catch {
+    // Gemini also deletes files automatically after 48 h.
+  }
 }
 
 const ROUTINE_TOOL = {

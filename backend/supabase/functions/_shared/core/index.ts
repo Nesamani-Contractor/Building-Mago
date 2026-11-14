@@ -5,3 +5,4 @@ export * from './habit.ts';
 export * from './events.ts';
 export * from './voice.ts';
 export * from './bag.ts';
+export * from './watch.ts';

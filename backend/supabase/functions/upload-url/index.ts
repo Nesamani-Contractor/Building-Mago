@@ -17,11 +17,11 @@ Deno.serve(async (req) => {
   const sb = serviceClient();
   // Per-user upload cache: same file → reuse the earlier result.
   const { data: existing } = await sb.from('upload_objects').select('id').eq('user_id', user.userId).eq('sha256', body.sha256).maybeSingle();
-  if (existing) return json({ status: 'duplicate' });
+  if (existing) return json({ status: 'duplicate', path: `${user.userId}/${body.sha256}` });
 
   const path = `${user.userId}/${body.sha256}`;
   const { data, error } = await sb.storage.from('uploads').createSignedUploadUrl(path);
   if (error || !data) return fail('server_error', 500);
-  await sb.from('upload_objects').insert({ user_id: user.userId, sha256: body.sha256, storage_path: path });
+  await sb.from('upload_objects').insert({ user_id: user.userId, sha256: body.sha256, storage_path: path, mime_type: body.mimeType });
   return json({ status: 'ok', path, token: data.token, signedUrl: data.signedUrl });
 });
