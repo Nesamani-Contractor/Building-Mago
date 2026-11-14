@@ -45,6 +45,22 @@ export function greeting(now = new Date()): string {
   return 'Good evening';
 }
 
+/** "today" in the morning and afternoon, "tonight" from 5 pm — so Home's headline matches the greeting. */
+export function partOfDay(now = new Date()): 'today' | 'tonight' {
+  const h = now.getHours();
+  return h >= 5 && h < 17 ? 'today' : 'tonight';
+}
+
+/** "today" / "tonight", refreshed each minute. */
+export function usePartOfDay(): 'today' | 'tonight' {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const t = setInterval(() => setNow(new Date()), 60_000);
+    return () => clearInterval(t);
+  }, []);
+  return partOfDay(now);
+}
+
 /** "Good evening, Maya" (or just "Good evening" before she tells us her name). Refreshes each minute. */
 export function useGreeting(): string {
   const name = useProfile((s) => s.name);

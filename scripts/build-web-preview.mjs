@@ -49,13 +49,13 @@ writeFileSync(out, page);
 console.log(`wrote ${out} (${(page.length / 1024 / 1024).toFixed(2)} MB, ${inlined} assets inlined)`);
 
 // --- Mobile view: app.html (framed) + phone.html (the frame) ---
-// Inside the frame the app sees a 390×844 window. We give it an iPhone's safe areas (47 top, 34 bottom)
+// Inside the frame the app sees a 393×852 window. We give it an iPhone's safe areas (iPhone 16 Pro: 62 top, 34 bottom)
 // by overriding the hidden element react-native-safe-area-context measures, and strip "app.html" from
 // the path so Expo Router opens the normal first screen.
 const FRAMED_HEAD = `<script>(function(){
 var q=new URLSearchParams(location.search);
 if(q.get('framed')==='1'){var st=document.createElement('style');
-st.textContent='div[style*="safe-area-inset-top"]{padding-top:47px!important;padding-bottom:34px!important}';
+st.textContent='div[style*="safe-area-inset-top"]{padding-top:62px!important;padding-bottom:34px!important}';
 document.head.appendChild(st);}
 var p=location.pathname.replace(/app\\.html$/,'');
 history.replaceState(null,'',p||'/');

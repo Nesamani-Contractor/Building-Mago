@@ -18,6 +18,7 @@ import { track } from '@/services/analytics';
 import { useSessions, resumableSession } from '@/data/sessions';
 import { SAMPLE_ROUTINES } from '@/data/samples';
 import { findRoutine } from '@/lib/routines';
+import { usePartOfDay } from '@/lib/hooks';
 
 const OCCASIONS: { id: Occasion; label: string }[] = [
   { id: 'Everyday', label: 'Everyday' },
@@ -52,6 +53,7 @@ export default function Home() {
     return order.map((id) => SAMPLE_ROUTINES.find((r) => r.id === id)).filter((r): r is Routine => !!r);
   }, []);
   const PINNED_PREVIEW = 3;
+  const when = usePartOfDay();
 
   return (
     <Screen mood="home" bottomInset={layout.tabBarSpace}>
@@ -59,7 +61,7 @@ export default function Home() {
         <View style={{ flex: 1, gap: 2 }}>
           <Greeting />
           <Txt variant="title1" accessibilityRole="header">
-            What are we doing tonight?
+            What are we doing {when}?
           </Txt>
         </View>
         <PressableScale accessibilityLabel="Search your looks" onPress={() => router.push('/(tabs)/library')} style={[styles.round, { backgroundColor: c.surface, shadowColor: c.shadow }]}>
@@ -161,7 +163,7 @@ export default function Home() {
 
       <View style={styles.sectionHead}>
         <Txt variant="title3" accessibilityRole="header">
-          Tonight’s picks
+          {when === 'tonight' ? 'Tonight’s picks' : 'Today’s picks'}
         </Txt>
         <PressableScale accessibilityLabel="See all looks" onPress={() => router.push('/(tabs)/discover')} style={styles.seeAll}>
           <Txt variant="subhead" style={{ color: c.primary }}>

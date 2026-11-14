@@ -3,73 +3,143 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Mago — mobile preview</title>
+<meta name="theme-color" content="#FBF7F4">
+<title>Mago — iPhone preview</title>
 <style>
   html, body { margin: 0; height: 100%; }
   body {
-    background: #EFE7E3;
+    background: radial-gradient(120% 90% at 50% 0%, #F6EEE9 0%, #EADFD9 55%, #E2D4CD 100%);
     font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', system-ui, sans-serif;
-    color: #2A1E26;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    overflow: hidden;
+    color: #2A1E26; overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
   }
-  .stage { display: flex; flex-direction: column; align-items: center; gap: 14px; }
-  /* The phone: 390×844 screen inside a 12px bezel. Scaled with --s to fit the window. */
-  .phone {
-    width: 414px; height: 868px; box-sizing: border-box; padding: 12px;
-    border-radius: 64px; background: #1B1418;
-    box-shadow: 0 0 0 2px #3A2E35 inset, 0 40px 80px rgba(42,30,38,0.28), 0 8px 20px rgba(42,30,38,0.18);
-    transform: scale(var(--s, 1)); transform-origin: center center;
-    position: relative;
+  /* iPhone 16 Pro: 393×852 points, titanium band, 6.3" corner radius. */
+  .device {
+    --w: 393px; --h: 852px; --bezel: 11px; --band: 3px;
+    position: relative; width: calc(var(--w) + 2 * (var(--bezel) + var(--band)));
+    height: calc(var(--h) + 2 * (var(--bezel) + var(--band)));
+    transform: scale(var(--s, 1)); transform-origin: center center; flex: none;
   }
+  .band {
+    position: absolute; inset: 0; border-radius: 69px;
+    background: linear-gradient(145deg, #8C8580 0%, #4A4541 22%, #2B2724 50%, #57514C 78%, #9A938D 100%);
+    box-shadow: 0 50px 90px rgba(42,30,38,.32), 0 12px 28px rgba(42,30,38,.22);
+  }
+  .bezel { position: absolute; inset: var(--band); border-radius: 66px; background: #050405; }
   .screen {
-    width: 390px; height: 844px; border-radius: 52px; overflow: hidden; background: #FBF7F4;
-    position: relative; isolation: isolate;
+    position: absolute; inset: calc(var(--band) + var(--bezel)); border-radius: 55px;
+    overflow: hidden; background: #FBF7F4; isolation: isolate;
   }
-  .screen iframe { width: 390px; height: 844px; border: 0; display: block; background: #FBF7F4; }
-  .island {
-    position: absolute; top: 11px; left: 50%; width: 122px; height: 35px; margin-left: -61px;
-    border-radius: 18px; background: #000; z-index: 2; pointer-events: none;
-  }
-  .caption { font-size: 13px; color: #6E5D66; text-align: center; }
-  .caption b { color: #2A1E26; font-weight: 600; }
-  .caption a { color: #5B2A4A; }
+  .screen iframe { width: var(--w); height: var(--h); border: 0; display: block; background: #FBF7F4; }
+  /* Side buttons */
+  .btn { position: absolute; width: 4px; background: linear-gradient(90deg, #3A3532, #77706A); border-radius: 2px; }
+  .btn.action { left: -3px; top: 150px; height: 34px; }
+  .btn.vup    { left: -3px; top: 212px; height: 62px; }
+  .btn.vdown  { left: -3px; top: 288px; height: 62px; }
+  .btn.power  { right: -3px; top: 250px; height: 98px; background: linear-gradient(270deg, #3A3532, #77706A); }
+  .btn.camera { right: -3px; top: 560px; height: 54px; background: linear-gradient(270deg, #3A3532, #77706A); }
 
-  /* On a real phone: no frame, the app fills the screen. */
+  /* Overlays drawn by the phone, not the app. White + difference = dark on light screens, light on photos. */
+  .island {
+    position: absolute; top: 11px; left: 50%; width: 124px; height: 36px; margin-left: -62px;
+    border-radius: 20px; background: #000; z-index: 3; pointer-events: none;
+  }
+  .status {
+    position: absolute; top: 0; left: 0; right: 0; height: 54px; z-index: 2; pointer-events: none;
+    display: flex; align-items: center; justify-content: space-between; padding: 4px 30px 0 46px;
+    color: #1B1418; transition: color .2s;
+  }
+  .status.light { color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.25); }
+  .time { font-size: 17px; font-weight: 600; letter-spacing: -0.2px; font-variant-numeric: tabular-nums; }
+  .icons { display: flex; align-items: center; gap: 6px; }
+  .icons svg { display: block; fill: currentColor; }
+  .home {
+    position: absolute; bottom: 8px; left: 50%; width: 140px; height: 5px; margin-left: -70px;
+    border-radius: 3px; background: #1B1418; z-index: 2; pointer-events: none; transition: background .2s;
+  }
+  .home.light { background: rgba(255,255,255,.9); }
+  .caption {
+    position: fixed; bottom: 14px; left: 0; right: 0; text-align: center; font-size: 12px; color: #7C6A73;
+  }
+  .caption a { color: #5B2A4A; text-decoration: none; font-weight: 600; }
+
+  /* On an actual phone the app simply fills the screen — the phone is the frame. */
   body.bare { display: block; background: #FBF7F4; }
-  body.bare .stage { display: block; height: 100%; }
-  body.bare .phone { width: 100%; height: 100%; padding: 0; border-radius: 0; background: none; box-shadow: none; transform: none; }
-  body.bare .screen, body.bare .screen iframe { width: 100%; height: 100%; border-radius: 0; }
-  body.bare .island, body.bare .caption { display: none; }
+  body.bare .device { width: 100%; height: 100%; transform: none; }
+  body.bare .band, body.bare .bezel, body.bare .btn, body.bare .island, body.bare .status, body.bare .home, body.bare .caption { display: none; }
+  body.bare .screen { inset: 0; border-radius: 0; }
+  body.bare .screen iframe { width: 100%; height: 100%; }
 </style>
 </head>
 <body>
-<div class="stage">
-  <div class="phone" id="phone">
-    <div class="island" aria-hidden="true"></div>
-    <div class="screen"><iframe id="app" title="Mago app preview" allow="clipboard-read; clipboard-write; autoplay"></iframe></div>
+<div class="device" id="device" role="region" aria-label="Mago on iPhone">
+  <div class="band"></div>
+  <div class="bezel"></div>
+  <span class="btn action"></span><span class="btn vup"></span><span class="btn vdown"></span>
+  <span class="btn power"></span><span class="btn camera"></span>
+  <div class="screen">
+    <iframe id="app" title="Mago" allow="clipboard-read; clipboard-write; autoplay"></iframe>
+    <div class="status" id="status" aria-hidden="true">
+      <span class="time" id="time">9:41</span>
+      <span class="icons">
+        <svg width="18" height="12" viewBox="0 0 18 12"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg>
+        <svg width="16" height="12" viewBox="0 0 16 12"><path d="M8 2.2c2.4 0 4.6.9 6.2 2.5l1.2-1.2A10.4 10.4 0 0 0 8 .5 10.4 10.4 0 0 0 .6 3.5l1.2 1.2A8.7 8.7 0 0 1 8 2.2Zm0 3.4c1.5 0 2.8.6 3.8 1.5l1.2-1.2A7 7 0 0 0 8 3.9a7 7 0 0 0-5 2l1.2 1.2c1-.9 2.3-1.5 3.8-1.5Zm0 3.4c.6 0 1.1.2 1.5.6L8 11.1 6.5 9.6c.4-.4.9-.6 1.5-.6Z"/></svg>
+        <svg width="27" height="13" viewBox="0 0 27 13"><rect x=".5" y=".5" width="23" height="12" rx="3.8" fill="none" stroke="currentColor" opacity=".4"/><rect x="2" y="2" width="20" height="9" rx="2.5"/><path d="M25 4.3v4.4c.9-.3 1.5-1.2 1.5-2.2s-.6-1.9-1.5-2.2Z" opacity=".45"/></svg>
+      </span>
+    </div>
+    <div class="home" id="home" aria-hidden="true"></div>
   </div>
-  <p class="caption"><b>Mago</b> · iPhone-size preview · demo mode with sample looks · <a href="app.html" target="_top">open full screen</a></p>
+  <div class="island" aria-hidden="true"></div>
 </div>
+<p class="caption" id="caption">iPhone 16 Pro · demo with sample looks · <a href="app.html" target="_top">Open full screen</a></p>
 <script>
 (function () {
-  var bare = Math.min(window.innerWidth, window.innerHeight) < 500 && window.innerWidth < 600;
   var app = document.getElementById('app');
-  if (bare) {
-    document.body.classList.add('bare');
-    app.src = 'app.html';
-    return;
-  }
+  // A real phone (narrow screen) needs no drawn phone around the app.
+  var bare = window.innerWidth < 600 && Math.min(window.innerWidth, window.innerHeight) < 500;
+  if (bare) { document.body.classList.add('bare'); app.src = 'app.html'; return; }
   app.src = 'app.html?framed=1';
-  var phone = document.getElementById('phone');
+
+  var device = document.getElementById('device');
+  var W = 393 + 28, H = 852 + 28;
   function fit() {
-    var s = Math.min(1, (window.innerHeight - 64) / 868, (window.innerWidth - 32) / 414);
-    phone.style.setProperty('--s', String(Math.max(0.4, s)));
-    // keep the caption under the scaled phone
-    phone.style.marginTop = phone.style.marginBottom = (-(868 * (1 - s)) / 2) + 'px';
+    var s = Math.min(1.15, (window.innerHeight - 56) / H, (window.innerWidth - 32) / W);
+    device.style.setProperty('--s', String(Math.max(0.35, s)));
+    device.style.margin = (-(H * (1 - s)) / 2) + 'px ' + (-(W * (1 - s)) / 2) + 'px';
   }
   fit();
   window.addEventListener('resize', fit);
+
+  var t = document.getElementById('time');
+  function tick() {
+    var d = new Date(), h = d.getHours() % 12 || 12, m = d.getMinutes();
+    t.textContent = h + ':' + (m < 10 ? '0' : '') + m;
+  }
+  tick();
+  setInterval(tick, 15000);
+
+  // Like iOS: light status bar and home bar over photos and video, dark over the porcelain screens.
+  var status = document.getElementById('status'), home = document.getElementById('home');
+  function overMedia(doc, x, y) {
+    var el = doc.elementFromPoint(x, y);
+    for (var i = 0; el && i < 8; i++, el = el.parentElement) {
+      var tag = el.tagName;
+      if (tag === 'IMG' || tag === 'VIDEO' || tag === 'CANVAS') return true;
+      var bg = doc.defaultView.getComputedStyle(el).backgroundImage;
+      if (bg && bg.indexOf('url(') === 0) return true;
+      if (el.querySelector && el.querySelector(':scope > img, :scope > video')) return true;
+    }
+    return false;
+  }
+  function tone() {
+    try {
+      var doc = app.contentDocument;
+      if (!doc || !doc.body) return;
+      status.classList.toggle('light', overMedia(doc, 60, 24) || overMedia(doc, 330, 24));
+      home.classList.toggle('light', overMedia(doc, 196, 838));
+    } catch (e) { /* different origin: keep dark */ }
+  }
+  setInterval(tone, 400);
 })();
 </script>
 </body>
