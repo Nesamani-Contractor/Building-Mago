@@ -60,3 +60,7 @@ Mode: **demo** (D-15). Everything below runs on the device with sample data unle
   - Not a beauty video → clear message, no charge. Unreadable file (e.g. some .mov in Chrome) → "try an MP4".
 - YouTube links in the demo still show sample content (labelled) — real YouTube watching needs the server (Gemini key).
 - Checks: shared tests 58 pass (new `watch.test.ts`), app `tsc` + lint clean, `deno check` passes for import-worker/import-upload/upload-url/import-start, headless browser run: 24 s silent captions-only test video → 4 contact sheets (16 frames, captions readable) → routine saved with 3 steps.
+
+## Change 13 Nov — welcome reel: music on, 50% slower
+- `welcome-reel.mp4` now carries the original score (music4.py) and runs 33.3 s instead of 22.2 s (motion-interpolated to 30 fps; music stretched to 80 BPM, pitch kept). Script: `tools/reel/slow-with-music.sh`.
+- Phones play the music straight away. Browsers (the web preview) block sound until the first tap, so the reel starts muted with a **Sound on** pill; her first tap anywhere turns the music on.

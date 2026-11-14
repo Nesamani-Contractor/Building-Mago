@@ -12,7 +12,7 @@ import { WELCOME_REEL } from '@/design/media';
 import { track } from '@/services/analytics';
 
 /**
- * S-02 Welcome (PRD J1): full-bleed 12 s reel of the app in use — the look she saw → share to Mago →
+ * S-02 Welcome (PRD J1): full-bleed 33 s reel with its own music of the app in use — the look she saw → share to Mago →
  * follow step by step → do the look. One idea, one primary button (book cr-1), product shown in the
  * first three seconds (va-9). No sign-up, no permission prompts (FR-ONB-01/02). If the reel can't
  * play (Reduce Motion, error) its poster shows instead.
@@ -31,7 +31,7 @@ export default function Welcome() {
   return (
     <View style={[styles.fill, { backgroundColor: c.bg }]}>
       <View style={[styles.media, { backgroundColor: palette.ink, marginTop: 0, paddingTop: topPad }]}>
-        <LoopVideo video={WELCOME_REEL.video} poster={WELCOME_REEL.poster} style={styles.video} accessibilityLabel="A short film: a saved makeup look turns into calm, step-by-step instructions in Mago" />
+        <LoopVideo sound video={WELCOME_REEL.video} poster={WELCOME_REEL.poster} style={styles.video} accessibilityLabel="A short film: a saved makeup look turns into calm, step-by-step instructions in Mago" />
       </View>
 
       <View style={[styles.bottom, { paddingBottom: Math.max(insets.bottom, space.l) + space.xs }]}>

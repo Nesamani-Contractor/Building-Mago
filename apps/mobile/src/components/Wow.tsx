@@ -5,7 +5,7 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEvent } from 'expo';
 import { useFocusEffect } from 'expo-router';
-import { useVideoPlayer, VideoView } from 'expo-video';
+import { useVideoPlayer, VideoView, type VideoPlayer } from 'expo-video';
 import { DeviceMotion } from 'expo-sensors';
 import Animated, {
   Easing,
@@ -22,39 +22,82 @@ import { PressableScale } from './PressableScale';
 import { Icon, type IconName } from './Icon';
 import { Txt } from './Txt';
 
+/** Player settings change outside React's render (the player is a native object, not React state). */
+function setMuted(p: VideoPlayer, muted: boolean) {
+  p.muted = muted;
+}
+
 /**
- * Muted, looping, seamless video with its poster frame shown first; the video cross-fades in once
- * it can play, and pauses whenever the screen loses focus. Reduce Motion → poster only.
+ * Looping, seamless video with its poster frame shown first; the video cross-fades in once it can
+ * play, and pauses whenever the screen loses focus. Reduce Motion → poster only.
+ * `sound`: plays the clip's own music (welcome reel). Phones play it straight away. Browsers block
+ * sound until the first tap, so on web the clip starts muted and a "Sound on" pill appears; her first
+ * tap anywhere turns the music on.
  */
 export function LoopVideo({
   video,
   poster,
   style,
   accessibilityLabel,
+  sound,
 }: {
   video: number;
   poster: number;
   style?: StyleProp<ViewStyle>;
   accessibilityLabel?: string;
+  sound?: boolean;
 }) {
   const reduced = useReducedMotion();
   const player = useVideoPlayer(reduced ? null : video, (p) => {
     p.loop = true;
-    p.muted = true;
-    p.audioMixingMode = 'mixWithOthers';
+    p.muted = !sound;
+    p.volume = 0.8;
+    p.audioMixingMode = sound ? 'doNotMix' : 'mixWithOthers';
   });
   const { status } = useEvent(player, 'statusChange', { status: player.status });
   const opacity = useSharedValue(0);
+  const [needsTap, setNeedsTap] = useState(false);
 
   useEffect(() => {
     if (status === 'readyToPlay') opacity.set(withTiming(1, { duration: 300 }));
   }, [status, opacity]);
 
+  const unmute = useCallback(() => {
+    setMuted(player, false);
+    player.play();
+    setNeedsTap(false);
+  }, [player]);
+
   useFocusEffect(
     useCallback(() => {
-      if (!reduced) player.play();
-      return () => player.pause();
-    }, [player, reduced]),
+      if (reduced) return undefined;
+      player.play();
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      let off: (() => void) | undefined;
+      if (sound && Platform.OS === 'web') {
+        // If the browser refused to start with sound, fall back to muted and wait for her first tap.
+        timer = setTimeout(() => {
+          if (!player.playing || player.muted) {
+            setMuted(player, true);
+            player.play();
+            setNeedsTap(true);
+          }
+        }, 700);
+        const doc = (globalThis as { document?: Document }).document;
+        const onFirst = () => unmute();
+        doc?.addEventListener('pointerdown', onFirst, { once: true, capture: true });
+        doc?.addEventListener('keydown', onFirst, { once: true, capture: true });
+        off = () => {
+          doc?.removeEventListener('pointerdown', onFirst, { capture: true });
+          doc?.removeEventListener('keydown', onFirst, { capture: true });
+        };
+      }
+      return () => {
+        if (timer) clearTimeout(timer);
+        off?.();
+        player.pause();
+      };
+    }, [player, reduced, sound, unmute]),
   );
 
   const fade = useAnimatedStyle(() => ({ opacity: opacity.get() }));
@@ -68,6 +111,7 @@ export function LoopVideo({
           <VideoView player={player} style={styles.video} contentFit="cover" nativeControls={false} allowsPictureInPicture={false} />
         </Animated.View>
       ) : null}
+      {needsTap ? <GlassButton icon="speaker" label="Sound on" accessibilityLabel="Turn the music on" onPress={unmute} style={styles.soundPill} /> : null}
     </View>
   );
 }
@@ -213,6 +257,7 @@ export function useBeat(delayMs: number) {
 }
 
 const styles = StyleSheet.create({
+  soundPill: { position: 'absolute', right: 16, bottom: 20 },
   clip: { overflow: 'hidden', backgroundColor: '#2A1E26' },
   video: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' },
   sheen: { position: 'absolute', top: '-25%', bottom: '-25%', left: '25%', width: '50%' },
