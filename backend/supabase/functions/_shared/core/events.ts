@@ -79,6 +79,12 @@ export const ANALYTICS_EVENTS = [
   // D-26: automatic photo scan + review.
   'bag_scan_auto_added',
   'bag_scan_failed',
+  // D-27: Onboarding-flow skill journey.
+  'onboarding_step_viewed',
+  'onboarding_step_completed',
+  'onb_heard_from',
+  'paywall_closed',
+  'offer_claimed',
   'bag_review_count_changed',
   'bag_review_removed',
   'bag_review_done',

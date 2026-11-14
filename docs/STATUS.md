@@ -64,3 +64,9 @@ Mode: **demo** (D-15). Everything below runs on the device with sample data unle
 ## Change 13 Nov — welcome reel: music on, 50% slower
 - `welcome-reel.mp4` now carries the original score (music4.py) and runs 33.3 s instead of 22.2 s (motion-interpolated to 30 fps; music stretched to 80 BPM, pitch kept). Script: `tools/reel/slow-with-music.sh`.
 - Phones play the music straight away. Browsers (the web preview) block sound until the first tap, so the reel starts muted with a **Sound on** pill; her first tap anywhere turns the music on.
+
+## Change 14 Nov — new onboarding journey (D-27)
+- Old onboarding removed (story screens, 18+ screen, name screen, 4 questions, building, preview/sample Unveil).
+- New: the owner's Onboarding-flow skill — welcome reel (music) → saved-but-never-tried → insight → goals → occasions → level → how Mago works (hear your guide) → where she finds looks → time → weekly goal → product promise → makeup bag → pick a first look → hands-free primer → try two real steps read aloud → mini win → how did you hear → name → plan-building loader → first-week plan (saved to the planner) → notification primer → account (Apple/Google or Not now, 18+) → paywall (close after 3 s) → recovery gift → Home with Today's look.
+- Answers drive: Home picks/pinned first look, plan days, weekly goal, step detail level, makeup bag items, notification preference.
+- Tested end to end in a phone-size browser; no errors.

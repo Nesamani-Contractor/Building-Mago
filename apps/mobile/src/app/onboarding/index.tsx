@@ -6,13 +6,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Txt } from '@/components/Txt';
 import { Button } from '@/components/Button';
 import { LoopVideo } from '@/components/Wow';
+import { Head } from '@/components/OnboardingBits';
 import { useTheme } from '@/design/theme';
 import { layout, palette, radius, space } from '@/design/tokens';
 import { WELCOME_REEL } from '@/design/media';
 import { track } from '@/services/analytics';
 
 /**
- * S-02 Welcome (PRD J1): full-bleed 33 s reel with its own music of the app in use — the look she saw → share to Mago →
+ * Onboarding-flow skill screen 1 (D-27) / S-02 Welcome (PRD J1): full-bleed 33 s reel with its own music of the app in use — the look she saw → share to Mago →
  * follow step by step → do the look. One idea, one primary button (book cr-1), product shown in the
  * first three seconds (va-9). No sign-up, no permission prompts (FR-ONB-01/02). If the reel can't
  * play (Reduce Motion, error) its poster shows instead.
@@ -36,11 +37,9 @@ export default function Welcome() {
 
       <View style={[styles.bottom, { paddingBottom: Math.max(insets.bottom, space.l) + space.xs }]}>
         <Animated.View entering={reduced ? undefined : FadeInDown.delay(250).duration(500)} style={{ gap: space.s }}>
-          <Txt variant="display" accessibilityRole="header">
-            Save it. Do it.{'\n'}See the glow-up.
-          </Txt>
+          <Head size="display" lead="Every look you save, " em="finally on your face." />
           <Txt variant="callout" tone="secondary">
-            Turn any beauty video into calm steps you can follow, with every product in your shade.
+            Turn the tutorials you save into looks you actually do — step by step, hands-free.
           </Txt>
         </Animated.View>
         <Animated.View entering={reduced ? undefined : FadeInDown.delay(450).duration(500)} style={{ gap: space.xs, marginTop: space.l }}>
@@ -48,7 +47,7 @@ export default function Welcome() {
             label="Get started"
             onPress={() => {
               track('onb_get_started');
-              router.push('/onboarding/age');
+              router.push('/onboarding/flow');
             }}
           />
           <Button variant="ghost" label="I already have an account" onPress={() => router.push('/onboarding/signin')} />

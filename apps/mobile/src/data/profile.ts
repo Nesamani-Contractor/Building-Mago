@@ -20,6 +20,18 @@ export interface ProfileState {
   sources: SourceApp[];
   skill: Skill | null;
   weeklyGoal: number;
+  /** Onboarding (D-27): how many tutorials she's saved but never tried. */
+  savedPile: 'few' | 'dozens' | 'lots' | null;
+  /** What she wants to nail: everyday, going-out, eyes, base, brows, lips. */
+  focus: string[];
+  /** When she wants to look her best (workdays, date nights…). */
+  occasions: string[];
+  /** Usual minutes for makeup (0 = as long as it takes). */
+  timeBudget: number | null;
+  /** Marketing attribution answer. */
+  heardFrom: string | null;
+  /** The look she tried during onboarding. */
+  firstLookId: string | null;
   linkedProvider: 'apple' | 'google' | null;
   referralCode: string;
   country: 'US' | 'UK' | 'other';
@@ -39,6 +51,12 @@ function fresh() {
     sources: [] as SourceApp[],
     skill: null,
     weeklyGoal: 3,
+    savedPile: null,
+    focus: [] as string[],
+    occasions: [] as string[],
+    timeBudget: null,
+    heardFrom: null,
+    firstLookId: null,
     linkedProvider: null,
     referralCode: uid('').slice(-6).toUpperCase(),
     country: 'US' as const,

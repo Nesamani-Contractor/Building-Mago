@@ -13,6 +13,7 @@ import { OCCASION_PHOTO, photo, routineImage } from '@/design/media';
 import { haptic } from '@/design/haptics';
 import { useLibrary, IMPORT_STAGES, pinnedLooks } from '@/data/library';
 import { Greeting, HeartButton, PinnedRow } from '@/components/LookActions';
+import { TodayLook } from '@/components/TodayLook';
 import { track } from '@/services/analytics';
 import { useSessions, resumableSession } from '@/data/sessions';
 import { SAMPLE_ROUTINES } from '@/data/samples';
@@ -65,6 +66,9 @@ export default function Home() {
           <Icon name="search" size={20} color={c.ink} />
         </PressableScale>
       </View>
+
+      {/* D-27: today's look from her plan, ready to start. */}
+      <TodayLook />
 
       {/* FR-PIN: her pinned looks, collapsed to 3, See all for the rest. */}
       <View style={styles.sectionHeadTop}>
