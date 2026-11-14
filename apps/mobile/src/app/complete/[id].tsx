@@ -15,6 +15,7 @@ import { useTheme } from '@/design/theme';
 import { fonts, radius, scrimColors, space } from '@/design/tokens';
 import { routineImage } from '@/design/media';
 import { LookPhoto, StreakRing } from '@/components/Bits';
+import { HeartButton } from '@/components/LookActions';
 import { haptic } from '@/design/haptics';
 import { useSessions } from '@/data/sessions';
 import { useLibrary } from '@/data/library';
@@ -166,6 +167,18 @@ export default function Complete() {
           {streak.thisWeekMet ? `${streak.thisWeekCount} of ${streak.weeklyGoal} this week — goal met` : `${streak.thisWeekCount} of ${streak.weeklyGoal} looks this week`}
         </Txt>
       </Card>
+
+      {routine ? (
+        <Card style={{ marginTop: space.l, flexDirection: 'row', alignItems: 'center', gap: space.m }}>
+          <View style={{ flex: 1, gap: 2 }}>
+            <Txt variant="headline">{saved?.favorite ? 'In your Favorites' : 'Loved it?'}</Txt>
+            <Txt variant="footnote" tone="secondary">
+              {saved?.favorite ? 'Find it any time in Your looks → Favorites.' : 'Tap the heart to add it to Favorites.'}
+            </Txt>
+          </View>
+          <HeartButton routine={routine} size={26} />
+        </Card>
+      ) : null}
 
       <Card style={{ marginTop: space.l, gap: space.m }}>
         <Txt variant="headline">How did it turn out?</Txt>

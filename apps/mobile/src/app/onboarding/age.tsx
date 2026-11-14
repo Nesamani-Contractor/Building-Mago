@@ -25,7 +25,7 @@ export default function Age() {
             onPress={() => {
               set({ ageConfirmed: true });
               track('onb_age_confirmed');
-              router.push('/onboarding/questions');
+              router.push('/onboarding/name');
             }}
           />
           <Button variant="ghost" label="I’m under 18" onPress={() => router.replace('/onboarding/blocked')} />

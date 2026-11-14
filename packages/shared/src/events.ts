@@ -58,6 +58,15 @@ export const ANALYTICS_EVENTS = [
   'unveil_sample_started',
   'onb_story_viewed',
   'vibe_selected',
+  // D-24: save & organize, pinned, greeting name, favorites.
+  'library_filed',
+  'library_file_skipped',
+  'routine_favorited',
+  'routine_unfavorited',
+  'routine_pinned',
+  'routine_unpinned',
+  'pinned_see_all',
+  'onb_q_name',
 ] as const;
 export type AnalyticsEvent = (typeof ANALYTICS_EVENTS)[number];
 export type AnalyticsProps = Record<string, string | number | boolean>;

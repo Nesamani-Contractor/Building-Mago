@@ -4,17 +4,18 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { CATEGORIES, OCCASIONS } from '@mago/shared';
 import { Screen } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
-import { Chip, Eyebrow, LookPhoto, RoutineTile } from '@/components/Bits';
+import { Chip, Eyebrow, LookPhoto } from '@/components/Bits';
 import { routineImage } from '@/design/media';
 import { StateView } from '@/components/States';
 import { Icon } from '@/components/Icon';
 import { PressableScale } from '@/components/PressableScale';
 import { useTheme } from '@/design/theme';
 import { fonts, layout, radius, space } from '@/design/tokens';
-import { searchLibrary, useLibrary } from '@/data/library';
+import { allUserTags, searchLibrary, useLibrary } from '@/data/library';
+import { Greeting, LookTile } from '@/components/LookActions';
 import { track } from '@/services/analytics';
 
-type Filter = 'all' | 'favorites' | 'recent' | 'quick' | `cat:${string}` | `occ:${string}` | `col:${string}`;
+type Filter = 'all' | 'favorites' | 'recent' | 'quick' | `cat:${string}` | `occ:${string}` | `col:${string}` | `tag:${string}`;
 
 /** M-11 Library: search, filter chips, collections, favorites, recently done. */
 export default function Library() {
@@ -36,6 +37,7 @@ export default function Library() {
   const [newCol, setNewCol] = useState<string | null>(null);
 
   const all = useMemo(() => Object.values(items).sort((a, b) => b.savedAt.localeCompare(a.savedAt)), [items]);
+  const favorites = useMemo(() => all.filter((x) => x.favorite), [all]);
   const filtered = useMemo(() => {
     let list = searchLibrary(all, q);
     if (filter === 'favorites') list = list.filter((s) => s.favorite);
@@ -44,6 +46,7 @@ export default function Library() {
     else if (filter.startsWith('cat:')) list = list.filter((s) => s.routine.category === filter.slice(4));
     else if (filter.startsWith('occ:')) list = list.filter((s) => s.routine.occasion.includes(filter.slice(4) as never));
     else if (filter.startsWith('col:')) list = list.filter((s) => s.collectionIds.includes(filter.slice(4)));
+    else if (filter.startsWith('tag:')) list = list.filter((s) => (s.userTags ?? []).includes(filter.slice(4)));
     return list;
   }, [all, q, filter]);
 
@@ -52,6 +55,7 @@ export default function Library() {
     { id: 'favorites', label: 'Favorites' },
     { id: 'recent', label: 'Recently done' },
     { id: 'quick', label: 'Under 10 min' },
+    ...allUserTags(items).slice(0, 12).map((t) => ({ id: `tag:${t}` as Filter, label: `#${t}` })),
     ...OCCASIONS.filter((o) => o !== 'Custom').map((o) => ({ id: `occ:${o}` as Filter, label: o === 'Wedding/Event' ? 'Events' : o })),
     ...CATEGORIES.filter((x) => x !== 'Other' && x !== 'Hair').map((x) => ({ id: `cat:${x}` as Filter, label: x })),
   ];
@@ -59,7 +63,8 @@ export default function Library() {
 
   return (
     <Screen mood="calm" bottomInset={layout.tabBarSpace}>
-      <View style={{ marginTop: space.l, gap: 6 }}>
+      <Greeting style={{ marginTop: space.s }} />
+      <View style={{ marginTop: space.m, gap: 6 }}>
         <Eyebrow>{all.length === 0 ? 'Saved on this phone' : `${all.length} ${all.length === 1 ? 'look' : 'looks'} saved`}</Eyebrow>
         <Txt variant="display" accessibilityRole="header">
           Your looks
@@ -91,9 +96,39 @@ export default function Library() {
         ))}
       </ScrollView>
 
+      {/* FR-FAV: hearted looks, one tap away. */}
       <View style={styles.colHeader}>
-        <Txt variant="title3">Collections</Txt>
-        <PressableScale accessibilityLabel="New collection" onPress={() => setNewCol('')} style={styles.newCol}>
+        <Txt variant="title3" accessibilityRole="header">
+          Favorites
+        </Txt>
+        {favorites.length > 2 ? (
+          <PressableScale accessibilityLabel={`See all ${favorites.length} favorites`} onPress={() => setFilter('favorites')} style={styles.newCol}>
+            <Txt variant="subhead" style={{ color: c.primary }}>
+              See all ({favorites.length})
+            </Txt>
+          </PressableScale>
+        ) : null}
+      </View>
+      {favorites.length ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -space.xl }} contentContainerStyle={{ paddingHorizontal: space.xl, gap: space.m }}>
+          {favorites.map((x) => (
+            <LookTile key={x.routine.id} width={130} routine={x.routine} onPress={() => router.push(`/routine/${x.routine.id}`)} />
+          ))}
+        </ScrollView>
+      ) : (
+        <View style={[styles.favEmpty, { backgroundColor: c.surface }]}>
+          <Icon name="heart" size={20} color={c.primary} />
+          <Txt variant="callout" tone="secondary" style={{ flex: 1 }}>
+            Tap the heart on any look to keep it here.
+          </Txt>
+        </View>
+      )}
+
+      <View style={styles.colHeader}>
+        <Txt variant="title3" accessibilityRole="header">
+          Categories
+        </Txt>
+        <PressableScale accessibilityLabel="New category" onPress={() => setNewCol('')} style={styles.newCol}>
           <Icon name="plus" size={18} color={c.primary} />
           <Txt variant="subhead" style={{ color: c.primary }}>
             New
@@ -149,9 +184,9 @@ export default function Library() {
             autoFocus
             value={newCol}
             onChangeText={setNewCol}
-            placeholder="Name, e.g. Weekend"
+            placeholder="e.g. Wedding season"
             placeholderTextColor={c.inkSecondary}
-            accessibilityLabel="Collection name"
+            accessibilityLabel="Category name"
             style={[styles.colInput, { color: c.ink, backgroundColor: c.surfaceAlt }]}
             maxLength={30}
             onSubmitEditing={() => {
@@ -165,7 +200,7 @@ export default function Library() {
           <View style={{ flexDirection: 'row', gap: space.m }}>
             <Chip label="Cancel" onPress={() => setNewCol(null)} />
             <Chip
-              label="Create collection"
+              label="Create category"
               selected
               onPress={() => {
                 if (newCol.trim()) {
@@ -193,11 +228,11 @@ export default function Library() {
         ) : (
           <View style={styles.grid}>
             {filtered.map((x) => (
-              <RoutineTile
+              <LookTile
                 key={x.routine.id}
                 width={colW}
                 routine={x.routine}
-                badge={x.favorite ? '♥ Favorite' : x.doneCount > 0 ? `Done ${x.doneCount}×` : undefined}
+                badge={x.pinned ? 'Pinned' : x.doneCount > 0 ? `Done ${x.doneCount}×` : undefined}
                 onPress={() => router.push(`/routine/${x.routine.id}`)}
               />
             ))}
@@ -218,5 +253,6 @@ const styles = StyleSheet.create({
   clear: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   colHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: space.xxl, marginBottom: space.m },
   newCol: { flexDirection: 'row', alignItems: 'center', gap: space.xs, minHeight: 44, paddingHorizontal: space.s },
+  favEmpty: { flexDirection: 'row', alignItems: 'center', gap: space.m, padding: space.l, borderRadius: radius.thumb, minHeight: 56 },
   colInput: { borderRadius: radius.chip, paddingHorizontal: space.l, minHeight: 48, fontFamily: fonts.sans, fontSize: 17 },
 });

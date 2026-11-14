@@ -4,16 +4,17 @@ import { useRouter } from 'expo-router';
 import type { Occasion, Routine } from '@mago/shared';
 import { Screen } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
-import { LookPhoto, stepCount } from '@/components/Bits';
+import { Eyebrow, LookPhoto, stepCount } from '@/components/Bits';
 import { Icon } from '@/components/Icon';
 import { PressableScale } from '@/components/PressableScale';
 import { useTheme } from '@/design/theme';
 import { layout, radius, space } from '@/design/tokens';
 import { OCCASION_PHOTO, photo, routineImage } from '@/design/media';
 import { haptic } from '@/design/haptics';
-import { useLibrary, IMPORT_STAGES } from '@/data/library';
+import { useLibrary, IMPORT_STAGES, pinnedLooks } from '@/data/library';
+import { Greeting, HeartButton, PinnedRow } from '@/components/LookActions';
+import { track } from '@/services/analytics';
 import { useSessions, resumableSession } from '@/data/sessions';
-import { useProfile } from '@/data/profile';
 import { SAMPLE_ROUTINES } from '@/data/samples';
 import { findRoutine } from '@/lib/routines';
 
@@ -24,13 +25,6 @@ const OCCASIONS: { id: Occasion; label: string }[] = [
   { id: 'Party', label: 'Party' },
   { id: 'Wedding/Event', label: 'Events' },
 ];
-
-function greeting(d = new Date()): string {
-  const h = d.getHours();
-  if (h < 12) return 'Good morning';
-  if (h < 18) return 'Good afternoon';
-  return 'Good evening';
-}
 
 function difficulty(r: Routine): string {
   const n = stepCount(r);
@@ -44,7 +38,8 @@ function difficulty(r: Routine): string {
 export default function Home() {
   const router = useRouter();
   const { c } = useTheme();
-  const name = useProfile((s) => s.name);
+  const items = useLibrary((s) => s.items);
+  const pinned = useMemo(() => pinnedLooks(items), [items]);
   const imports = useLibrary((s) => s.imports);
   const sessions = useSessions((s) => s.sessions);
 
@@ -55,15 +50,13 @@ export default function Home() {
     const order = ['sample-soft-glam', 'sample-party-liner', 'sample-glossy-lips', 'sample-dewy-skin', 'sample-wedding-guest'];
     return order.map((id) => SAMPLE_ROUTINES.find((r) => r.id === id)).filter((r): r is Routine => !!r);
   }, []);
-  const hello = name?.trim() ? `${greeting()}, ${name.trim()}` : greeting();
+  const PINNED_PREVIEW = 3;
 
   return (
     <Screen mood="home" bottomInset={layout.tabBarSpace}>
       <View style={styles.header}>
         <View style={{ flex: 1, gap: 2 }}>
-          <Txt variant="callout" tone="secondary">
-            {hello}
-          </Txt>
+          <Greeting />
           <Txt variant="title1" accessibilityRole="header">
             What are we doing tonight?
           </Txt>
@@ -72,6 +65,50 @@ export default function Home() {
           <Icon name="search" size={20} color={c.ink} />
         </PressableScale>
       </View>
+
+      {/* FR-PIN: her pinned looks, collapsed to 3, See all for the rest. */}
+      <View style={styles.sectionHeadTop}>
+        <View style={{ gap: 2, flex: 1 }}>
+          <Eyebrow>Pinned</Eyebrow>
+          <Txt variant="title3" accessibilityRole="header">
+            You and your beauty
+          </Txt>
+        </View>
+        {pinned.length > PINNED_PREVIEW ? (
+          <PressableScale
+            accessibilityLabel={`See all ${pinned.length} pinned looks`}
+            onPress={() => {
+              track('pinned_see_all', { count: pinned.length });
+              router.push('/pinned');
+            }}
+            style={styles.seeAll}
+          >
+            <Txt variant="subhead" style={{ color: c.primary }}>
+              See all ({pinned.length})
+            </Txt>
+          </PressableScale>
+        ) : null}
+      </View>
+      {pinned.length ? (
+        <View style={{ gap: space.s, marginTop: space.m }}>
+          {pinned.slice(0, PINNED_PREVIEW).map((x) => (
+            <PinnedRow key={x.routine.id} saved={x} onPress={() => router.push(`/routine/${x.routine.id}`)} />
+          ))}
+        </View>
+      ) : (
+        <PressableScale
+          onPress={() => router.push('/(tabs)/library')}
+          accessibilityLabel="Pin looks you love to keep them here. Opens your looks."
+          scaleTo={0.985}
+          style={[styles.pinEmpty, { backgroundColor: c.surface }]}
+        >
+          <Icon name="pin" size={20} color={c.primary} />
+          <Txt variant="callout" tone="secondary" style={{ flex: 1 }}>
+            Pin looks you love to keep them here.
+          </Txt>
+          <Icon name="chevronRight" size={18} color={c.inkSecondary} />
+        </PressableScale>
+      )}
 
       {inFlight.map((j) => (
         <PressableScale key={j.id} onPress={() => router.push(`/import/${j.id}`)} accessibilityLabel="Open the look being unveiled" style={[styles.card, { backgroundColor: c.surface, shadowColor: c.shadow }]}>
@@ -147,6 +184,7 @@ export default function Home() {
                   {r.totalTimeMin} min
                 </Txt>
               </View>
+              <HeartButton routine={r} onPhoto size={20} style={styles.heartOnPhoto} />
             </View>
             <View style={{ gap: 2 }}>
               <Txt variant="headline" numberOfLines={1}>
@@ -189,6 +227,9 @@ const styles = StyleSheet.create({
   track: { flex: 1, height: 4, borderRadius: 2, overflow: 'hidden' },
   fill: { height: 4, borderRadius: 2 },
   play: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  sectionHeadTop: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: space.xxl },
+  pinEmpty: { flexDirection: 'row', alignItems: 'center', gap: space.m, padding: space.l, borderRadius: radius.thumb, marginTop: space.m, minHeight: 56 },
+  heartOnPhoto: { position: 'absolute', right: 8, top: 8 },
   sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: space.x4 },
   seeAll: { minHeight: 44, justifyContent: 'center', paddingLeft: space.m },
   railOuter: { marginHorizontal: -space.xl },

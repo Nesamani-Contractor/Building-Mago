@@ -23,6 +23,7 @@ import { useProfile, showHintsByDefault } from '@/data/profile';
 import { useRoutine } from '@/lib/routines';
 import { uid } from '@/lib/id';
 import { track } from '@/services/analytics';
+import { lastTriedLabel } from '@/lib/hooks';
 
 /** M-25 Routine detail: review before doing. Full-bleed artwork fading into the background. */
 export default function RoutineDetail() {
@@ -38,7 +39,6 @@ export default function RoutineDetail() {
   const recordSimplify = useAccount((s) => s.recordSimplify);
   const skill = useProfile((s) => s.skill);
   const [showHints, setShowHints] = useState(showHintsByDefault(skill));
-  const [showCollections, setShowCollections] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => {
@@ -161,6 +161,7 @@ export default function RoutineDetail() {
           {sourceLabel}
           {r.creator && r.creator.name !== 'Mago sample' && r.creator.name !== 'You' ? ` · ${r.creator.name}` : ''}
           {saved && saved.doneCount > 0 ? ` · Done ${saved.doneCount}×` : ''}
+          {saved ? ` · ${lastTriedLabel(saved.lastDoneAt)}` : ''}
         </Txt>
       </View>
 
@@ -180,7 +181,25 @@ export default function RoutineDetail() {
             lib.toggleFavorite(r.id);
           }}
         />
-        <IconAction icon="bookmark" label="Collections" active={showCollections} onPress={() => setShowCollections(!showCollections)} />
+        <IconAction
+          icon="pin"
+          label={saved?.pinned ? 'Pinned' : 'Pin'}
+          active={!!saved?.pinned}
+          onPress={() => {
+            ensureSaved();
+            lib.togglePinned(r.id);
+            track(saved?.pinned ? 'routine_unpinned' : 'routine_pinned', {});
+          }}
+        />
+        <IconAction
+          icon="bookmark"
+          label="Organize"
+          active={!!saved && (saved.collectionIds.length > 0 || (saved.userTags ?? []).length > 0)}
+          onPress={() => {
+            ensureSaved();
+            router.push(`/save/${r.id}?edit=1`);
+          }}
+        />
         <IconAction
           icon="calendar"
           label="Plan"
@@ -193,18 +212,15 @@ export default function RoutineDetail() {
         <IconAction icon="share" label="Share" active={false} onPress={() => router.push(`/share/${r.id}`)} />
         {saved ? <IconAction icon="pencil" label="Edit" active={false} onPress={() => router.push(`/add/manual?edit=${r.id}`)} /> : null}
       </View>
-      {showCollections ? (
-        <View style={styles.chips}>
-          {lib.collections.map((col) => (
-            <Chip
-              key={col.id}
-              label={col.name}
-              selected={!!saved?.collectionIds.includes(col.id)}
-              onPress={() => {
-                ensureSaved();
-                lib.toggleInCollection(r.id, col.id);
-              }}
-            />
+      {saved && (saved.collectionIds.length > 0 || (saved.userTags ?? []).length > 0) ? (
+        <View style={styles.chips} accessibilityLabel="Categories and tags">
+          {lib.collections
+            .filter((col) => saved.collectionIds.includes(col.id))
+            .map((col) => (
+              <Chip key={col.id} label={col.name} icon="bookmark" onPress={() => router.push(`/save/${r.id}?edit=1`)} />
+            ))}
+          {(saved.userTags ?? []).map((t) => (
+            <Chip key={t} label={`#${t}`} onPress={() => router.push(`/save/${r.id}?edit=1`)} />
           ))}
         </View>
       ) : null}
@@ -305,7 +321,7 @@ export default function RoutineDetail() {
   );
 }
 
-function IconAction({ icon, label, active, onPress }: { icon: 'heart' | 'bookmark' | 'calendar' | 'share' | 'pencil'; label: string; active: boolean; onPress: () => void }) {
+function IconAction({ icon, label, active, onPress }: { icon: 'heart' | 'pin' | 'bookmark' | 'calendar' | 'share' | 'pencil'; label: string; active: boolean; onPress: () => void }) {
   const { c } = useTheme();
   return (
     <PressableScale

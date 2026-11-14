@@ -8,6 +8,7 @@ import { Txt } from '@/components/Txt';
 import { Hairline } from '@/components/Surface';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Eyebrow, ListRow, LookPhoto, SectionHeader, StreakRing } from '@/components/Bits';
+import { Greeting } from '@/components/LookActions';
 import { photo } from '@/design/media';
 import { Icon } from '@/components/Icon';
 import { PressableScale } from '@/components/PressableScale';
@@ -43,8 +44,9 @@ export default function Me() {
 
   return (
     <Screen mood="warm" bottomInset={layout.tabBarSpace}>
-      <View style={{ marginTop: space.l, gap: 6 }}>
-        <Eyebrow>{name ? `Hello, ${name}` : 'Your Mago'}</Eyebrow>
+      <Greeting style={{ marginTop: space.s }} />
+      <View style={{ marginTop: space.m, gap: 6 }}>
+        <Eyebrow>Your Mago</Eyebrow>
         <Txt variant="display" accessibilityRole="header">
           Me
         </Txt>
@@ -142,6 +144,8 @@ export default function Me() {
       ) : null}
 
       <View style={[styles.group, { backgroundColor: c.surface }]}>
+        <ListRow icon="person" label="Your name" value={name?.trim() ? name.trim() : 'Add your name'} onPress={() => router.push('/name')} />
+        <Hairline />
         <ListRow icon="sparkle" label="Mago Pro" value={isPro ? (trialEndsAt ? 'Free trial' : 'Active') : 'Try free'} onPress={() => (isPro ? router.push('/settings/subscription') : router.push('/paywall?from=me'))} />
         <Hairline />
         <ListRow icon="calendar" label="Planner" onPress={() => router.push('/planner')} />

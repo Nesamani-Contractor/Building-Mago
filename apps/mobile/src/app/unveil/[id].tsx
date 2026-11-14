@@ -24,6 +24,7 @@ import { LookPhoto } from '@/components/Bits';
 import { Icon } from '@/components/Icon';
 import { PressableScale } from '@/components/PressableScale';
 import { RoundButton } from '@/components/Screen';
+import { HeartButton } from '@/components/LookActions';
 import { StateView } from '@/components/States';
 import { useTheme } from '@/design/theme';
 import { layout, motion, radius, space } from '@/design/tokens';
@@ -156,12 +157,15 @@ export default function Unveil() {
       <View style={[styles.column, { paddingTop: insets.top + space.s, flex: 1, overflow: 'hidden' }]}>
         <View style={styles.topBar}>
           <RoundButton icon={isOnboarding ? 'close' : 'chevronLeft'} label={isOnboarding ? 'Close sample' : 'Back'} onPress={() => (router.canGoBack() ? router.back() : router.replace('/(tabs)'))} />
-          <PressableScale accessibilityLabel="Replay the unveil" onPress={play} style={[styles.replay, { backgroundColor: c.surfaceAlt }]}>
-            <Icon name="refresh" size={14} color={c.ink} strokeWidth={1.8} />
-            <Txt variant="caption" style={{ fontWeight: '600', fontSize: 13 }}>
-              Replay
-            </Txt>
-          </PressableScale>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.s }}>
+            {!isOnboarding ? <HeartButton routine={routine} /> : null}
+            <PressableScale accessibilityLabel="Replay the unveil" onPress={play} style={[styles.replay, { backgroundColor: c.surfaceAlt }]}>
+              <Icon name="refresh" size={14} color={c.ink} strokeWidth={1.8} />
+              <Txt variant="caption" style={{ fontWeight: '600', fontSize: 13 }}>
+                Replay
+              </Txt>
+            </PressableScale>
+          </View>
         </View>
 
         <Txt variant="eyebrow" tone="secondary" numberOfLines={1} style={{ marginTop: space.m, flexShrink: 0 }}>

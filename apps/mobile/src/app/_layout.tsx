@@ -32,6 +32,8 @@ function Shell() {
         <Stack.Screen name="plan/[id]" options={{ presentation: 'modal' }} />
         <Stack.Screen name="notifications" options={{ presentation: 'modal' }} />
         <Stack.Screen name="brief/[id]" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="save/[id]" options={{ presentation: 'modal', gestureEnabled: false }} />
+        <Stack.Screen name="name" options={{ presentation: 'modal' }} />
         <Stack.Screen name="follow/[id]" options={{ animation: 'fade', gestureEnabled: false }} />
         <Stack.Screen name="unveil/[id]" options={{ animation: 'fade' }} />
         <Stack.Screen name="products/[id]" />

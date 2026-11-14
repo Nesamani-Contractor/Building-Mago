@@ -29,7 +29,10 @@ export default function ImportProgress() {
     if (job?.status === 'ready' && job.routineId && !done.current) {
       done.current = true;
       haptic.success();
-      const target = `/unveil/${job.routineId}`;
+      // FR-ORG: first ask where to keep it (category, tags, pin), then the Unveil.
+      const unveil = `/unveil/${job.routineId}`;
+      const filed = useLibrary.getState().items[job.routineId]?.filed;
+      const target = filed ? unveil : `/save/${job.routineId}?next=${encodeURIComponent(unveil)}`;
       // Ask for notifications only after the first successful import, with a pre-permission screen.
       if (!notificationsAsked) router.replace(`/notifications?next=${encodeURIComponent(target)}`);
       else router.replace(target as never);

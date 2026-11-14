@@ -6,7 +6,8 @@ import Animated, { useAnimatedStyle, useSharedValue, withTiming } from 'react-na
 import { OCCASIONS, type Category, type Occasion, type Routine } from '@mago/shared';
 import { Screen } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
-import { Eyebrow, LookPhoto, OccasionTile, RoutineTile, SectionHeader } from '@/components/Bits';
+import { Eyebrow, LookPhoto, OccasionTile, SectionHeader } from '@/components/Bits';
+import { Greeting, LookTile } from '@/components/LookActions';
 import { PressableScale } from '@/components/PressableScale';
 import { StateView } from '@/components/States';
 import { GlassButton, LoopVideo, PhotoScrim, Segments } from '@/components/Wow';
@@ -72,9 +73,7 @@ export default function Discover() {
         <View style={[styles.heroTop, { top: insets.top + space.s }]}>
           <Segments count={VIBES.length} active={VIBES.findIndex((v) => v.id === vibe)} />
           <View style={styles.heroBar}>
-            <Txt variant="eyebrow" style={{ color: c.inkOnPhoto, letterSpacing: 4, fontSize: 13 }}>
-              Mago
-            </Txt>
+            <Greeting onPhoto style={{ flex: 1 }} />
             <GlassButton icon="search" accessibilityLabel="Search your looks" onPress={() => router.push('/(tabs)/library')} />
           </View>
         </View>
@@ -166,7 +165,7 @@ export default function Discover() {
       {occ ? (
         <Rail>
           {byOcc.map((r) => (
-            <RoutineTile key={r.id} routine={r} onPress={() => router.push(`/routine/${r.id}`)} badge={items[r.id] ? 'Saved' : undefined} />
+            <LookTile key={r.id} routine={r} onPress={() => router.push(`/routine/${r.id}`)} badge={items[r.id] ? 'Saved' : undefined} />
           ))}
         </Rail>
       ) : null}
@@ -177,7 +176,7 @@ export default function Discover() {
       </Txt>
       <Rail>
         {quick.map((r) => (
-          <RoutineTile key={r.id} routine={r} onPress={() => router.push(`/routine/${r.id}`)} badge={items[r.id] ? 'Saved' : undefined} />
+          <LookTile key={r.id} routine={r} onPress={() => router.push(`/routine/${r.id}`)} badge={items[r.id] ? 'Saved' : undefined} />
         ))}
       </Rail>
 
@@ -205,7 +204,7 @@ function Grid({ routines, colW, items, onOpen }: { routines: Routine[]; colW: nu
   return (
     <View style={styles.grid}>
       {routines.map((r) => (
-        <RoutineTile key={r.id} width={colW} routine={r} onPress={() => onOpen(r)} badge={items[r.id] ? 'Saved' : undefined} />
+        <LookTile key={r.id} width={colW} routine={r} onPress={() => onOpen(r)} badge={items[r.id] ? 'Saved' : undefined} />
       ))}
     </View>
   );
