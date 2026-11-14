@@ -8,7 +8,9 @@ import sys, numpy as np, wave
 SR = 44100; DUR = float(sys.argv[2]) if len(sys.argv) > 2 else 12.4; N = int(SR * (DUR + 0.0))
 BPM = 120; BEAT = 60 / BPM; rng = np.random.default_rng(3)
 L = np.zeros(N); R = np.zeros(N)
-CUTS = [2.8, 5.0, 7.4, 10.0]; DROP = 2.8
+CUTS = [2.8, 5.0, 7.4, 10.0, 11.4]; DROP = 2.8
+FIN = 11.4; LINES = [FIN + .55, FIN + 1.3, FIN + 2.05]; POP = FIN + 3.4; BLAST = POP + 0.55
+def quiet(tt): return FIN <= tt < BLAST  # breakdown: drums + bass rest while the words bloom
 
 def t_(n): return np.arange(n) / SR
 def note(m): return 440 * 2 ** ((m - 69) / 12)
@@ -71,6 +73,7 @@ KICK, CLAP = kick(), clap()
 b = 0
 while DROP + b * BEAT < DUR - 0.5:
     tt = DROP + b * BEAT
+    if quiet(tt): b += 1; continue
     if b % 4 in (0, 2) or (b % 8 == 7): add(KICK, tt)
     if b % 4 in (1, 3): add(CLAP, tt, .9, 1)
     add(hat(), tt + BEAT / 2, .7, 1); add(hat(b % 4 == 3), tt, 1, .7)
@@ -80,7 +83,7 @@ while DROP + b * BEAT < DUR - 0.5:
 b = 0
 while DROP + b * BEAT / 2 < DUR - 0.4:
     tt = DROP + b * BEAT / 2
-    if b % 8 in (0, 3, 4, 6):
+    if b % 8 in (0, 3, 4, 6) and not quiet(tt):
         m = BASS[chord_at(tt)]; n = int(BEAT * .45 * SR); x = t_(n); f = note(m)
         add((np.sin(2 * np.pi * f * x) + .25 * np.sin(2 * np.pi * f * 2 * x)) * env(n, .005, .25, .3, .03) * 0.20, tt)
     b += 1
@@ -95,8 +98,21 @@ for c in CUTS:
     for k, m in enumerate([84, 88, 91, 96]):  # glitter ping
         nn = int(.5 * SR); xx = t_(nn); add(np.sin(2 * np.pi * note(m) * xx) * env(nn, .002, .25) * 0.035, c + k * .045, 1 - k * .2, .4 + k * .2)
 
-# ---- ending: big Fmaj9 chord at the last cut that rings to the end ----
-end = CUTS[-1]; n = N - int(end * SR); tt = t_(n); fin = np.zeros(n)
+# ---- finale cues: a soft chime as each line blooms, a riser into MAGO, a big hit on the colour blast ----
+for k, tt in enumerate(LINES):
+    for j, m in enumerate([76, 79, 84] if k < 2 else [79, 84, 88]):
+        nn = int(1.2 * SR); xx = t_(nn); add((np.sin(2 * np.pi * note(m) * xx) + .3 * np.sin(2 * np.pi * note(m) * 3 * xx) * np.exp(-xx * 6)) * env(nn, .003, .7) * 0.05, tt + j * .06, 1 - j * .25, .5 + j * .25)
+n = int((BLAST - POP + 1.0) * SR); tt = t_(n); x = rng.standard_normal(n)
+add(lowpass(x, 4000) * np.linspace(0, 1, n) ** 2.5 * 0.11 + np.sin(2 * np.pi * np.cumsum(150 + 1200 * (tt / tt[-1]) ** 2) / SR) * np.linspace(0, 1, n) ** 3 * 0.05, BLAST - n / SR)
+for k, d in enumerate([0, .4, .3]):  # three bounce thumps
+    nn = int(.25 * SR); xx = t_(nn); add(np.sin(2 * np.pi * (70 + 60 * np.exp(-xx * 30)) * xx) * env(nn, .001, .12) * (0.35 - k * .08), POP + [0.55, 0.95, 1.25][k])
+nn = int(1.4 * SR); xx = t_(nn)
+add(np.sin(2 * np.pi * 45 * xx) * env(nn, .002, .6) * 0.5 + lowpass(rng.standard_normal(nn), 1500) * env(nn, .001, .25) * 0.4, BLAST)
+for k in range(14):  # firework crackle
+    tt0 = BLAST + .05 + rng.uniform(0, 1.1); nn = int(.06 * SR); add(rng.standard_normal(nn) * env(nn, .001, .02) * 0.06, tt0, rng.uniform(.3, 1), rng.uniform(.3, 1))
+
+# ---- ending: big Fmaj9 chord on the blast that rings to the end ----
+end = BLAST; n = N - int(end * SR); tt = t_(n); fin = np.zeros(n)
 for m in [41, 53, 57, 60, 64, 67, 72]:
     fin += np.sin(2 * np.pi * note(m) * tt) * (0.6 if m < 50 else 1) * np.exp(-tt * 0.5)
 add(fin * 0.05 * np.minimum(1, tt / .05), end)

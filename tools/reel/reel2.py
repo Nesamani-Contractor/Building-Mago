@@ -212,7 +212,7 @@ def beat4(t):
 
 # ---------- Beat 5 (10.0–12.4 s): finished look, gold sweep, end card ----------
 def beat5(t):
-    z = 1.03 + .07 * ease(t / 2.4); im = cover(P['soft-glam'], int(W * z), int(H * z), .5, .35); x = (im.width - W) // 2; y = int((im.height - H) * .35)
+    z = 1.03 + .07 * ease(t / 1.4); im = cover(P['soft-glam'], int(W * z), int(H * z), .5, .35); x = (im.width - W) // 2; y = int((im.height - H) * .35)
     f = im.crop((x, y, x + W, y + H))
     if t < .35: f = Image.blend(beat4(2.6), f, ease(t / .35))
     u = (t - .3) / .9
@@ -221,18 +221,110 @@ def beat5(t):
         ImageDraw.Draw(sh).polygon([(cx, 0), (cx + 140 * S, 0), (cx - 260 * S, H), (cx - 400 * S, H)], fill=90)
         f.paste(Image.new('RGB', (W, H), (255, 236, 205)), (0, 0), sh.filter(ImageFilter.GaussianBlur(40 * S)))
     f = scrim(f, .55, .85)
-    a = ease((t - .5) / .6); dy = (1 - eout((t - .5) / .7)) * 36 * S
-    items = [(72 * S, H - 470 * S, 'STEP 3', F_EYE, PORC, ease((t - .2) / .4) * (1 - a), 'la'), (72 * S, H - 420 * S, 'Do the look.', F_HEAD, PORC, ease((t - .2) / .4) * (1 - a), 'la')]
-    if not APP:
-        items += [(72 * S, H - 520 * S + dy, 'Save it. Do it.', F_HEAD, PORC, a, 'la'), (72 * S, H - 410 * S + dy, 'See the glow-up.', F_HEAD, PORC, a, 'la')]
+    a = 0; dy = 0
+    items = [(72 * S, H - 470 * S, 'STEP 3', F_EYE, PORC, ease((t - .2) / .4), 'la'), (72 * S, H - 420 * S, 'Do the look.', F_HEAD, PORC, ease((t - .2) / .4), 'la')]
     f = texts(f, items)
-    if not APP and a > 0:
+    if False:
         lay = Image.new('RGBA', (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(lay); pw, ph = int(560 * S), int(110 * S); x0, y0 = int(72 * S), int(H - 250 * S + dy)
         d.rounded_rectangle((x0, y0, x0 + pw, y0 + ph), ph // 2, fill=PORC + (int(255 * a),)); d.text((x0 + pw / 2, y0 + ph / 2), 'Get started', font=F_BTN, fill=PLUM + (int(255 * a),), anchor='mm')
         f.paste(lay, (0, 0), lay)
     return f
 
-SCENES = [(2.8, beat1), (2.2, beat2), (2.4, beat3), (2.6, beat4), (2.4, beat5)]
+
+# ---------- Beat 6 (finale, 5.0 s): Your Beauty · Your Inspiration · Start your beautiful journey · MAGO burst ----------
+F_T1 = F(SERIF, 112); F_T3 = F(SANS_B, 40); F_MAGO = F(SERIF, 300)
+VIVID = [(255, 45, 85), (255, 214, 10), (48, 209, 88), (10, 132, 255), (255, 159, 10)]  # red, yellow, green, blue, orange
+_txt = {}
+def text_img(s_, font, col):
+    k = (s_, id(font), col)
+    if k not in _txt:
+        bb = font.getbbox(s_); im = Image.new('RGBA', (bb[2] - bb[0] + 40, bb[3] - bb[1] + 40), (0, 0, 0, 0))
+        ImageDraw.Draw(im).text((20 - bb[0], 20 - bb[1]), s_, font=font, fill=col + (255,)); _txt[k] = im
+    return _txt[k]
+
+def grow_from_dot(f, s_, font, col, sx, sy, ex, ey, t0, t, glow=GOLD):
+    """A glowing dot travels from (sx,sy) to (ex,ey), then blooms into the words."""
+    u = (t - t0)
+    if u <= 0: return
+    travel = eout(u / 0.45); x, y = lerp(sx, ex, travel), lerp(sy, ey, travel)
+    bloom = ease((u - 0.35) / 0.5)
+    lay = Image.new('RGBA', (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(lay)
+    r = (10 + 30 * math.sin(math.pi * cl(bloom))) * S * (1 - bloom)
+    if bloom < 0.85:
+        d.ellipse((x - r * 2.2, y - r * 2.2, x + r * 2.2, y + r * 2.2), fill=glow + (60,)); d.ellipse((x - r, y - r, x + r, y + r), fill=(255, 246, 225, 255))
+    f.paste(lay.filter(ImageFilter.GaussianBlur(3 * S)), (0, 0), lay.filter(ImageFilter.GaussianBlur(3 * S)))
+    if bloom > 0:
+        im = text_img(s_, font, col); sc = 0.04 + 0.96 * back(bloom)
+        im2 = im.resize((max(2, int(im.width * sc)), max(2, int(im.height * sc))), Image.LANCZOS)
+        if bloom < 1: a = im2.getchannel('A').point(lambda v: int(v * cl(bloom * 1.6))); im2 = im2.copy(); im2.putalpha(a)
+        f.paste(im2, (int(x - im2.width / 2), int(y - im2.height / 2)), im2)
+
+random.seed(11)
+PARTS = []
+for i in range(320):
+    ang = random.uniform(0, 2 * math.pi); spd = random.uniform(500, 1700) * S
+    PARTS.append(dict(a=ang, v=spd, c=VIVID[i % 5], r=random.uniform(5, 16) * S, streak=random.random() < .35, delay=random.uniform(0, .08) + (0.42 if i % 4 == 3 else 0)))
+
+def burst(f, t, cx, cy):
+    if t <= 0: return
+    lay = Image.new('RGBA', (W, H), (0, 0, 0, 0)); d = ImageDraw.Draw(lay)
+    # shock rings in the five colours
+    for k, col in enumerate(VIVID):
+        u = (t - k * .06) / .7
+        if 0 < u < 1:
+            R0 = eout(u) * W * (0.55 + k * .05); d.ellipse((cx - R0, cy - R0, cx + R0, cy + R0), outline=col + (int(200 * (1 - u)),), width=max(2, int(10 * S * (1 - u))))
+    for p in PARTS:
+        tt = t - p['delay']
+        if tt <= 0 or tt > 1.6: continue
+        dist = p['v'] * (1 - math.exp(-tt * 2.6)) / 2.6 * 2.6
+        x = cx + math.cos(p['a']) * dist; y = cy + math.sin(p['a']) * dist + 420 * S * tt * tt
+        al = int(255 * (1 - cl((tt - 0.9) / 0.7)))
+        if p['streak']:
+            bx = cx + math.cos(p['a']) * dist * .82; by = cy + math.sin(p['a']) * dist * .82 + 420 * S * (tt * .9) ** 2
+            d.line((bx, by, x, y), fill=p['c'] + (al,), width=max(2, int(p['r'] * .6)))
+        else:
+            r = p['r'] * (1 - .4 * cl(tt / 1.6)); d.ellipse((x - r, y - r, x + r, y + r), fill=p['c'] + (al,))
+    glow = lay.filter(ImageFilter.GaussianBlur(14 * S))
+    f.paste(glow, (0, 0), glow); f.paste(lay, (0, 0), lay)
+
+def beat6(t):
+    f = background('deep')
+    if t < .3: f = Image.blend(beat5(1.37), f, ease(t / .3))
+    out = ease((t - 3.15) / .3)  # lines step aside for MAGO
+    if out < 1:
+        lay = Image.new('RGB', (W, H)); lay.paste(f)
+        grow_from_dot(lay, 'Your Beauty,', F_T1, PORC, W / 2, -40 * S, W / 2, H * .40, 0.15, t)
+        grow_from_dot(lay, 'Your Inspiration.', F_T1, PORC, W / 2, H + 40 * S, W / 2, H * .49, 0.85, t)
+        grow_from_dot(lay, 'START YOUR BEAUTIFUL JOURNEY', F_T3, GOLD, W / 2, H * .58, W / 2, H * .58, 1.6, t, glow=GOLD)
+        f = Image.blend(lay, f, out) if out > 0 else lay
+    # MAGO: pops from a centre dot, jumps three times (squash & stretch), blasts colour on the first landing
+    tm = t - 3.4
+    if tm > 0:
+        pop = back(tm / .35)
+        land = [0.55, 0.95, 1.25]; hts = [260, 120, 45]
+        yoff, sq = 0.0, 1.0
+        if tm < 0.35: yoff = 0
+        else:
+            starts = [0.35] + land[:-1]
+            for st, en, h in zip(starts, land, hts):
+                if st <= tm < en:
+                    u = (tm - st) / (en - st); yoff = -4 * h * u * (1 - u) * S; sq = 1 + 0.10 * (1 - abs(2 * u - 1))
+            for en in land:
+                if 0 <= tm - en < .12: sq = 1 - 0.16 * (1 - (tm - en) / .12)
+        burst(f, tm - land[0], W / 2, H * .5 + 40 * S)
+        im = text_img('Mago', F_MAGO, PORC)
+        # colour glow behind the word cycling through the five colours
+        hue = VIVID[int(tm * 6) % 5]
+        gl = Image.new('RGBA', (W, H), (0, 0, 0, 0)); ImageDraw.Draw(gl).ellipse((W / 2 - 330 * S, H * .5 - 170 * S + yoff, W / 2 + 330 * S, H * .5 + 170 * S + yoff), fill=hue + (int(110 * cl((tm - .5) / .3)),))
+        gl = gl.filter(ImageFilter.GaussianBlur(70 * S)); f.paste(gl, (0, 0), gl)
+        wv, hv = int(im.width * pop / sq), int(im.height * pop * sq)
+        if wv > 2 and hv > 2:
+            im2 = im.resize((wv, hv), Image.LANCZOS)
+            f.paste(im2, (int(W / 2 - wv / 2), int(H * .5 - hv + im.height / 2 + yoff)), im2)
+        a = ease((tm - 1.5) / .4)
+        f = texts(f, [(W / 2, H * .5 + 210 * S, 'YOUR BEAUTY · YOUR INSPIRATION', F_EYE, GOLD, a, 'ma')])
+    return f
+SCENES = [(2.8, beat1), (2.2, beat2), (2.4, beat3), (2.6, beat4), (1.4, beat5), (5.4, beat6)]
 
 def at(T):
     acc = 0
@@ -256,5 +348,5 @@ for i, (d, fn) in enumerate(SCENES):
     if p.wait() == 0: os.replace(tmp, fin); parts.append(fin)
     print('scene', i, flush=True)
 with open(f'{OUT}/list.txt', 'w') as fl: fl.writelines(f"file '{os.path.abspath(x)}'\n" for x in parts)
-subprocess.run(['ffmpeg', '-v', 'error', '-y', '-f', 'concat', '-safe', '0', '-i', f'{OUT}/list.txt', '-c', 'copy', '-movflags', '+faststart', f'{OUT}/mago-reel-v2.mp4'], check=True)
+subprocess.run(['ffmpeg', '-v', 'error', '-y', '-f', 'concat', '-safe', '0', '-i', f'{OUT}/list.txt', '-c', 'copy', '-movflags', '+faststart', f'{OUT}/mago-reel-v3.mp4'], check=True)
 print('done')
