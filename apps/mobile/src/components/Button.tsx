@@ -5,7 +5,7 @@ import { Icon, type IconName } from './Icon';
 import { useTheme } from '@/design/theme';
 import { layout, radius, space } from '@/design/tokens';
 
-type Variant = 'primary' | 'hero' | 'secondary' | 'ghost';
+type Variant = 'primary' | 'hero' | 'secondary' | 'ghost' | 'light';
 
 interface Props {
   label: string;
@@ -18,6 +18,8 @@ interface Props {
   large?: boolean;
   style?: StyleProp<ViewStyle>;
   accessibilityHint?: string;
+  /** Text colour for ghost buttons placed over photos. */
+  tone?: 'default' | 'onPhoto';
 }
 
 /**
@@ -25,12 +27,13 @@ interface Props {
  * Secondary: sunken fill pill. Ghost: text-only.
  * Labels are verb + object, sentence case ("Start this look").
  */
-export function Button({ label, onPress, variant = 'primary', icon, loading, disabled, large, style, accessibilityHint }: Props) {
+export function Button({ label, onPress, variant = 'primary', icon, loading, disabled, large, style, accessibilityHint, tone = 'default' }: Props) {
   const { c } = useTheme();
   const height = large ? layout.tapMirror : variant === 'ghost' ? layout.tapMin : layout.buttonHeight;
   const filled = variant === 'primary' || variant === 'hero';
   const off = !!disabled && !loading;
-  const fg = off ? c.inkTertiary : filled ? c.inkOnPrimary : c.ink;
+  // light = porcelain pill with plum text, for use over photography (Welcome).
+  const fg = off ? c.inkTertiary : filled ? c.inkOnPrimary : variant === 'light' ? c.primary : tone === 'onPhoto' ? c.inkOnPhoto : c.ink;
 
   const inner = (
     <View
@@ -39,6 +42,7 @@ export function Button({ label, onPress, variant = 'primary', icon, loading, dis
         { height, borderRadius: radius.pill },
         filled && { backgroundColor: off ? c.surfaceAlt : c.primary },
         variant === 'secondary' && { backgroundColor: c.surfaceAlt },
+        variant === 'light' && { backgroundColor: off ? c.surfaceAlt : c.bg },
       ]}
     >
       {loading ? (

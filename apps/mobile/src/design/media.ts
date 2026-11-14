@@ -28,6 +28,9 @@ export const LOOPS = {
   eyes: { video: require('../../assets/media/loop-eyes.mp4') as number, poster: require('../../assets/media/loop-eyes-poster.jpg') as number },
 } as const;
 
+/** S-02 welcome reel (12 s, made in-house from the Mago photography + real app screens). */
+export const WELCOME_REEL = { video: require('../../assets/media/welcome-reel.mp4') as number, poster: require('../../assets/media/welcome-reel-poster.jpg') as number };
+
 export type Vibe = 'soft' | 'clean' | 'night' | 'bold';
 export const VIBES: { id: Vibe; label: string; photo: keyof typeof PHOTOS; focus: string; meta: string }[] = [
   { id: 'soft', label: 'Soft glam', photo: 'softGlam', focus: '50% 42%', meta: '12 min · 6 steps' },

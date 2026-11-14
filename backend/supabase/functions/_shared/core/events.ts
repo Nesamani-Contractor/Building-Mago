@@ -5,6 +5,9 @@
  */
 export const ANALYTICS_EVENTS = [
   'onb_welcome_viewed',
+  'onb_get_started',
+  'onb_share_howto_viewed',
+  'onb_building_viewed',
   'onb_age_confirmed',
   'onb_q_goal',
   'onb_q_sources',

@@ -3,7 +3,7 @@ import { persist } from 'zustand/middleware';
 import { deviceStorage } from './storage';
 import { uid } from '@/lib/id';
 
-export type Goal = 'everyday' | 'learn' | 'events' | 'glowup';
+export type Goal = 'recreate' | 'everyday' | 'events' | 'learn' | 'glowup';
 export type SourceApp = 'tiktok' | 'instagram' | 'youtube' | 'pinterest' | 'other';
 export type Skill = 'beginner' | 'comfortable' | 'pro';
 
@@ -13,7 +13,10 @@ export interface ProfileState {
   /** Anonymous account id (created silently, D-01). */
   userId: string;
   name: string | null;
+  /** Primary goal (first picked). */
   goal: Goal | null;
+  /** All goals she picked (multi-select, book pe-2). */
+  goals: Goal[];
   sources: SourceApp[];
   skill: Skill | null;
   weeklyGoal: number;
@@ -32,6 +35,7 @@ function fresh() {
     userId: uid('anon'),
     name: null,
     goal: null,
+    goals: [] as Goal[],
     sources: [] as SourceApp[],
     skill: null,
     weeklyGoal: 3,

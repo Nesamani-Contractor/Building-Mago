@@ -32,6 +32,7 @@ import { haptic } from '@/design/haptics';
 import { useRoutine } from '@/lib/routines';
 import { useLibrary } from '@/data/library';
 import { useBag } from '@/data/bag';
+import { useProfile } from '@/data/profile';
 import { track } from '@/services/analytics';
 
 const MAX_CARDS = 9;
@@ -50,6 +51,7 @@ function fmtTime(sec: number): string {
  */
 export default function Unveil() {
   const { id, onboarding } = useLocalSearchParams<{ id: string; onboarding?: string }>();
+  const setProfile = useProfile((st) => st.set);
   const router = useRouter();
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
@@ -243,10 +245,22 @@ export default function Unveil() {
               onPress={() => {
                 if (!saved) save(routine);
                 haptic.success();
-                router.replace('/onboarding/age');
+                setProfile({ onboarded: true });
+                track('onb_completed', { path: 'unveil' });
+                router.replace('/(tabs)');
               }}
             />
-            <Button variant="ghost" label="I already have an account" onPress={() => router.push('/onboarding/signin')} />
+            <Button
+              variant="ghost"
+              label="Start it now"
+              onPress={() => {
+                if (!saved) save(routine);
+                setProfile({ onboarded: true });
+                track('onb_completed', { path: 'start' });
+                router.replace('/(tabs)');
+                setTimeout(() => router.push(`/brief/${routine.id}`), 60);
+              }}
+            />
           </View>
         ) : (
           <View style={{ flexDirection: 'row', gap: space.m }}>
