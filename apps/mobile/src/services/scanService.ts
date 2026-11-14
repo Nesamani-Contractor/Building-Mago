@@ -1,4 +1,5 @@
-import { PRODUCT_ROLES, productPhotoPrompt, productRole, type BagItem, type ProductKind, type ProductRole } from '@mago/shared';
+import { Platform } from 'react-native';
+import { cleanList, cropBox, PRODUCT_ROLES, productPhotoPrompt, productRole, type BagItem, type ProductKind, type ProductRole } from '@mago/shared';
 import { isDemo } from './config';
 import { callFunction } from './supabase';
 import { track } from './analytics';
@@ -16,6 +17,11 @@ export interface ScanItem {
   /** Identical units seen (D-25). */
   count?: number;
   confidence: number;
+  /** D-28: where it sits in her photo, [x, y, w, h] as fractions — used to cut out its picture. */
+  box?: [number, number, number, number];
+  /** D-28: key ingredients and short notes ("Contains fragrance"). */
+  ingredients?: string[];
+  ingredientNotes?: string[];
 }
 
 export interface ScanResult {
@@ -47,7 +53,59 @@ function clean(raw: Record<string, unknown>): ScanItem | null {
     shadeHex: hex && /^#[0-9a-fA-F]{6}$/.test(hex) ? hex : undefined,
     count: Math.max(1, Math.min(20, Math.round(Number(raw.count) || 1))),
     confidence: Math.max(0, Math.min(1, Number(raw.confidence) || 0.5)),
+    box: cropBox(raw.box) ?? undefined,
+    ingredients: cleanList(raw.ingredients, 6),
+    ingredientNotes: cleanList(raw.ingredientNotes, 3, 32),
   };
+}
+
+const CUTOUT_SIDE = 360;
+
+/**
+ * D-28: each product's own picture, cut out of her photo on the device (nothing is uploaded).
+ * Web (the preview): canvas → small JPEG data URL. Native: needs expo-image-manipulator (not yet
+ * approved) — until then products from a cluttered photo show the shade illustration instead.
+ */
+export async function cutOuts(photoUri: string, boxes: ([number, number, number, number] | undefined)[], base64: (uri: string) => Promise<string | null>): Promise<(string | undefined)[]> {
+  if (Platform.OS !== 'web' || typeof document === 'undefined' || !boxes.some(Boolean)) return boxes.map(() => undefined);
+  try {
+    const blob = await toBlob(photoUri, base64);
+    if (!blob) return boxes.map(() => undefined);
+    const img = await loadImage(blob);
+    const W = img.naturalWidth;
+    const H = img.naturalHeight;
+    const out = boxes.map((b) => {
+      if (!b) return undefined;
+      // The product's own outline (already padded a little) — never squared up, so a long thin
+      // product doesn't pull in its neighbours.
+      const [x, y, w, h] = b;
+      const sx = Math.max(0, x * W);
+      const sy = Math.max(0, y * H);
+      const cw = Math.min(W - sx, w * W);
+      const ch = Math.min(H - sy, h * H);
+      const scale = Math.min(1, CUTOUT_SIDE / Math.max(cw, ch));
+      const dw = Math.round(cw * scale);
+      const dh = Math.round(ch * scale);
+      // Products lying on their side (much wider than tall) are stood upright, so the picture
+      // fills a square thumbnail the way the product sits on a shelf.
+      const turn = dw > dh * 1.6;
+      const canvas = document.createElement('canvas');
+      canvas.width = turn ? dh : dw;
+      canvas.height = turn ? dw : dh;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return undefined;
+      if (turn) {
+        ctx.translate(dh, 0);
+        ctx.rotate(Math.PI / 2);
+      }
+      ctx.drawImage(img, sx, sy, cw, ch, 0, 0, dw, dh);
+      return canvas.toDataURL('image/jpeg', 0.85);
+    });
+    URL.revokeObjectURL(img.src);
+    return out;
+  } catch {
+    return boxes.map(() => undefined);
+  }
 }
 
 /**
@@ -212,5 +270,5 @@ async function readInPreview(
 
 export function draftFrom(r: ScanResult): Omit<BagItem, 'id' | 'addedAt'>[] {
   if (r.items.length === 0) return [{ name: '', photoUri: r.photoUri }];
-  return r.items.map((i) => ({ name: i.name, brand: i.brand, shade: i.shade, type: i.type, kind: i.kind, role: i.role, shadeHex: i.shadeHex, count: i.count, photoUri: r.photoUri }));
+  return r.items.map((i) => ({ name: i.name, brand: i.brand, shade: i.shade, type: i.type, kind: i.kind, role: i.role, shadeHex: i.shadeHex, count: i.count, photoUri: r.photoUri, ingredients: i.ingredients, ingredientNotes: i.ingredientNotes }));
 }

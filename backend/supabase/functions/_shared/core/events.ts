@@ -75,6 +75,10 @@ export const ANALYTICS_EVENTS = [
   'cart_item_removed',
   'cart_cleared',
   'order_placed',
+  'order_store_chosen',
+  'order_item_opened',
+  'order_list_copied',
+  'bag_ingredients_viewed',
   'order_added_to_bag',
   // D-26: automatic photo scan + review.
   'bag_scan_auto_added',

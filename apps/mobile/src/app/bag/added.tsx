@@ -10,6 +10,7 @@ import { StateView } from '@/components/States';
 import { PressableScale } from '@/components/PressableScale';
 import { BagThumb, roleLabel } from '@/components/BagItemForm';
 import { QtyStepper } from '@/components/Cart';
+import { IngredientsLine } from '@/components/Ingredients';
 import { useTheme } from '@/design/theme';
 import { radius, space } from '@/design/tokens';
 import { haptic } from '@/design/haptics';
@@ -81,13 +82,13 @@ export default function ReviewAdded() {
   return (
     <Screen
       header={<TopBar title="Check your bag" backIcon="close" backLabel="Done" onBack={done} />}
-      footer={<Button label={unsureCount ? `Looks right · ${entries.length} products` : 'Looks right'} onPress={done} />}
+      footer={<Button label={`Save to my bag · ${entries.length} ${entries.length === 1 ? 'product' : 'products'}`} onPress={done} />}
     >
       <Txt variant="title2" accessibilityRole="header" style={{ marginTop: space.l }}>
-        Added {entries.length} {entries.length === 1 ? 'product' : 'products'} from {batch.photos} {batch.photos === 1 ? 'photo' : 'photos'}
+        Found {entries.length} {entries.length === 1 ? 'product' : 'products'} in {batch.photos} {batch.photos === 1 ? 'photo' : 'photos'}
       </Txt>
       <Txt variant="callout" tone="secondary" style={{ marginTop: space.s }}>
-        They’re in your bag already — {units} {units === 1 ? 'item' : 'items'} in all. Check the quantities, and anything marked “Check this”. Tap a product to fix its name, brand or shade.
+        Each product with its picture, brand, shade, category and how many — {units} {units === 1 ? 'item' : 'items'} in all. Check the quantities and anything marked “Check this”, then save. Tap a product to fix it or see its ingredients.
       </Txt>
 
       {undo ? (
@@ -158,7 +159,7 @@ function ReviewRow({ e, unsure, onCount, onOpen }: { e: Entry; unsure: boolean; 
   return (
     <View style={[styles.row, { backgroundColor: c.surface }]}>
       <PressableScale onPress={onOpen} accessibilityLabel={`${it.name}${sub ? `, ${sub}` : ''}. ${unsure ? 'Check this. ' : ''}Edit`} scaleTo={0.985} style={styles.rowMain}>
-        <BagThumb item={it} size={56} />
+        <BagThumb item={it} size={72} />
         <View style={{ flex: 1, gap: 2, minWidth: 0 }}>
           <View style={styles.titleRow}>
             <Txt variant="headline" numberOfLines={2} style={{ flexShrink: 1 }}>
@@ -177,6 +178,7 @@ function ReviewRow({ e, unsure, onCount, onOpen }: { e: Entry; unsure: boolean; 
               {sub}
             </Txt>
           ) : null}
+          <IngredientsLine item={it} />
           {note ? (
             <Txt variant="footnote" style={{ color: c.primary }}>
               {note}

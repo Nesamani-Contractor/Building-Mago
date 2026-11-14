@@ -11,6 +11,7 @@ import { useCart } from '@/data/cart';
 import { haptic } from '@/design/haptics';
 import { track } from '@/services/analytics';
 import { Txt } from '@/components/Txt';
+import { IngredientsCard } from '@/components/Ingredients';
 
 /** Edit or remove one product in the bag. */
 export default function BagItemEdit() {
@@ -65,6 +66,9 @@ export default function BagItemEdit() {
       <Card style={{ marginTop: space.l }}>
         <BagItemForm value={{ ...draft, count: draft.count ?? 1 }} onChange={setDraft} />
       </Card>
+      <View style={{ marginTop: space.l }}>
+        <IngredientsCard item={item} />
+      </View>
       <Txt variant="footnote" tone="secondary" style={{ marginTop: space.m, marginBottom: space.xxl }}>
         Used one up? Lower the count — at zero, remove it from your bag.
       </Txt>

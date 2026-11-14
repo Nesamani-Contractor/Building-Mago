@@ -6,3 +6,4 @@ export * from './voice';
 export * from './bag';
 export * from './watch';
 export * from './cart';
+export * from './retailers';

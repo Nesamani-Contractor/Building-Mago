@@ -11,6 +11,8 @@ export interface Order {
   lines: CartLine[];
   placedAt: string;
   status: 'requested' | 'received';
+  /** D-28: the store she ordered from (Mago handed the products over to its website). */
+  store?: { id: string; name: string };
 }
 
 /** My cart + orders (D-25). Lives on the device; nothing is charged in this build. */
@@ -23,7 +25,7 @@ interface CartState {
   /** Put back a line she just removed (Undo). */
   restore: (line: CartLine) => void;
   clear: () => void;
-  placeOrder: () => Order | null;
+  placeOrder: (store?: { id: string; name: string }) => Order | null;
   markReceived: (id: string) => void;
 }
 
@@ -37,7 +39,7 @@ export const useCart = create<CartState>()(
       remove: (id) => set((s) => ({ lines: s.lines.filter((l) => l.id !== id) })),
       restore: (line) => set((s) => (s.lines.some((l) => l.id === line.id) ? s : { lines: [...s.lines, line] })),
       clear: () => set({ lines: [] }),
-      placeOrder: () => {
+      placeOrder: (store) => {
         const lines = get().lines;
         if (lines.length === 0) return null;
         const order: Order = {
@@ -46,6 +48,7 @@ export const useCart = create<CartState>()(
           lines,
           placedAt: new Date().toISOString(),
           status: 'requested',
+          store,
         };
         set((s) => ({ lines: [], orders: [order, ...s.orders] }));
         return order;

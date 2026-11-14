@@ -39,7 +39,7 @@ export default function OrderPlaced() {
           <Icon name="check" size={30} color={c.inkOnPrimary} strokeWidth={2.2} />
         </View>
         <Txt variant="title1" align="center" accessibilityRole="header">
-          Order placed
+          {order.store ? `Ordered at ${order.store.name}` : 'Order placed'}
         </Txt>
         <Txt variant="callout" tone="secondary" align="center">
           Order {order.number} · {units} {units === 1 ? 'item' : 'items'}
@@ -54,7 +54,7 @@ export default function OrderPlaced() {
         ))}
       </View>
       <Txt variant="footnote" tone="secondary" style={{ marginTop: space.xxl }}>
-        We’ll add them to your makeup bag when you tell us they’ve arrived — open the order in My orders.
+        {order.store ? `${order.store.name} will email your receipt and delivery updates. ` : ''}When it arrives, open My orders and tap “It arrived” — everything goes into your makeup bag.
       </Txt>
     </Screen>
   );

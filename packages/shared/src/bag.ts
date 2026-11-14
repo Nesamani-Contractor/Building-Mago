@@ -52,8 +52,14 @@ export interface BagItem {
   needsReview?: boolean;
   /** How many of this exact product she owns (D-25). Missing on older items → 1. */
   count?: number;
-  /** On-device photo of her product (never uploaded except briefly for reading, D-18). */
+  /** On-device photo of her product (never uploaded except briefly for reading, D-18). For a
+   *  cluttered photo this is the product's own cut-out from her photo (D-28). */
   photoUri?: string;
+  /** D-28: key ingredients of this product's usual formula, best known first (from the label when
+   *  readable, otherwise general product knowledge). Always shown with "check your label". */
+  ingredients?: string[];
+  /** D-28: short notes worth knowing, e.g. "Contains fragrance", "SPF 15", "Fragrance-free". */
+  ingredientNotes?: string[];
   addedAt: string;
   updatedAt?: string;
 }
@@ -146,6 +152,8 @@ export function mergeIntoBag(
         role: cur.role ?? d.role,
         type: cur.type ?? d.type,
         photoUri: cur.photoUri ?? d.photoUri,
+        ingredients: cur.ingredients?.length ? cur.ingredients : d.ingredients,
+        ingredientNotes: cur.ingredientNotes?.length ? cur.ingredientNotes : d.ingredientNotes,
         count: bagCount(cur) + plus,
         updatedAt: now,
       };
@@ -424,8 +432,11 @@ For EACH photo, list EVERY beauty, makeup, skincare or fragrance product you can
 - shadeHex: the product's colour as #RRGGBB when visible.
 - count: how many physically separate, identical units (same brand, name and same colour/shade) you can see in THIS photo. Two identical lipsticks = ONE entry with count 2. Two lipsticks of the same brand but different colours (e.g. a nude MAC and a red MAC) = two entries, each count 1.
 - confidence: 0–1 — how sure you are of the name and brand (below 0.7 = she should check it).
+- box: where the product is in IMAGE 1 (the whole photo), as [x, y, width, height] fractions 0–1 from the top-left corner, tight around the product (for identical units, around the clearest one). Always give a box.
+- ingredients: up to 6 KEY ingredients of this product's formula, most important first — read from the label when visible, otherwise from your knowledge of this exact brand + product. Only when you know the product; leave out for unknown or unbranded items. Never invent.
+- ingredientNotes: up to 3 short facts worth knowing, only when you know them: "Contains fragrance", "Fragrance-free", "SPF 15", "Contains alcohol", "Vegan".
 Skip things that are not beauty products. Don't list the same physical product twice within one photo. If a photo has no products, give it an empty list.
-Reply with ONLY JSON: {"photos": [{"photo": 1, "items": [{"name": "...", "brand": "...", "shade": "...", "type": "...", "role": "...", "kind": "...", "shadeHex": "#RRGGBB", "count": 1, "confidence": 0.9}]}]}`;
+Reply with ONLY JSON: {"photos": [{"photo": 1, "items": [{"name": "...", "brand": "...", "shade": "...", "type": "...", "role": "...", "kind": "...", "shadeHex": "#RRGGBB", "count": 1, "confidence": 0.9, "box": [0.1, 0.2, 0.15, 0.4], "ingredients": ["..."], "ingredientNotes": ["..."]}]}]}`;
 }
 
 /**
@@ -433,7 +444,7 @@ Reply with ONLY JSON: {"photos": [{"photo": 1, "items": [{"name": "...", "brand"
  * is usually the same item photographed twice, so it is counted once (the highest count seen in a
  * single photo), not added up. She confirms the final counts on the review screen.
  */
-export function combineScan<T extends Pick<BagItem, 'name' | 'brand' | 'shade' | 'shadeHex' | 'role'> & { count?: number; confidence?: number }>(perPhoto: T[][]): (T & { seenInPhotos: number })[] {
+export function combineScan<T extends Pick<BagItem, 'name' | 'brand' | 'shade' | 'shadeHex' | 'role' | 'photoUri' | 'ingredients' | 'ingredientNotes'> & { count?: number; confidence?: number }>(perPhoto: T[][]): (T & { seenInPhotos: number })[] {
   const out: (T & { seenInPhotos: number })[] = [];
   for (const items of perPhoto) {
     for (const it of items) {
@@ -450,10 +461,49 @@ export function combineScan<T extends Pick<BagItem, 'name' | 'brand' | 'shade' |
         brand: cur.brand ?? it.brand,
         shade: cur.shade ?? it.shade,
         shadeHex: cur.shadeHex ?? it.shadeHex,
+        photoUri: better.photoUri ?? cur.photoUri ?? it.photoUri,
+        ingredients: better.ingredients?.length ? better.ingredients : cur.ingredients?.length ? cur.ingredients : it.ingredients,
+        ingredientNotes: better.ingredientNotes?.length ? better.ingredientNotes : cur.ingredientNotes?.length ? cur.ingredientNotes : it.ingredientNotes,
         count: Math.max(bagCount(cur), bagCount(it)),
         seenInPhotos: cur.seenInPhotos + 1,
       };
     }
   }
   return out;
+}
+
+/** D-28: a product's box in its photo, as fractions [x, y, w, h]; null when unusable. Padded a little. */
+export function cropBox(raw: unknown, pad = 0.04): [number, number, number, number] | null {
+  if (!Array.isArray(raw) || raw.length !== 4) return null;
+  const n = raw.map(Number);
+  if (n.some((v) => !Number.isFinite(v))) return null;
+  let [x, y, w, h] = n as [number, number, number, number];
+  // Some models answer 0–1000 or 0–100 instead of 0–1.
+  const scale = Math.max(x + w, y + h) > 100 ? 1000 : Math.max(x + w, y + h) > 1.5 ? 100 : 1;
+  [x, y, w, h] = [x / scale, y / scale, w / scale, h / scale];
+  if (w <= 0.01 || h <= 0.01) return null;
+  const x0 = Math.max(0, x - pad);
+  const y0 = Math.max(0, y - pad);
+  const x1 = Math.min(1, x + w + pad);
+  const y1 = Math.min(1, y + h + pad);
+  if (x1 - x0 < 0.02 || y1 - y0 < 0.02) return null;
+  // A "box" that is the whole photo is no cut-out.
+  if (x1 - x0 > 0.95 && y1 - y0 > 0.95) return null;
+  return [x0, y0, x1 - x0, y1 - y0];
+}
+
+/** D-28: tidy ingredient lists from a model (strings only, short, de-duplicated). */
+export function cleanList(raw: unknown, max: number, len = 48): string[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const v of raw) {
+    if (typeof v !== 'string') continue;
+    const t = v.replace(/\s+/g, ' ').trim().slice(0, len);
+    if (!t || seen.has(t.toLowerCase())) continue;
+    seen.add(t.toLowerCase());
+    out.push(t);
+    if (out.length >= max) break;
+  }
+  return out.length ? out : undefined;
 }

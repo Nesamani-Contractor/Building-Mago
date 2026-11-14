@@ -29,7 +29,7 @@ export default function Orders() {
             <Card key={o.id} style={{ gap: space.s }}>
               <Txt variant="headline">Order {o.number}</Txt>
               <Txt variant="footnote" tone="secondary">
-                {new Date(o.placedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} · {cartUnits(o.lines)} items · {o.status === 'requested' ? 'Requested' : 'Arrived · added to your bag'}
+                {new Date(o.placedAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} · {cartUnits(o.lines)} items{o.store ? ` · ${o.store.name}` : ''} · {o.status === 'requested' ? 'Ordered' : 'Arrived · added to your bag'}
               </Txt>
               {o.lines.map((l) => (
                 <Txt key={l.id} variant="callout">

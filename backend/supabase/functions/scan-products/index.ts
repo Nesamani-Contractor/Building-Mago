@@ -1,9 +1,9 @@
-// POST /scan-products { image: base64, mimeType } → { items: [{ name, brand, shade, kind, role, shadeHex, count, confidence }] }
+// POST /scan-products { image: base64, mimeType } → { items: [{ name, brand, shade, type, kind, role, shadeHex, count, confidence, box, ingredients, ingredientNotes }] }
 // D-18: a product photo is read once by Gemini vision and is NOT stored anywhere (no Storage, no DB,
 // no logs). Rate-limited per user. Face photos never come here.
 import { env, fail, json, preflight, readJson, requireUser, serviceClient } from '../_shared/http.ts';
 import { PRODUCT_KINDS } from '../_shared/core/routine.ts';
-import { PRODUCT_ROLES, productPhotoPrompt, productRole } from '../_shared/core/bag.ts';
+import { cleanList, cropBox, PRODUCT_ROLES, productPhotoPrompt, productRole } from '../_shared/core/bag.ts';
 
 const MODEL = Deno.env.get('GEMINI_MODEL') ?? 'gemini-3.5-flash';
 const MIME = new Set(['image/jpeg', 'image/png', 'image/heic', 'image/webp']);
@@ -58,7 +58,12 @@ Deno.serve(async (req) => {
     const shadeHex = typeof i.shadeHex === 'string' && /^#[0-9a-fA-F]{6}$/.test(i.shadeHex) ? i.shadeHex : undefined;
     const confidence = Math.max(0, Math.min(1, Number(i.confidence) || 0.5));
     const count = Math.max(1, Math.min(20, Math.round(Number(i.count) || 1)));
-    return { name, brand: i.brand ? String(i.brand).slice(0, 60) : undefined, shade: i.shade ? String(i.shade).slice(0, 60) : undefined, kind, role, shadeHex, count, confidence };
+    const type = i.type ? String(i.type).slice(0, 40) : undefined;
+    // D-28: the box lets the app cut this product's picture out of her photo ON THE DEVICE.
+    const box = cropBox(i.box, 0) ?? undefined;
+    const ingredients = cleanList(i.ingredients, 6);
+    const ingredientNotes = cleanList(i.ingredientNotes, 3, 32);
+    return { name, brand: i.brand ? String(i.brand).slice(0, 60) : undefined, shade: i.shade ? String(i.shade).slice(0, 60) : undefined, type, kind, role, shadeHex, count, confidence, box, ingredients, ingredientNotes };
   });
   return json({ items: clean });
 });

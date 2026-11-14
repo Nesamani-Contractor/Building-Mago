@@ -10,7 +10,7 @@ import { useTheme } from '@/design/theme';
 import { radius, space } from '@/design/tokens';
 import { haptic } from '@/design/haptics';
 import { useBag, useScanDraft } from '@/data/bag';
-import { readProductPhotos, type ScanError } from '@/services/scanService';
+import { cutOuts, readProductPhotos, type ScanError } from '@/services/scanService';
 import { Button } from '@/components/Button';
 import { photoData } from '@/services/photoData';
 import { track } from '@/services/analytics';
@@ -46,12 +46,16 @@ export default function Reading() {
         track('bag_scan_failed', { reason: results[0]!.error! });
         return;
       }
-      const perPhoto = results.map((r) =>
-        r.items.map((i) => ({
-          ...i,
-          // Her photo is a good thumbnail only when it shows just this product.
-          photoUri: r.items.length === 1 ? r.photoUri : undefined,
-        })),
+      // D-28: every product gets its own picture — cut out of her photo on the device.
+      const perPhoto = await Promise.all(
+        results.map(async (r) => {
+          const cuts = r.items.length > 1 ? await cutOuts(r.photoUri, r.items.map((i) => i.box), photoData.get) : [];
+          return r.items.map(({ box: _box, ...i }, k) => ({
+            ...i,
+            // A single-product photo is already its picture; otherwise its cut-out (if any).
+            photoUri: r.items.length === 1 ? r.photoUri : cuts[k],
+          }));
+        }),
       );
       const combined = combineScan(perPhoto);
       const unreadPhotos = results.filter((r) => r.items.length === 0).map((r) => r.photoUri);

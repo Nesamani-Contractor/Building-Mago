@@ -52,7 +52,8 @@ export function BagThumb({ item, size = 64 }: { item: Draft; size?: number }) {
       <Image
         source={{ uri: item.photoUri }}
         style={{ width: size, height: size, borderRadius: size * 0.22, backgroundColor: c.surfaceAlt }}
-        contentFit="cover"
+        // A cut-out from a cluttered photo (D-28) is shown whole; her own single-product photo fills.
+        contentFit={item.photoUri.startsWith('data:') ? 'contain' : 'cover'}
         accessibilityLabel={item.name || 'Product photo'}
       />
     );

@@ -1,0 +1,72 @@
+/**
+ * D-28: where she can order the products in her cart. Mago has no retail partner yet, so ordering
+ * hands her over to the store's own website: each product opens as a search on that store
+ * (brand + name + shade), she adds it to the store's cart and pays there. Mago never fetches these
+ * pages itself (no scraping, no SSRF) — it only opens them in her browser.
+ *
+ * When a store partnership exists (e.g. Amazon Associates, Rakuten for Macy's/Sephora/Ulta),
+ * put its affiliate parameters and any direct "add to cart" link here, behind the remote switch.
+ */
+import type { CartLine } from './cart';
+
+export type Market = 'US' | 'UK';
+
+export interface Retailer {
+  id: string;
+  name: string;
+  market: Market;
+  /** One line for the store picker. */
+  blurb: string;
+  host: string;
+  /** Search page for one product on this store. */
+  searchUrl: (query: string) => string;
+}
+
+const q = encodeURIComponent;
+
+export const RETAILERS: Retailer[] = [
+  { id: 'amazon', name: 'Amazon', market: 'US', blurb: 'Fast delivery with Prime', host: 'www.amazon.com', searchUrl: (s) => `https://www.amazon.com/s?k=${q(s)}&i=beauty` },
+  { id: 'macys', name: 'Macy’s', market: 'US', blurb: 'Designer and prestige brands', host: 'www.macys.com', searchUrl: (s) => `https://www.macys.com/shop/search?keyword=${q(s)}` },
+  { id: 'sephora', name: 'Sephora', market: 'US', blurb: 'Prestige makeup and skincare', host: 'www.sephora.com', searchUrl: (s) => `https://www.sephora.com/search?keyword=${q(s)}` },
+  { id: 'ulta', name: 'Ulta Beauty', market: 'US', blurb: 'Drugstore to prestige in one place', host: 'www.ulta.com', searchUrl: (s) => `https://www.ulta.com/search?search=${q(s)}` },
+  { id: 'target', name: 'Target', market: 'US', blurb: 'Everyday beauty, pick up in store', host: 'www.target.com', searchUrl: (s) => `https://www.target.com/s?searchTerm=${q(s)}` },
+  { id: 'walmart', name: 'Walmart', market: 'US', blurb: 'Everyday low prices', host: 'www.walmart.com', searchUrl: (s) => `https://www.walmart.com/search?q=${q(s)}` },
+  { id: 'amazon-uk', name: 'Amazon UK', market: 'UK', blurb: 'Fast delivery with Prime', host: 'www.amazon.co.uk', searchUrl: (s) => `https://www.amazon.co.uk/s?k=${q(s)}&i=beauty` },
+  { id: 'boots', name: 'Boots', market: 'UK', blurb: 'Makeup, skincare and Advantage points', host: 'www.boots.com', searchUrl: (s) => `https://www.boots.com/sitesearch?searchTerm=${q(s)}` },
+  { id: 'lookfantastic', name: 'LOOKFANTASTIC', market: 'UK', blurb: 'Prestige beauty, free UK delivery over a spend', host: 'www.lookfantastic.com', searchUrl: (s) => `https://www.lookfantastic.com/search?q=${q(s)}` },
+  { id: 'superdrug', name: 'Superdrug', market: 'UK', blurb: 'Affordable makeup and skincare', host: 'www.superdrug.com', searchUrl: (s) => `https://www.superdrug.com/search?text=${q(s)}` },
+];
+
+/** Hosts Mago may open for ordering (checked before every open). */
+export const RETAILER_HOSTS = new Set(RETAILERS.map((r) => r.host));
+
+/** Stores for her market (D-09: US + UK). Unknown region → US. */
+export function retailersFor(region?: string | null): Retailer[] {
+  const market: Market = region && ['GB', 'UK', 'IE'].includes(region.toUpperCase()) ? 'UK' : 'US';
+  return RETAILERS.filter((r) => r.market === market);
+}
+
+export function retailerById(id?: string | null): Retailer | undefined {
+  return RETAILERS.find((r) => r.id === id);
+}
+
+/** What to search for: brand + name + shade, without repeating the brand. */
+export function productQuery(p: Pick<CartLine, 'name' | 'brand' | 'shade'>): string {
+  const name = p.name.trim();
+  const brand = p.brand?.trim();
+  const parts = [brand && !name.toLowerCase().includes(brand.toLowerCase()) ? brand : '', name, p.shade?.trim() ?? ''];
+  return parts.filter(Boolean).join(' ').replace(/\s+/g, ' ').slice(0, 120);
+}
+
+/** The store page for one cart line — only ever an allow-listed https store URL. */
+export function retailerLink(r: Retailer, line: Pick<CartLine, 'name' | 'brand' | 'shade'>): string {
+  const url = r.searchUrl(productQuery(line));
+  const host = /^https:\/\/([^/]+)\//.exec(url)?.[1];
+  if (!host || !RETAILER_HOSTS.has(host)) throw new Error('retailer_host_not_allowed');
+  return url;
+}
+
+/** A plain shopping list she can copy or share ("2 × MAC Lipstick Ruby Woo"). */
+export function shoppingList(lines: Pick<CartLine, 'name' | 'brand' | 'shade' | 'qty'>[]): string {
+  return lines.map((l) => `${l.qty} × ${productQuery(l)}`).join('\n');
+}

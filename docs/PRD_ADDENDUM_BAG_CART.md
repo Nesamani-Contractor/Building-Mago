@@ -46,3 +46,24 @@ For every product in a look (routine page bag check, "See every product", stylis
 - Owner report: a cluttered photo (8 products) was not turned into separate items.
 - Causes: (1) any reading failure fell back silently to "name them by hand"; (2) all photos were sent in one request, each shrunk to ~1.2 MP, so small labels became unreadable; (3) iPhone HEIC files could be rejected.
 - Now: one request per photo with the whole photo **plus 4 overlapping zoomed quarters** (all re-encoded to JPEG), a prompt that scans edge to edge, reads logos, lists every product (partly visible ones too), counts physically separate identical items (2 identical lipsticks = ×2, same brand in different colours = separate items); one automatic retry; progress "Reading photo 2 of 6"; a clear message with Try again when reading isn't possible (permission, connection, photo format) instead of a silent fallback.
+
+## 6. Product details, pictures and ordering from stores (D-28, 14 Nov)
+
+### 6.1 Journey 1 — scan, review, save to the bag
+1. Library → My makeup bag → One photo / Several photos (a single product or a cluttered table).
+2. Mago reads each photo and makes **one entry per product**: name, brand, shade, type, category (Face, Eyes & brows, Lips, Skincare, Fragrance, Tools, Other), **how many** (identical units counted, e.g. 2 identical lipsticks = ×2), and how sure it is.
+3. **Each product's own picture** is cut out of her photo on the device (nothing extra is uploaded). Products lying on their side are stood upright. A one-product photo is used whole.
+4. **Key ingredients** (up to 6) and short notes ("Contains fragrance", "SPF 15", "Contains AHA") — read from the label when visible, otherwise from the AI's knowledge of that exact brand + product; left empty for unknown or unbranded items. Always shown with "the label on your product is the final word".
+5. Check your bag: every product with picture, brand · type, ingredients line, How many stepper, "Check this" under 70% confidence, Undo on remove → **Save to my bag**. Tapping a product opens it with the full Key ingredients panel and Buy more.
+- Native app note: cut-outs need `expo-image-manipulator` (Expo's own, free). Until approved, the iPad/iPhone build shows the shade illustration for products from a cluttered photo; the web preview shows the real cut-outs.
+- Real store product photos are **not** pulled from brand or retailer sites (D-22: no scraping). They come from a licensed retailer feed once one exists.
+
+### 6.2 Journey 2 — cart → choose a store → order on the store's website
+1. Cart: add one or all missing products (from a look, a bag item's Buy more, or a reorder), change quantities, remove with Undo, Continue browsing.
+2. Checkout: review the order (Edit cart) → **Where would you like to order?**
+   - US: Amazon, Macy's, Sephora, Ulta Beauty, Target, Walmart.
+   - UK: Amazon UK, Boots, LOOKFANTASTIC, Superdrug (picked from the phone's region).
+3. **Order at {store}**: every product in the cart is carried over — each opens on that store's site as a search for brand + name + shade (Find / Open next / Again, with an "Opened" tick), plus **Copy shopping list** ("2 × MAC Matte Lipstick Ruby Woo").
+4. **I ordered at {store}** saves the order (store, products, quantities) → confirmation → My orders → **It arrived** adds everything to her bag (counts merge).
+- Why one product at a time: stores don't let another app fill their cart without a partner agreement. With a partnership (Amazon Associates, or Rakuten/Impact for Macy's, Sephora, Ulta) we can add affiliate tags and, for Amazon, a direct multi-item "add to cart" link using product IDs. Store links live in `packages/shared/src/retailers.ts`; only those hosts can be opened. Mago never fetches store pages and never sees payment details.
+- Analytics: `order_store_chosen`, `order_item_opened`, `order_list_copied`, `order_placed` (with store).
