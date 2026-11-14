@@ -70,7 +70,7 @@ export default function Planner() {
                 }}
                 style={[styles.cell, styles.day, sel && { backgroundColor: c.primary }]}
               >
-                <Txt variant="callout" style={{ color: sel ? c.inkOnPrimary : c.ink, fontFamily: key === today ? 'DMSans_700Bold' : undefined }}>
+                <Txt variant="callout" style={{ color: sel ? c.inkOnPrimary : c.ink, fontWeight: key === today ? '700' : '400' }}>
                   {d.getDate()}
                 </Txt>
                 <View style={[styles.dot, { backgroundColor: has ? (sel ? c.inkOnPrimary : c.accent) : 'transparent' }]} />

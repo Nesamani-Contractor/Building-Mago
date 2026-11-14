@@ -4,12 +4,17 @@ import Svg, { Circle, Ellipse, G, Path, Rect } from 'react-native-svg';
 import { productKind, type ProductRef } from '@mago/shared';
 import { useTheme } from '@/design/theme';
 import { palette } from '@/design/tokens';
+import { productRender } from '@/design/products';
 
 /**
  * Product picture. Uses a real catalog photo when `imageUrl` exists; otherwise a clean illustration
  * of the product type, filled with its shade. (Illustrations, not photos of any brand's product.)
  */
-export function ProductArt({ product, size = 72 }: { product: ProductRef; size?: number }) {
+/**
+ * mono (default): a refined line silhouette in ink-secondary with a real shade dot — one
+ * consistent style across the app. mono=false keeps the shade-filled illustration (share cards).
+ */
+export function ProductArt({ product, size = 72, mono = true }: { product: ProductRef; size?: number; mono?: boolean }) {
   const { c } = useTheme();
   if (product.imageUrl) {
     return (
@@ -21,11 +26,24 @@ export function ProductArt({ product, size = 72 }: { product: ProductRef; size?:
       />
     );
   }
-  const shade = product.shadeHex ?? palette.champagne;
-  const ink = palette.plum;
-  const body = '#F4EEEA';
-  const cap = '#3A2A33';
-  const s = { stroke: ink, strokeWidth: 1.5, strokeLinejoin: 'round' as const, strokeLinecap: 'round' as const };
+  const render = mono ? productRender(product) : undefined;
+  if (render) {
+    return (
+      <Image
+        source={render}
+        style={{ width: size, height: size, borderRadius: size * 0.22, backgroundColor: c.surfaceAlt }}
+        contentFit="cover"
+        transition={180}
+        accessibilityLabel={product.name}
+      />
+    );
+  }
+  const realShade = product.shadeHex ?? palette.champagne;
+  const shade = mono ? 'none' : realShade;
+  const ink = mono ? c.inkSecondary : palette.plum;
+  const body = mono ? 'none' : '#F4EEEA';
+  const cap = mono ? 'none' : '#3A2A33';
+  const s = { stroke: ink, strokeWidth: mono ? 2 : 1.5, strokeLinejoin: 'round' as const, strokeLinecap: 'round' as const };
   const kind = productKind(product);
 
   let art: React.ReactNode;
@@ -142,14 +160,31 @@ export function ProductArt({ product, size = 72 }: { product: ProductRef; size?:
 
   return (
     <View
-      style={{ width: size, height: size, borderRadius: size * 0.22, backgroundColor: c.surfaceAlt, alignItems: 'center', justifyContent: 'center' }}
+      style={{ width: size, height: size, borderRadius: size * 0.25, backgroundColor: c.surfaceAlt, alignItems: 'center', justifyContent: 'center' }}
       accessible
       accessibilityRole="image"
       accessibilityLabel={product.name}
     >
-      <Svg width={size * 0.86} height={size * 0.86} viewBox="0 0 64 64">
-        {art}
-      </Svg>
+      <View>
+        <Svg width={size * (mono ? 0.6 : 0.86)} height={size * (mono ? 0.6 : 0.86)} viewBox="0 0 64 64">
+          {art}
+        </Svg>
+      </View>
+      {mono ? (
+        <View
+          style={{
+            position: 'absolute',
+            right: size * 0.11,
+            bottom: size * 0.11,
+            width: Math.max(10, size * 0.19),
+            height: Math.max(10, size * 0.19),
+            borderRadius: size,
+            backgroundColor: realShade,
+            borderWidth: 2,
+            borderColor: c.surfaceAlt,
+          }}
+        />
+      ) : null}
     </View>
   );
 }

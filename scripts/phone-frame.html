@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mago — mobile preview</title>
+<style>
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: #EFE7E3;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', system-ui, sans-serif;
+    color: #2A1E26;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    overflow: hidden;
+  }
+  .stage { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  /* The phone: 390×844 screen inside a 12px bezel. Scaled with --s to fit the window. */
+  .phone {
+    width: 414px; height: 868px; box-sizing: border-box; padding: 12px;
+    border-radius: 64px; background: #1B1418;
+    box-shadow: 0 0 0 2px #3A2E35 inset, 0 40px 80px rgba(42,30,38,0.28), 0 8px 20px rgba(42,30,38,0.18);
+    transform: scale(var(--s, 1)); transform-origin: center center;
+    position: relative;
+  }
+  .screen {
+    width: 390px; height: 844px; border-radius: 52px; overflow: hidden; background: #FBF7F4;
+    position: relative; isolation: isolate;
+  }
+  .screen iframe { width: 390px; height: 844px; border: 0; display: block; background: #FBF7F4; }
+  .island {
+    position: absolute; top: 11px; left: 50%; width: 122px; height: 35px; margin-left: -61px;
+    border-radius: 18px; background: #000; z-index: 2; pointer-events: none;
+  }
+  .caption { font-size: 13px; color: #6E5D66; text-align: center; }
+  .caption b { color: #2A1E26; font-weight: 600; }
+  .caption a { color: #5B2A4A; }
+
+  /* On a real phone: no frame, the app fills the screen. */
+  body.bare { display: block; background: #FBF7F4; }
+  body.bare .stage { display: block; height: 100%; }
+  body.bare .phone { width: 100%; height: 100%; padding: 0; border-radius: 0; background: none; box-shadow: none; transform: none; }
+  body.bare .screen, body.bare .screen iframe { width: 100%; height: 100%; border-radius: 0; }
+  body.bare .island, body.bare .caption { display: none; }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="phone" id="phone">
+    <div class="island" aria-hidden="true"></div>
+    <div class="screen"><iframe id="app" title="Mago app preview" allow="clipboard-read; clipboard-write; autoplay"></iframe></div>
+  </div>
+  <p class="caption"><b>Mago</b> · iPhone-size preview · demo mode with sample looks · <a href="app.html" target="_top">open full screen</a></p>
+</div>
+<script>
+(function () {
+  var bare = Math.min(window.innerWidth, window.innerHeight) < 500 && window.innerWidth < 600;
+  var app = document.getElementById('app');
+  if (bare) {
+    document.body.classList.add('bare');
+    app.src = 'app.html';
+    return;
+  }
+  app.src = 'app.html?framed=1';
+  var phone = document.getElementById('phone');
+  function fit() {
+    var s = Math.min(1, (window.innerHeight - 64) / 868, (window.innerWidth - 32) / 414);
+    phone.style.setProperty('--s', String(Math.max(0.4, s)));
+    // keep the caption under the scaled phone
+    phone.style.marginTop = phone.style.marginBottom = (-(868 * (1 - s)) / 2) + 'px';
+  }
+  fit();
+  window.addEventListener('resize', fit);
+})();
+</script>
+</body>
+</html>

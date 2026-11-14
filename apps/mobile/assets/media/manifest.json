@@ -1,0 +1,232 @@
+{
+  "version": 1,
+  "note": "Every asset is a PLACEHOLDER until the commissioned, model-released 4K 'Porcelain Luxe' shoot (see docs/design/WOW_V2.md §5). Swap before launch; any recognizable face in App Store/marketing assets needs a model release.",
+  "grade": "Porcelain Luxe (v3, lighter): blacks lifted toward plum #2A1E26, highlights toward champagne, saturation −6%",
+  "assets": [
+    {
+      "id": "soft-glam",
+      "file": "assets/looks/soft-glam.jpg",
+      "source": "https://images.unsplash.com/photo-1594461287652-10b41090cf91",
+      "photographer": "Amir Seilsepour",
+      "licence": "Unsplash License (free, commercial use, no attribution required)",
+      "releaseId": null,
+      "resolution": "≤1080×1620 shipped, graded 'Porcelain Luxe'",
+      "placeholder": true,
+      "screens": [
+        "Follow-Along",
+        "Eyes step card",
+        "Paywall"
+      ]
+    },
+    {
+      "id": "work-face",
+      "file": "assets/looks/work-face.jpg",
+      "source": "https://images.unsplash.com/photo-1699206791200-414d95e68450",
+      "photographer": "Dmitriy Ilkevich",
+      "licence": "Unsplash License (free, commercial use, no attribution required)",
+      "releaseId": null,
+      "resolution": "≤1080×1620 shipped, graded 'Porcelain Luxe'",
+      "placeholder": true,
+      "screens": [
+        "Everyday Looks",
+        "sample looks"
+      ]
+    },
+    {
+      "id": "glossy-lips",
+      "file": "assets/looks/glossy-lips.jpg",
+      "source": "https://images.unsplash.com/photo-1676439977206-b5ffdfc03da2",
+      "photographer": "Megan Ruth",
+      "licence": "Unsplash License (free, commercial use, no attribution required)",
+      "releaseId": null,
+      "resolution": "≤1080×1620 shipped, graded 'Porcelain Luxe'",
+      "placeholder": true,
+      "screens": [
+        "Lips step card"
+      ]
+    },
+    {
+      "id": "brows",
+      "file": "assets/looks/brows.jpg",
+      "source": "https://images.unsplash.com/photo-1595550912256-b24059bb08e8",
+      "photographer": "Taylor Heery",
+      "licence": "Unsplash License (free, commercial use, no attribution required)",
+      "releaseId": null,
+      "resolution": "≤1080×1620 shipped, graded 'Porcelain Luxe'",
+      "placeholder": true,
+      "screens": [
+        "Home",
+        "Discover (Soft glam)",
+        "Onboarding story",
+        "Cheeks step card"
+      ]
+    },
+    {
+      "id": "wedding-guest",
+      "file": "assets/looks/wedding-guest.jpg",
+      "source": "https://images.unsplash.com/photo-1606158562001-5b5a8729a80b",
+      "photographer": "Apostolos Vamvouras",
+      "licence": "Unsplash License (free, commercial use, no attribution required)",
+      "releaseId": null,
+      "resolution": "≤1080×1620 shipped, graded 'Porcelain Luxe'",
+      "placeholder": true,
+      "screens": [
+        "sample looks"
+      ]
+    },
+    {
+      "id": "dewy-skin",
+      "file": "assets/looks/dewy-skin.jpg",
+      "source": "https://images.unsplash.com/photo-1581182815808-b6eb627a8798",
+      "photographer": "Fleur Kaan",
+      "licence": "Unsplash License (free, commercial use, no attribution required)",
+      "releaseId": null,
+      "resolution": "≤1080×1620 shipped, graded 'Porcelain Luxe'",
+      "placeholder": true,
+      "screens": [
+        "Prep step card",
+        "Skincare category"
+      ]
+    },
+    {
+      "id": "party-liner",
+      "file": "assets/looks/party-liner.jpg",
+      "source": "https://images.unsplash.com/photo-1611826585949-b0ccabd2c1a4",
+      "photographer": "Roxana Maria",
+      "licence": "Unsplash License (free, commercial use, no attribution required)",
+      "releaseId": null,
+      "resolution": "≤1080×1620 shipped, graded 'Porcelain Luxe'",
+      "placeholder": true,
+      "screens": [
+        "sample looks"
+      ]
+    },
+    {
+      "id": "sunkissed",
+      "file": "assets/looks/sunkissed.jpg",
+      "source": "https://images.unsplash.com/photo-1581182786510-168e6bc0013d",
+      "photographer": "Fleur Kaan",
+      "licence": "Unsplash License (free, commercial use, no attribution required)",
+      "releaseId": null,
+      "resolution": "≤1080×1620 shipped, graded 'Porcelain Luxe'",
+      "placeholder": true,
+      "screens": [
+        "Base step card",
+        "Products header"
+      ]
+    },
+    {
+      "id": "palette",
+      "file": "assets/looks/palette.jpg",
+      "source": "https://images.unsplash.com/photo-1487412912498-0447578fcca8",
+      "photographer": "Unsplash contributor (see source URL)",
+      "licence": "Unsplash License (free, commercial use, no attribution required)",
+      "releaseId": null,
+      "resolution": "≤1080×1620 shipped, graded 'Porcelain Luxe'",
+      "placeholder": true,
+      "screens": [
+        "Makeup category",
+        "Products"
+      ]
+    },
+    {
+      "id": "flatlay",
+      "file": "assets/looks/flatlay.jpg",
+      "source": "https://images.unsplash.com/photo-1583241800324-2b3b0683a1b2",
+      "photographer": "Unsplash contributor (see source URL)",
+      "licence": "Unsplash License (free, commercial use, no attribution required)",
+      "releaseId": null,
+      "resolution": "≤1080×1620 shipped, graded 'Porcelain Luxe'",
+      "placeholder": true,
+      "screens": [
+        "Tools category",
+        "New Looks banner"
+      ]
+    },
+    {
+      "id": "hero-clean",
+      "file": "assets/looks/hero-clean.jpg",
+      "source": "https://images.unsplash.com/photo-1674932668403-33398b81c92f",
+      "photographer": "Yoad Shejtman",
+      "licence": "Unsplash License (free, commercial use, no attribution required)",
+      "releaseId": null,
+      "resolution": "≤1080×1620 shipped, graded 'Porcelain Luxe'",
+      "placeholder": true,
+      "screens": [
+        "Discover (Clean girl)",
+        "Home: Hair category"
+      ]
+    },
+    {
+      "id": "vibe-bold",
+      "file": "assets/looks/vibe-bold.jpg",
+      "source": "https://images.unsplash.com/photo-1440589473619-3cde28941638",
+      "photographer": "Roksolana Zasiadko",
+      "licence": "Unsplash License (free, commercial use, no attribution required)",
+      "releaseId": null,
+      "resolution": "≤1080×1620 shipped, graded 'Porcelain Luxe'",
+      "placeholder": true,
+      "screens": [
+        "Discover (Bold editorial)",
+        "Home: Bold Lips"
+      ]
+    },
+    {
+      "id": "glow",
+      "file": "assets/looks/glow.jpg",
+      "source": "https://images.unsplash.com/photo-1643932919088-53349a7c3385",
+      "photographer": "see plus",
+      "licence": "Unsplash License (free, commercial use, no attribution required)",
+      "releaseId": null,
+      "resolution": "≤1080×1620 shipped, graded 'Porcelain Luxe'",
+      "placeholder": true,
+      "screens": [
+        "Home: Glowing Skin",
+        "Skin step card"
+      ]
+    },
+    {
+      "id": "night",
+      "file": "assets/looks/night.jpg",
+      "source": "https://images.unsplash.com/photo-1585433405076-9626d637cc83",
+      "photographer": "Apostolos Vamvouras",
+      "licence": "Unsplash License (free, commercial use, no attribution required)",
+      "releaseId": null,
+      "resolution": "≤1080×1620 shipped, graded 'Porcelain Luxe'",
+      "placeholder": true,
+      "screens": [
+        "Discover (Night out)"
+      ]
+    },
+    {
+      "id": "loop-soft-glam",
+      "file": "assets/media/loop-soft-glam.mp4",
+      "poster": "assets/media/loop-soft-glam-poster.jpg",
+      "source": "Generated slow push-in loop from assets/looks/brows.jpg",
+      "photographer": "—",
+      "licence": "Derived from Unsplash License image",
+      "releaseId": null,
+      "resolution": "720×1280, 6 s, H.264, muted, seamless",
+      "placeholder": true,
+      "screens": [
+        "Discover hero",
+        "Onboarding story"
+      ]
+    },
+    {
+      "id": "loop-eyes",
+      "file": "assets/media/loop-eyes.mp4",
+      "poster": "assets/media/loop-eyes-poster.jpg",
+      "source": "Generated slow push-in loop from assets/looks/soft-glam.jpg",
+      "photographer": "—",
+      "licence": "Derived from Unsplash License image",
+      "releaseId": null,
+      "resolution": "720×1280, 6 s, H.264, muted, seamless",
+      "placeholder": true,
+      "screens": [
+        "Follow-Along step clip",
+        "Onboarding story"
+      ]
+    }
+  ]
+}

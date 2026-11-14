@@ -34,9 +34,7 @@ export function StateView({ icon = 'sparkle', title, body, actionLabel, onAction
   const { c } = useTheme();
   return (
     <View style={[styles.state, style]} accessibilityRole="summary">
-      <View style={[styles.stateIcon, { borderColor: c.hairlineStrong }]}>
-        <Icon name={icon} size={26} />
-      </View>
+      <Icon name={icon} size={28} color={c.inkSecondary} />
       <Txt variant="title3" align="center">
         {title}
       </Txt>

@@ -29,6 +29,8 @@ Building-Mago/
 Open the preview link from Claude in Safari on your iPad. It's the same app compiled for the web.
 Camera, read-aloud and haptics behave like a browser, not like the native app.
 
+See also [docs/TESTING_ON_DEVICE.md](docs/TESTING_ON_DEVICE.md) for the full device guide and checklist.
+
 ### Option 2 — Expo Go (the real app, no Apple account needed)
 On your Windows computer, one time:
 1. Install **Node.js LTS** from https://nodejs.org and **Git** from https://git-scm.com.

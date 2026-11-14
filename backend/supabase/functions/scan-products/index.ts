@@ -1,19 +1,13 @@
-// POST /scan-products { image: base64, mimeType } → { items: [{ name, brand, kind, role, shadeHex, confidence }] }
+// POST /scan-products { image: base64, mimeType } → { items: [{ name, brand, shade, kind, role, shadeHex, count, confidence }] }
 // D-18: a product photo is read once by Gemini vision and is NOT stored anywhere (no Storage, no DB,
 // no logs). Rate-limited per user. Face photos never come here.
 import { env, fail, json, preflight, readJson, requireUser, serviceClient } from '../_shared/http.ts';
 import { PRODUCT_KINDS } from '../_shared/core/routine.ts';
-import { PRODUCT_ROLES, productRole } from '../_shared/core/bag.ts';
+import { PRODUCT_ROLES, productPhotoPrompt, productRole } from '../_shared/core/bag.ts';
 
 const MODEL = Deno.env.get('GEMINI_MODEL') ?? 'gemini-3.5-flash';
 const MIME = new Set(['image/jpeg', 'image/png', 'image/heic', 'image/webp']);
-const PROMPT = `These are beauty or makeup products on a table or in a hand.
-Return JSON only: {"items": [{"name": "...", "brand": "...", "kind": "...", "role": "...", "shadeHex": "#RRGGBB", "confidence": 0.0}]}
-- One item per distinct product you can see. Use the label text for name and brand when readable; otherwise a plain description ("pink cream blush").
-- kind (how it looks): ${PRODUCT_KINDS.join(', ')}.
-- role (what it is for): ${PRODUCT_ROLES.join(', ')}.
-- shadeHex: the product's colour if visible, else omit. confidence 0–1. Never invent a brand you can't read.
-- If there are no beauty products, return {"items": []}.`;
+const PROMPT = productPhotoPrompt(1);
 
 // Simple in-memory per-user limit (per function instance) on top of the platform's own limits.
 const recent = new Map<string, number[]>();
@@ -51,7 +45,8 @@ Deno.serve(async (req) => {
   const data = await res.json();
   let items: Record<string, unknown>[] = [];
   try {
-    items = JSON.parse(data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}').items ?? [];
+    const parsed = JSON.parse(data?.candidates?.[0]?.content?.parts?.[0]?.text ?? '{}');
+    items = parsed.items ?? parsed.photos?.[0]?.items ?? [];
   } catch {
     items = [];
   }
@@ -62,7 +57,8 @@ Deno.serve(async (req) => {
     const role = PRODUCT_ROLES.includes(i.role as never) ? i.role : productRole({ name });
     const shadeHex = typeof i.shadeHex === 'string' && /^#[0-9a-fA-F]{6}$/.test(i.shadeHex) ? i.shadeHex : undefined;
     const confidence = Math.max(0, Math.min(1, Number(i.confidence) || 0.5));
-    return { name, brand: i.brand ? String(i.brand).slice(0, 60) : undefined, kind, role, shadeHex, confidence };
+    const count = Math.max(1, Math.min(20, Math.round(Number(i.count) || 1)));
+    return { name, brand: i.brand ? String(i.brand).slice(0, 60) : undefined, shade: i.shade ? String(i.shade).slice(0, 60) : undefined, kind, role, shadeHex, count, confidence };
   });
   return json({ items: clean });
 });

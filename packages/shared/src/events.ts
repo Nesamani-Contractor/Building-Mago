@@ -4,6 +4,9 @@
  */
 export const ANALYTICS_EVENTS = [
   'onb_welcome_viewed',
+  'onb_get_started',
+  'onb_share_howto_viewed',
+  'onb_building_viewed',
   'onb_age_confirmed',
   'onb_q_goal',
   'onb_q_sources',
@@ -50,6 +53,40 @@ export const ANALYTICS_EVENTS = [
   'bag_item_added',
   'bag_check_viewed',
   'stylist_note_viewed',
+  // WOW v2 (D-21): The Unveil, onboarding story, vibe picker.
+  'unveil_complete',
+  'unveil_sample_started',
+  'onb_story_viewed',
+  'vibe_selected',
+  // D-24: save & organize, pinned, greeting name, favorites.
+  'library_filed',
+  'library_file_skipped',
+  'routine_favorited',
+  'routine_unfavorited',
+  'routine_pinned',
+  'routine_unpinned',
+  'pinned_see_all',
+  'onb_q_name',
+  // D-25: makeup bag counts, cart and orders.
+  'bag_item_merged',
+  'cart_added',
+  'cart_viewed',
+  'cart_item_removed',
+  'cart_cleared',
+  'order_placed',
+  'order_added_to_bag',
+  // D-26: automatic photo scan + review.
+  'bag_scan_auto_added',
+  'bag_scan_failed',
+  // D-27: Onboarding-flow skill journey.
+  'onboarding_step_viewed',
+  'onboarding_step_completed',
+  'onb_heard_from',
+  'paywall_closed',
+  'offer_claimed',
+  'bag_review_count_changed',
+  'bag_review_removed',
+  'bag_review_done',
 ] as const;
 export type AnalyticsEvent = (typeof ANALYTICS_EVENTS)[number];
 export type AnalyticsProps = Record<string, string | number | boolean>;

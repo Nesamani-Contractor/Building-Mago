@@ -4,6 +4,8 @@ import { useTheme } from '@/design/theme';
 
 /** One icon set: thin 1.5px outline, plum (ink) by default. */
 export type IconName =
+  | 'arrowRight'
+  | 'sliders'
   | 'home'
   | 'library'
   | 'plus'
@@ -39,7 +41,12 @@ export type IconName =
   | 'info'
   | 'pin'
   | 'refresh'
-  | 'wand';
+  | 'wand'
+  | 'clipboard'
+  | 'cart'
+  | 'minus'
+  | 'bag'
+  | 'image';
 
 interface Props {
   name: IconName;
@@ -97,6 +104,18 @@ export function Icon({ name, size = 24, color, filled = false, strokeWidth = 1.5
     case 'chevronRight':
       body = <Path {...p} d="M9 5l7 7-7 7" />;
       break;
+    case 'arrowRight':
+      body = <Path {...p} d="M5 12h14M13 6l6 6-6 6" />;
+      break;
+    case 'sliders':
+      body = (
+        <>
+          <Path {...p} d="M4 7h10M18 7h2M4 17h4M12 17h8" />
+          <Circle {...p} cx={16} cy={7} r={2} />
+          <Circle {...p} cx={10} cy={17} r={2} />
+        </>
+      );
+      break;
     case 'chevronLeft':
       body = <Path {...p} d="M15 5l-7 7 7 7" />;
       break;
@@ -105,6 +124,14 @@ export function Icon({ name, size = 24, color, filled = false, strokeWidth = 1.5
       break;
     case 'play':
       body = <Path {...p} fill={fillOr} d="M8 5.5v13l11-6.5z" />;
+      break;
+    case 'clipboard':
+      body = (
+        <>
+          <Rect {...p} x={6} y={4.5} width={12} height={16} rx={2} />
+          <Path {...p} d="M9.5 4.5h5v2.5h-5z" />
+        </>
+      );
       break;
     case 'link':
       body = (
@@ -252,6 +279,35 @@ export function Icon({ name, size = 24, color, filled = false, strokeWidth = 1.5
       break;
     case 'star':
       body = <Path {...p} fill={fillOr} d="M12 4l2.4 5 5.4.6-4 3.7 1.1 5.4L12 16l-4.9 2.7 1.1-5.4-4-3.7 5.4-.6z" />;
+      break;
+    case 'cart':
+      body = (
+        <>
+          <Path {...p} d="M3 4h2.2l2.1 11.2a1.5 1.5 0 0 0 1.5 1.2h8.7a1.5 1.5 0 0 0 1.5-1.2L20.5 8H6.1" />
+          <Circle {...p} cx={9.5} cy={20} r={1.2} />
+          <Circle {...p} cx={17} cy={20} r={1.2} />
+        </>
+      );
+      break;
+    case 'minus':
+      body = <Path {...p} d="M5 12h14" />;
+      break;
+    case 'bag':
+      body = (
+        <>
+          <Path {...p} d="M5 8h14l-1 12H6z" />
+          <Path {...p} d="M9 8V6.5a3 3 0 0 1 6 0V8" />
+        </>
+      );
+      break;
+    case 'image':
+      body = (
+        <>
+          <Rect {...p} x={3.5} y={5} width={17} height={14} rx={2.5} />
+          <Circle {...p} cx={9} cy={10} r={1.6} />
+          <Path {...p} d="M20.5 16l-5-5-8.5 8" />
+        </>
+      );
       break;
     case 'bookmark':
       body = <Path {...p} fill={fillOr} d="M6 4h12v16l-6-4-6 4z" />;

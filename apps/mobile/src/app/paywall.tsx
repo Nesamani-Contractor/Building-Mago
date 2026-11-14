@@ -1,33 +1,29 @@
 import { useEffect, useState } from 'react';
-import { Linking, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { Linking, Platform, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Txt } from '@/components/Txt';
 import { Button } from '@/components/Button';
-import { Card, Badge } from '@/components/Surface';
-import { Icon, type IconName } from '@/components/Icon';
+import { LookPhoto } from '@/components/Bits';
+import { photo } from '@/design/media';
+import { Icon } from '@/components/Icon';
 import { PressableScale } from '@/components/PressableScale';
 import { useTheme } from '@/design/theme';
-import { layout, palette, signatureGradient, space } from '@/design/tokens';
+import { layout, radius, softShadow, space } from '@/design/tokens';
 import { haptic } from '@/design/haptics';
 import { useAccount, type PlanId } from '@/data/account';
 import { OFFERINGS, purchase, restore, trialTimeline } from '@/services/purchases';
 import { config, isDemo } from '@/services/config';
 import { track } from '@/services/analytics';
 
-const BENEFITS: { icon: IconName; title: string; body: string }[] = [
-  { icon: 'sparkle', title: 'Every tutorial, turned into steps', body: 'No monthly limit on new looks (fair use: 150 a month).' },
-  { icon: 'wand', title: 'Simplify any routine', body: 'A shorter version of long looks that keeps the key effect.' },
-  { icon: 'heart', title: 'Your saved looks stay yours', body: 'Everything you saved works forever, Pro or not.' },
-];
 
-/** S-26 Paywall. Benefit-led, yearly pre-selected, trial explained in plain words, close always visible. */
+/** S-26 Paywall (v3): real looks, "How your free trial works" timeline, one clear price, yearly pre-selected, close always visible. */
 export default function Paywall() {
   const router = useRouter();
   const { from } = useLocalSearchParams<{ from?: string }>();
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
   const isPro = useAccount((s) => s.isPro);
   const [plan, setPlan] = useState<PlanId>('yearly');
   const [busy, setBusy] = useState(false);
@@ -50,50 +46,72 @@ export default function Paywall() {
     } else setMsg(r.message ?? 'The purchase didn’t go through. You haven’t been charged.');
   }
 
-  const headline =
+  const context =
     from === 'limit'
-      ? 'You’ve used this month’s free looks'
+      ? 'You’ve used this month’s 5 free looks. Your saved looks always stay free.'
       : from === 'simplify'
-        ? 'Simplify is part of Pro'
-        : from === 'products'
-          ? 'See exactly what to use, step by step'
-          : 'Every tutorial, ready for your mirror';
+        ? 'Simplify is part of Pro.'
+        : null;
+  const trial = offer.trialDays > 0;
+  const steps = [
+    { icon: 'lock' as const, d: `Today · ${t.today}`, s: 'Everything unlocks: up to 150 looks a month, Simplify, and swaps from your bag.' },
+    { icon: 'bell' as const, d: `Day 5 · ${t.reminder}`, s: 'We’ll remind you that your trial is ending.' },
+    { icon: 'star' as const, d: `Day 7 · ${t.charge}`, s: `Your first charge, ${offer.price.replace('/year', ' for the year')}. Cancel any time before and pay nothing.` },
+  ];
 
   return (
     <View style={[styles.fill, { backgroundColor: c.bg }]}>
-      <ScrollView contentContainerStyle={{ paddingBottom: insets.bottom + 240 }} showsVerticalScrollIndicator={false}>
-        <LinearGradient colors={signatureGradient} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[styles.header, { paddingTop: insets.top + space.x5 }]}>
-          <View style={styles.column}>
-            <Txt variant="caption" style={{ color: palette.plum, letterSpacing: 2 }}>
-              MAGO PRO
-            </Txt>
-            <Txt variant="title1" style={{ color: palette.plum, marginTop: space.s }} accessibilityRole="header">
-              {headline}
-            </Txt>
-            {from === 'limit' ? (
-              <Txt variant="callout" style={{ color: palette.plum, marginTop: space.s }}>
-                Your saved looks always stay free. Pro removes the monthly limit.
-              </Txt>
-            ) : null}
+      <ScrollView contentContainerStyle={{ paddingTop: insets.top + space.s, paddingBottom: insets.bottom + 260 }} showsVerticalScrollIndicator={false}>
+        <View style={styles.column}>
+          <View style={styles.topRow}>
+            <PressableScale accessibilityLabel="Close" onPress={() => router.back()} style={[styles.close, { backgroundColor: c.surfaceAlt }]}>
+              <Icon name="close" size={18} color={c.ink} />
+            </PressableScale>
           </View>
-        </LinearGradient>
+          <View style={styles.strip} accessible accessibilityLabel="Looks you can unveil with Pro">
+            {(['softGlam', 'partyLiner', 'glossyLips'] as const).map((k) => (
+              <LookPhoto key={k} image={photo(k)} style={[styles.stripPhoto, { height: Math.min(168, Math.round(height * 0.18)) }]} />
+            ))}
+          </View>
+          <Txt variant="footnote" tone="secondary" style={{ marginTop: space.s }}>
+            Unveil looks like these — up to 150 a month, not 5.
+          </Txt>
 
-        <View style={[styles.column, { gap: space.l, marginTop: space.xl }]}>
-          {BENEFITS.map((b) => (
-            <View key={b.title} style={styles.benefit}>
-              <View style={[styles.benefitIcon, { borderColor: c.accent }]}>
-                <Icon name={b.icon} size={22} />
-              </View>
-              <View style={{ flex: 1, gap: 2 }}>
-                <Txt variant="headline">{b.title}</Txt>
-                <Txt variant="callout" tone="secondary">
-                  {b.body}
-                </Txt>
-              </View>
+          {context ? (
+            <Txt variant="callout" style={{ marginTop: space.xl }}>
+              {context}
+            </Txt>
+          ) : null}
+          <Txt variant="title1" accessibilityRole="header" style={{ marginTop: context ? space.s : space.xl }}>
+            {trial ? 'How your free trial works' : 'Mago Pro, month to month'}
+          </Txt>
+
+          {trial ? (
+            <View style={{ marginTop: space.l }}>
+              {steps.map((x, i) => (
+                <View key={x.d} style={styles.timeline}>
+                  <View style={styles.rail}>
+                    <View style={[styles.tdot, { backgroundColor: i === 0 ? c.primary : c.surfaceAlt }]}>
+                      <Icon name={x.icon} size={16} color={i === 0 ? c.inkOnPrimary : c.primary} strokeWidth={1.8} />
+                    </View>
+                    {i < steps.length - 1 ? <View style={[styles.tline, { backgroundColor: c.hairlineStrong }]} /> : null}
+                  </View>
+                  <View style={{ flex: 1, paddingBottom: space.l, gap: 2 }}>
+                    <Txt variant="headline">{x.d}</Txt>
+                    <Txt variant="callout" tone="secondary">
+                      {x.s}
+                    </Txt>
+                  </View>
+                </View>
+              ))}
             </View>
-          ))}
+          ) : (
+            <Txt variant="callout" tone="secondary" style={{ marginTop: space.s }}>
+              Up to 150 looks a month, Simplify, and swaps from your bag. Billed {offer.price}; cancel any time in Settings.
+            </Txt>
+          )}
 
-          <View style={{ gap: space.m, marginTop: space.s }} accessibilityRole="radiogroup">
+          <View style={{ gap: space.s, marginTop: space.l }} accessibilityRole="radiogroup">
             {OFFERINGS.map((o) => {
               const sel = plan === o.id;
               return (
@@ -101,70 +119,52 @@ export default function Paywall() {
                   key={o.id}
                   accessibilityRole="radio"
                   accessibilityState={{ checked: sel }}
-                  accessibilityLabel={`${o.title}, ${o.price}${o.trialDays ? `, ${o.trialDays} days free` : ''}`}
+                  accessibilityLabel={`${o.title}, ${o.price}${o.trialDays ? `, ${o.trialDays} days free` : ', no trial'}`}
                   onPress={() => {
                     haptic.select();
                     setPlan(o.id);
                   }}
                 >
-                  <Card variant="porcelain" style={[styles.plan, { borderColor: sel ? c.primary : c.hairline, borderWidth: sel ? 1.5 : 1 }]}>
-                    <View style={[styles.radio, { borderColor: sel ? c.primary : c.hairlineStrong, backgroundColor: sel ? c.primary : 'transparent' }]}>
-                      {sel ? <Icon name="check" size={14} color={c.inkOnPrimary} strokeWidth={2.4} /> : null}
-                    </View>
+                  <View style={[styles.plan, { backgroundColor: c.surface, borderColor: sel ? c.primary : c.hairlineStrong, borderWidth: sel ? 2 : 1 }]}>
                     <View style={{ flex: 1, gap: 2 }}>
-                      <View style={{ flexDirection: 'row', gap: space.s, alignItems: 'center' }}>
-                        <Txt variant="headline">{o.title}</Txt>
-                        {o.savings ? <Badge label={o.savings} /> : null}
-                      </View>
-                      <Txt variant="callout" tone="secondary">
-                        {o.trialDays ? `${o.trialDays} days free, then ${o.price}` : o.price}
+                      <Txt variant="headline">{o.trialDays ? `${o.title} · ${o.trialDays} days free` : o.title}</Txt>
+                      <Txt variant="footnote" tone="secondary">
+                        {o.trialDays ? `${o.perMonth.replace('/month', ' a month')}, billed ${o.price.replace('/year', ' a year')}` : `${o.price.replace('/month', ' a month')}, no trial`}
                       </Txt>
                     </View>
-                    <Txt variant="subhead">{o.perMonth}</Txt>
-                  </Card>
+                    {o.savings ? (
+                      <View style={[styles.save, { backgroundColor: c.surfaceAlt }]}>
+                        <Txt variant="caption" style={{ color: c.success, fontWeight: '700' }}>
+                          {o.savings}
+                        </Txt>
+                      </View>
+                    ) : null}
+                  </View>
                 </PressableScale>
               );
             })}
           </View>
-
-          {offer.trialDays > 0 ? (
-            <Card style={{ gap: space.m }}>
-              <Txt variant="headline">How your free week works</Txt>
-              {[
-                { d: `Today, ${t.today}`, s: 'Full Pro access starts. No charge.' },
-                { d: t.reminder, s: 'We’ll remind you two days before it ends.' },
-                { d: t.charge, s: `You’re charged ${offer.price} unless you cancel before then.` },
-              ].map((x, i) => (
-                <View key={i} style={styles.timeline}>
-                  <View style={[styles.tdot, { backgroundColor: i === 0 ? c.primary : 'transparent', borderColor: c.primary }]} />
-                  <View style={{ flex: 1 }}>
-                    <Txt variant="subhead">{x.d}</Txt>
-                    <Txt variant="footnote" tone="secondary">
-                      {x.s}
-                    </Txt>
-                  </View>
-                </View>
-              ))}
-            </Card>
-          ) : null}
         </View>
       </ScrollView>
 
-      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, space.l), backgroundColor: c.bg, borderTopColor: c.hairline }]}>
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, space.l), backgroundColor: c.bg }, softShadow(c, 'card')]}>
         <View style={[styles.column, { gap: space.s }]}>
           {isPro ? (
             <Button label="You’re already Pro" onPress={() => router.back()} />
           ) : (
-            <Button variant="hero" loading={busy} label={offer.trialDays ? 'Start my free week' : `Subscribe for ${offer.price}`} onPress={buy} />
+            <Button loading={busy} label={trial ? 'Start my free trial' : `Subscribe for ${offer.price.replace('/month', ' a month')}`} onPress={buy} />
           )}
+          <Txt variant="footnote" tone="secondary" align="center">
+            {trial ? 'Start in 2 taps · $0 today · cancel in Settings' : 'Renews monthly · cancel any time in Settings'}
+          </Txt>
           {msg ? (
             <Txt variant="footnote" tone="danger" align="center" accessibilityLiveRegion="assertive">
               {msg}
             </Txt>
           ) : null}
-          <Txt variant="caption" tone="secondary" align="center">
-            {offer.trialDays ? `Free for ${offer.trialDays} days, then ${offer.price}. ` : `${offer.price}. `}
-            Renews automatically unless cancelled at least 24 hours before the period ends. Payment is charged to your {Platform.OS === 'android' ? 'Google Play' : 'Apple ID'} account. Manage or cancel anytime in {Platform.OS === 'android' ? 'Google Play' : 'App Store'} settings.
+          <Txt variant="caption" align="center" style={{ color: c.inkTertiary }}>
+            {trial ? `Free for ${offer.trialDays} days, then ${offer.price}. ` : `${offer.price}. `}
+            Renews automatically unless cancelled at least 24 hours before the period ends. Payment is charged to your {Platform.OS === 'android' ? 'Google Play' : 'Apple ID'} account.
             {isDemo ? ' Demo mode: no real charge.' : ''}
           </Txt>
           <View style={styles.links}>
@@ -174,10 +174,6 @@ export default function Paywall() {
           </View>
         </View>
       </View>
-
-      <PressableScale accessibilityLabel="Close" onPress={() => router.back()} style={[styles.close, { top: insets.top + space.s, backgroundColor: c.glass, borderColor: c.hairline }]}>
-        <Icon name="close" size={20} />
-      </PressableScale>
     </View>
   );
 }
@@ -195,15 +191,16 @@ function LinkText({ label, onPress }: { label: string; onPress: () => void }) {
 const styles = StyleSheet.create({
   fill: { flex: 1 },
   column: { width: '100%', maxWidth: layout.maxContentWidth, alignSelf: 'center', paddingHorizontal: space.xl },
-  header: { paddingBottom: space.x4 },
-  benefit: { flexDirection: 'row', gap: space.l, alignItems: 'center' },
-  benefitIcon: { width: 48, height: 48, borderRadius: 24, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  plan: { flexDirection: 'row', alignItems: 'center', gap: space.l, padding: space.l },
-  radio: { width: 24, height: 24, borderRadius: 12, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
-  timeline: { flexDirection: 'row', gap: space.m, alignItems: 'flex-start' },
-  tdot: { width: 12, height: 12, borderRadius: 6, borderWidth: 1.5, marginTop: 5 },
-  footer: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingTop: space.m, borderTopWidth: 1 },
+  topRow: { flexDirection: 'row', justifyContent: 'flex-end' },
+  close: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  strip: { flexDirection: 'row', gap: space.s, marginTop: space.xs },
+  stripPhoto: { flex: 1, borderRadius: radius.thumb },
+  timeline: { flexDirection: 'row', gap: space.m },
+  rail: { width: 32, alignItems: 'center' },
+  tdot: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
+  tline: { width: 2, flex: 1, marginTop: 2, borderRadius: 1 },
+  plan: { flexDirection: 'row', alignItems: 'center', gap: space.m, minHeight: 64, paddingHorizontal: space.l, paddingVertical: space.m, borderRadius: radius.card },
+  save: { height: 26, paddingHorizontal: 10, borderRadius: 13, justifyContent: 'center' },
+  footer: { position: 'absolute', left: 0, right: 0, bottom: 0, paddingTop: space.l, borderTopLeftRadius: radius.card, borderTopRightRadius: radius.card },
   links: { flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap' },
-  close: { position: 'absolute', right: space.l, width: 44, height: 44, borderRadius: 22, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
 });
-

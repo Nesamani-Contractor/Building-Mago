@@ -13,28 +13,30 @@ import { OfflineBanner } from './States';
 interface ScreenProps {
   children: ReactNode;
   scroll?: boolean;
-  mood?: 'warm' | 'calm' | 'reveal' | 'none';
+  mood?: 'warm' | 'calm' | 'reveal' | 'home' | 'none';
   /** Extra space at the bottom (e.g. above the tab bar or a sticky button). */
   bottomInset?: number;
   footer?: ReactNode;
   header?: ReactNode;
   contentStyle?: StyleProp<ViewStyle>;
+  /** Content starts at the very top (full-bleed hero photos); no safe-area padding above it. */
+  edgeToEdge?: boolean;
 }
 
 /**
  * Page container: porcelain background, ambient light, safe areas, centered
  * max-width column on iPad, optional sticky footer (for the one primary action).
  */
-export function Screen({ children, scroll = true, mood = 'calm', bottomInset = 0, footer, header, contentStyle }: ScreenProps) {
+export function Screen({ children, scroll = true, mood = 'calm', bottomInset = 0, footer, header, contentStyle, edgeToEdge }: ScreenProps) {
   const { c } = useTheme();
   const insets = useSafeAreaInsets();
   const content = (
     <View style={[styles.column, contentStyle]}>{children}</View>
   );
   return (
-    <View style={[styles.fill, { backgroundColor: c.bg }]}>
+    <View style={[styles.fill, { backgroundColor: mood === 'home' ? c.home.bg : c.bg }]}>
       {mood !== 'none' ? <Ambient mood={mood} /> : null}
-      <View style={{ paddingTop: insets.top }}>
+      <View style={{ paddingTop: edgeToEdge ? 0 : insets.top }}>
         <OfflineBanner />
         {header}
       </View>
@@ -73,13 +75,12 @@ export function TopBar({
   backLabel?: string;
 }) {
   const router = useRouter();
-  const { c } = useTheme();
   return (
     <View style={styles.topbar}>
       <PressableScale
         accessibilityLabel={backLabel}
         onPress={onBack ?? (() => (router.canGoBack() ? router.back() : router.replace('/')))}
-        style={[styles.round, { backgroundColor: c.glass, borderColor: c.hairline }]}
+        style={styles.round}
       >
         <Icon name={backIcon} size={20} />
       </PressableScale>
@@ -95,11 +96,11 @@ export function TopBar({
   );
 }
 
-export function RoundButton({ icon, label, onPress }: { icon: IconName; label: string; onPress: () => void }) {
+export function RoundButton({ icon, label, onPress, onPhoto, filled, selected }: { icon: IconName; label: string; onPress: () => void; onPhoto?: boolean; filled?: boolean; selected?: boolean }) {
   const { c } = useTheme();
   return (
-    <PressableScale accessibilityLabel={label} onPress={onPress} style={[styles.round, { backgroundColor: c.glass, borderColor: c.hairline }]}>
-      <Icon name={icon} size={20} />
+    <PressableScale accessibilityLabel={label} accessibilityState={selected === undefined ? undefined : { selected }} onPress={onPress} style={[styles.round, onPhoto && { backgroundColor: c.glassOnPhoto }]}>
+      <Icon name={icon} size={onPhoto ? 20 : 22} color={onPhoto ? c.inkOnPhoto : c.ink} filled={filled} />
     </PressableScale>
   );
 }
@@ -127,7 +128,6 @@ const styles = StyleSheet.create({
     width: layout.tapMin,
     height: layout.tapMin,
     borderRadius: layout.tapMin / 2,
-    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -52,6 +52,8 @@ export interface ProductRef {
   ref: string;
   name: string;
   brand?: string;
+  /** Shade name as said or shown in the video, e.g. "Warm Honey 220". */
+  shade?: string;
   category?: string;
   /** 0–1. Below LOW_CONFIDENCE the UI shows "Check this". */
   confidence: number;
@@ -92,10 +94,19 @@ export interface Step {
   hint?: string;
   /** Seconds into the source video where this step starts. */
   timestampSec?: number;
+  /** Seconds into the source video where this step ends. */
+  endTimestampSec?: number;
   /** Seconds to wait (e.g. let moisturizer sink in). Shows a timer. */
   waitSec?: number;
+  /** Estimated quantity, e.g. "pea-size", "2 pumps", "1 swipe". */
+  amount?: string;
+  /** Skill-level versions of `text` (FR-IMP-11). `text` is the intermediate version. */
+  levels?: { expert?: string; novice?: string };
   productRefs: string[];
 }
+
+/** PRD FR-IMP-11: AI-made routines aim for fewer than 10 steps (hard limit stays MAX_STEPS for hand-written ones). */
+export const AI_TARGET_MAX_STEPS = 9;
 
 export interface Section {
   name: string;

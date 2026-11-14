@@ -1,274 +1,246 @@
-import { useMemo } from 'react';
+import React, { useMemo } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Screen, RoundButton } from '@/components/Screen';
+import type { Occasion, Routine } from '@mago/shared';
+import { Screen } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
-import { Button } from '@/components/Button';
-import { Card, Badge } from '@/components/Surface';
-import { Carousel, ProgressBar, RoutineRow, RoutineThumb, RoutineTile, SectionHeader, StreakRing, routineMeta, stepCount } from '@/components/Bits';
+import { Eyebrow, LookPhoto, stepCount } from '@/components/Bits';
 import { Icon } from '@/components/Icon';
 import { PressableScale } from '@/components/PressableScale';
 import { useTheme } from '@/design/theme';
-import { layout, space } from '@/design/tokens';
-import { useLibrary, IMPORT_STAGES } from '@/data/library';
-import { useSessions, resumableSession, plansOn } from '@/data/sessions';
-import { useProfile } from '@/data/profile';
-import { useAccount } from '@/data/account';
+import { layout, radius, space } from '@/design/tokens';
+import { OCCASION_PHOTO, photo, routineImage } from '@/design/media';
+import { haptic } from '@/design/haptics';
+import { useLibrary, IMPORT_STAGES, pinnedLooks } from '@/data/library';
+import { Greeting, HeartButton, PinnedRow } from '@/components/LookActions';
+import { TodayLook } from '@/components/TodayLook';
+import { track } from '@/services/analytics';
+import { useSessions, resumableSession } from '@/data/sessions';
 import { SAMPLE_ROUTINES } from '@/data/samples';
-import { greeting, todayLabel, useStreak } from '@/lib/hooks';
-import { findRoutine, startersFor } from '@/lib/routines';
-import { useBag } from '@/data/bag';
+import { findRoutine } from '@/lib/routines';
 
-type Banner = 'week' | 'bag' | 'share' | 'pro';
+const OCCASIONS: { id: Occasion; label: string }[] = [
+  { id: 'Everyday', label: 'Everyday' },
+  { id: 'Date night', label: 'Date night' },
+  { id: 'Work', label: 'Work' },
+  { id: 'Party', label: 'Party' },
+  { id: 'Wedding/Event', label: 'Events' },
+];
 
-/** Today (home). Ulta structure — greeting, banner carousel, rails — in the warm luxury skin. */
-export default function Today() {
+function difficulty(r: Routine): string {
+  const n = stepCount(r);
+  return n <= 6 ? 'Beginner' : 'Some practice';
+}
+
+/**
+ * Home (v3, 12-video principles): conversational greeting, her look in progress (never at 0%),
+ * real looks right away (no banner to tap first), occasions. Each section scrolls one way only.
+ */
+export default function Home() {
   const router = useRouter();
   const { c } = useTheme();
   const items = useLibrary((s) => s.items);
+  const pinned = useMemo(() => pinnedLooks(items), [items]);
   const imports = useLibrary((s) => s.imports);
   const sessions = useSessions((s) => s.sessions);
-  const plans = useSessions((s) => s.plans);
-  const goal = useProfile((s) => s.goal);
-  const isPro = useAccount((s) => s.isPro);
-  const streak = useStreak();
-  const bagCount = useBag((s) => s.items.length);
 
-  const saved = useMemo(() => Object.values(items).sort((a, b) => b.savedAt.localeCompare(a.savedAt)), [items]);
-  const pinned = saved.filter((s) => s.pinned);
   const resume = resumableSession(sessions);
   const resumeRoutine = resume ? findRoutine(resume.routineId) : undefined;
-  const todayPlan = plansOn(plans, new Date()).sort((a, b) => (a.time ?? '').localeCompare(b.time ?? ''))[0];
-  const planRoutine = todayPlan ? findRoutine(todayPlan.routineId) : undefined;
   const inFlight = Object.values(imports).filter((j) => j.status === 'processing' || j.status === 'pending_offline');
-  const starters = startersFor(goal);
-  const pick = SAMPLE_ROUTINES.find((r) => !items[r.id]) ?? SAMPLE_ROUTINES[0];
-  const banners: Banner[] = [
-    'week',
-    ...(bagCount === 0 ? (['bag'] as Banner[]) : []),
-    'share',
-    ...(isPro ? [] : (['pro'] as Banner[])),
-  ];
+  const picks = useMemo(() => {
+    const order = ['sample-soft-glam', 'sample-party-liner', 'sample-glossy-lips', 'sample-dewy-skin', 'sample-wedding-guest'];
+    return order.map((id) => SAMPLE_ROUTINES.find((r) => r.id === id)).filter((r): r is Routine => !!r);
+  }, []);
+  const PINNED_PREVIEW = 3;
 
   return (
-    <Screen mood="warm" bottomInset={layout.tabBarSpace}>
+    <Screen mood="home" bottomInset={layout.tabBarSpace}>
       <View style={styles.header}>
-        <View style={{ flex: 1, gap: space.xs }}>
-          <Txt variant="subhead" tone="secondary">
-            {todayLabel()}
-          </Txt>
-          <Txt variant="display" accessibilityRole="header">
-            {greeting()}
+        <View style={{ flex: 1, gap: 2 }}>
+          <Greeting />
+          <Txt variant="title1" accessibilityRole="header">
+            What are we doing tonight?
           </Txt>
         </View>
-        <RoundButton icon="search" label="Search your looks" onPress={() => router.push('/(tabs)/library')} />
+        <PressableScale accessibilityLabel="Search your looks" onPress={() => router.push('/(tabs)/library')} style={[styles.round, { backgroundColor: c.surface, shadowColor: c.shadow }]}>
+          <Icon name="search" size={20} color={c.ink} />
+        </PressableScale>
       </View>
 
-      <PressableScale onPress={() => router.push('/add')} accessibilityLabel="Paste a tutorial link to turn it into steps" style={{ marginBottom: space.l }}>
-        <Card variant="outline" style={styles.addCard}>
-          <View style={[styles.bannerIcon, { borderColor: c.hairlineStrong }]}>
-            <Icon name="link" size={24} />
-          </View>
-          <View style={{ flex: 1, gap: 2 }}>
-            <Txt variant="headline">Paste a tutorial link</Txt>
-            <Txt variant="footnote" tone="secondary">
-              YouTube, TikTok or Instagram → step-by-step look
-            </Txt>
-          </View>
-          <Icon name="chevronRight" size={18} />
-        </Card>
-      </PressableScale>
+      {/* D-27: today's look from her plan, ready to start. */}
+      <TodayLook />
 
-      <Carousel<Banner>
-        data={banners}
-        height={128}
-        render={(b) =>
-          b === 'week' ? (
-            <Card style={styles.banner}>
-              <StreakRing done={streak.thisWeekCount} goal={streak.weeklyGoal} />
-              <View style={{ flex: 1, gap: 4 }}>
-                <Txt variant="headline">
-                  {streak.thisWeekMet ? 'Your week is complete' : `${streak.thisWeekCount} of ${streak.weeklyGoal} looks this week`}
-                </Txt>
-                <Txt variant="callout" tone="secondary" numberOfLines={2}>
-                  {streak.thisWeekMet
-                    ? `${streak.streakWeeks} ${streak.streakWeeks === 1 ? 'week' : 'weeks'} in a row. Lovely.`
-                    : streak.shouldNudge
-                      ? 'Two days left — a quick 5-minute look counts.'
-                      : `${streak.weeklyGoal - streak.thisWeekCount} more and your week is complete.`}
-                </Txt>
-              </View>
-            </Card>
-          ) : b === 'bag' ? (
-            <PressableScale onPress={() => router.push('/bag/scan')} accessibilityLabel="Scan your makeup products">
-              <Card style={styles.banner}>
-                <View style={[styles.bannerIcon, { borderColor: c.hairlineStrong }]}>
-                  <Icon name="camera" size={24} />
-                </View>
-                <View style={{ flex: 1, gap: 4 }}>
-                  <Txt variant="headline">Scan your makeup bag</Txt>
-                  <Txt variant="callout" tone="secondary" numberOfLines={2}>
-                    See what you have, what to swap and what’s missing for every look.
-                  </Txt>
-                </View>
-              </Card>
-            </PressableScale>
-          ) : b === 'share' ? (
-            <PressableScale onPress={() => router.push('/add')} accessibilityLabel="How to save a look from another app">
-            <Card style={styles.banner}>
-              <View style={[styles.bannerIcon, { borderColor: c.hairlineStrong }]}>
-                <Icon name="share" size={24} />
-              </View>
-              <View style={{ flex: 1, gap: 4 }}>
-                <Txt variant="headline">Saw a look you love?</Txt>
-                <Txt variant="callout" tone="secondary" numberOfLines={2}>
-                  Tap Share → Copy link, then paste it in Mago.
-                </Txt>
-              </View>
-            </Card>
-            </PressableScale>
-          ) : (
-            <PressableScale onPress={() => router.push('/paywall?from=today')} accessibilityLabel="Try Mago Pro free for 7 days">
-              <Card style={styles.banner}>
-                <View style={[styles.bannerIcon, { borderColor: c.accent }]}>
-                  <Icon name="sparkle" size={24} />
-                </View>
-                <View style={{ flex: 1, gap: 4 }}>
-                  <Txt variant="headline">Mago Pro</Txt>
-                  <Txt variant="callout" tone="secondary" numberOfLines={2}>
-                    Unlimited looks and Simplify. 7 days free.
-                  </Txt>
-                </View>
-                <Icon name="chevronRight" size={18} />
-              </Card>
-            </PressableScale>
-          )
-        }
-      />
+      {/* FR-PIN: her pinned looks, collapsed to 3, See all for the rest. */}
+      <View style={styles.sectionHeadTop}>
+        <View style={{ gap: 2, flex: 1 }}>
+          <Eyebrow>Pinned</Eyebrow>
+          <Txt variant="title3" accessibilityRole="header">
+            You and your beauty
+          </Txt>
+        </View>
+        {pinned.length > PINNED_PREVIEW ? (
+          <PressableScale
+            accessibilityLabel={`See all ${pinned.length} pinned looks`}
+            onPress={() => {
+              track('pinned_see_all', { count: pinned.length });
+              router.push('/pinned');
+            }}
+            style={styles.seeAll}
+          >
+            <Txt variant="subhead" style={{ color: c.primary }}>
+              See all ({pinned.length})
+            </Txt>
+          </PressableScale>
+        ) : null}
+      </View>
+      {pinned.length ? (
+        <View style={{ gap: space.s, marginTop: space.m }}>
+          {pinned.slice(0, PINNED_PREVIEW).map((x) => (
+            <PinnedRow key={x.routine.id} saved={x} onPress={() => router.push(`/routine/${x.routine.id}`)} />
+          ))}
+        </View>
+      ) : (
+        <PressableScale
+          onPress={() => router.push('/(tabs)/library')}
+          accessibilityLabel="Pin looks you love to keep them here. Opens your looks."
+          scaleTo={0.985}
+          style={[styles.pinEmpty, { backgroundColor: c.surface }]}
+        >
+          <Icon name="pin" size={20} color={c.primary} />
+          <Txt variant="callout" tone="secondary" style={{ flex: 1 }}>
+            Pin looks you love to keep them here.
+          </Txt>
+          <Icon name="chevronRight" size={18} color={c.inkSecondary} />
+        </PressableScale>
+      )}
 
       {inFlight.map((j) => (
-        <PressableScale key={j.id} onPress={() => router.push(`/import/${j.id}`)} accessibilityLabel="Open import in progress">
-          <Card style={[styles.row, { marginTop: space.l }]}>
-            <Icon name={j.status === 'pending_offline' ? 'wifiOff' : 'sparkle'} size={22} />
-            <View style={{ flex: 1, gap: 2 }}>
-              <Txt variant="headline">{j.status === 'pending_offline' ? 'Waiting for a connection' : 'Writing your steps…'}</Txt>
-              <Txt variant="footnote" tone="secondary">
-                {j.status === 'pending_offline' ? 'We’ll start as soon as you’re online.' : IMPORT_STAGES[j.stage]}
-              </Txt>
-            </View>
-            <Icon name="chevronRight" size={18} />
-          </Card>
+        <PressableScale key={j.id} onPress={() => router.push(`/import/${j.id}`)} accessibilityLabel="Open the look being unveiled" style={[styles.card, { backgroundColor: c.surface, shadowColor: c.shadow }]}>
+          <View style={[styles.cardIcon, { backgroundColor: c.surfaceAlt }]}>
+            <Icon name={j.status === 'pending_offline' ? 'wifiOff' : 'sparkle'} size={22} color={c.primary} />
+          </View>
+          <View style={{ flex: 1, gap: 2 }}>
+            <Txt variant="headline">{j.status === 'pending_offline' ? 'Waiting for a connection' : 'Unveiling your look…'}</Txt>
+            <Txt variant="footnote" tone="secondary">
+              {j.status === 'pending_offline' ? 'We’ll start as soon as you’re online.' : IMPORT_STAGES[j.stage]}
+            </Txt>
+          </View>
+          <Icon name="chevronRight" size={20} color={c.inkSecondary} />
         </PressableScale>
       ))}
 
       {resume && resumeRoutine ? (
-        <Card style={{ marginTop: space.l, gap: space.m }}>
-          <View style={styles.row}>
-            <RoutineThumb routine={resumeRoutine} />
-            <View style={{ flex: 1, gap: 2 }}>
-              <Txt variant="footnote" tone="secondary">
-                Pick up where you left off
-              </Txt>
-              <Txt variant="headline" numberOfLines={1}>
-                {resumeRoutine.title}
-              </Txt>
-              <Txt variant="footnote" tone="secondary">
+        <PressableScale
+          accessibilityLabel={`Pick up where you left off: ${resumeRoutine.title}, step ${resume.stepIndex + 1} of ${stepCount(resumeRoutine)}`}
+          onPress={() => router.push(`/follow/${resumeRoutine.id}?session=${resume.id}`)}
+          scaleTo={0.985}
+          style={[styles.card, { backgroundColor: c.surface, shadowColor: c.shadow }]}
+        >
+          <LookPhoto image={routineImage(resumeRoutine)} style={styles.resumeThumb} />
+          <View style={{ flex: 1, gap: 6, minWidth: 0 }}>
+            <Txt variant="footnote" tone="secondary">
+              Pick up where you left off
+            </Txt>
+            <Txt variant="headline" numberOfLines={1}>
+              {resumeRoutine.title}
+            </Txt>
+            <View style={styles.progressRow}>
+              <View style={[styles.track, { backgroundColor: c.track }]}>
+                <View style={[styles.fill, { backgroundColor: c.primary, width: `${Math.round(((resume.stepIndex + 1) / stepCount(resumeRoutine)) * 100)}%` }]} />
+              </View>
+              <Txt variant="footnote" style={{ color: c.primary, fontWeight: '600', fontVariant: ['tabular-nums'] }}>
                 Step {resume.stepIndex + 1} of {stepCount(resumeRoutine)}
               </Txt>
             </View>
-            <Button variant="secondary" label="Resume" onPress={() => router.push(`/follow/${resumeRoutine.id}?session=${resume.id}`)} style={{ alignSelf: 'center', flexShrink: 0 }} />
           </View>
-          <ProgressBar value={(resume.stepIndex + 1) / stepCount(resumeRoutine)} />
-        </Card>
+          <View style={[styles.play, { backgroundColor: c.primary }]}>
+            <Icon name="play" size={16} color={c.inkOnPrimary} filled />
+          </View>
+        </PressableScale>
       ) : null}
 
-      {planRoutine && todayPlan ? (
-        <Card variant="porcelain" style={{ marginTop: space.l, gap: space.l }}>
-          <View style={styles.between}>
-            <Txt variant="subhead" tone="secondary">
-              {todayPlan.time ? `Today at ${todayPlan.time}` : 'Planned for today'}
+      <View style={styles.sectionHead}>
+        <Txt variant="title3" accessibilityRole="header">
+          Tonight’s picks
+        </Txt>
+        <PressableScale accessibilityLabel="See all looks" onPress={() => router.push('/(tabs)/discover')} style={styles.seeAll}>
+          <Txt variant="subhead" style={{ color: c.primary }}>
+            See all
+          </Txt>
+        </PressableScale>
+      </View>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.railOuter} contentContainerStyle={styles.rail}>
+        {picks.map((r) => (
+          <PressableScale
+            key={r.id}
+            accessibilityLabel={`${r.title}. ${r.totalTimeMin} minutes, ${stepCount(r)} steps, ${difficulty(r)}`}
+            onPress={() => {
+              haptic.select();
+              router.push(`/routine/${r.id}`);
+            }}
+            scaleTo={0.98}
+            style={styles.pick}
+          >
+            <View>
+              <LookPhoto image={routineImage(r)} style={styles.pickPhoto} />
+              <View style={[styles.timeChip, { backgroundColor: c.glass }]}>
+                <Txt variant="caption" style={{ fontVariant: ['tabular-nums'] }}>
+                  {r.totalTimeMin} min
+                </Txt>
+              </View>
+              <HeartButton routine={r} onPhoto size={20} style={styles.heartOnPhoto} />
+            </View>
+            <View style={{ gap: 2 }}>
+              <Txt variant="headline" numberOfLines={1}>
+                {r.title}
+              </Txt>
+              <Txt variant="footnote" tone="secondary">
+                {stepCount(r)} steps · {difficulty(r)}
+              </Txt>
+            </View>
+          </PressableScale>
+        ))}
+      </ScrollView>
+
+      <View style={styles.sectionHead}>
+        <Txt variant="title3" accessibilityRole="header">
+          By occasion
+        </Txt>
+      </View>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.railOuter} contentContainerStyle={[styles.rail, { gap: space.l }]}>
+        {OCCASIONS.map((o) => (
+          <PressableScale key={o.id} accessibilityLabel={`${o.label} looks`} onPress={() => router.push(`/(tabs)/discover?occ=${encodeURIComponent(o.id)}`)} style={styles.occ}>
+            <LookPhoto image={photo(OCCASION_PHOTO[o.id])} style={[styles.occPhoto, { backgroundColor: c.surfaceAlt }]} />
+            <Txt variant="footnote" style={{ fontWeight: '500' }}>
+              {o.label}
             </Txt>
-            <Badge label={todayPlan.occasion} />
-          </View>
-          <View style={{ gap: space.xs }}>
-            <Txt variant="title2">{planRoutine.title}</Txt>
-            <Txt variant="callout" tone="secondary">
-              {routineMeta(planRoutine)}
-            </Txt>
-          </View>
-          <Button variant="hero" label="Start this look" onPress={() => router.push(`/brief/${planRoutine.id}`)} />
-        </Card>
-      ) : saved.length === 0 ? (
-        <Card variant="porcelain" style={{ marginTop: space.l, gap: space.m }}>
-          <Txt variant="title2">Your first look</Txt>
-          <Txt variant="callout" tone="secondary">
-            Start with one of these, or add a tutorial you love with the + button.
-          </Txt>
-          {starters.map((r) => (
-            <RoutineRow key={r.id} routine={r} onPress={() => router.push(`/routine/${r.id}`)} />
-          ))}
-        </Card>
-      ) : (
-        <Card variant="porcelain" style={{ marginTop: space.l, gap: space.l }}>
-          <Txt variant="subhead" tone="secondary">
-            Nothing planned today
-          </Txt>
-          <Txt variant="title2">{(saved[0] as (typeof saved)[number]).routine.title}</Txt>
-          <Txt variant="callout" tone="secondary">
-            {routineMeta((saved[0] as (typeof saved)[number]).routine)}
-          </Txt>
-          <Button variant="hero" label="Start this look" onPress={() => router.push(`/brief/${(saved[0] as (typeof saved)[number]).routine.id}`)} />
-          <Button variant="ghost" label="Open planner" icon="calendar" onPress={() => router.push('/planner')} />
-        </Card>
-      )}
-
-      {pinned.length > 0 ? (
-        <>
-          <SectionHeader title="Pinned" />
-          <Rail>
-            {pinned.map((s) => (
-              <RoutineTile key={s.routine.id} routine={s.routine} onPress={() => router.push(`/routine/${s.routine.id}`)} />
-            ))}
-          </Rail>
-        </>
-      ) : null}
-
-      {saved.length > 0 ? (
-        <>
-          <SectionHeader title="Recently saved" action="See all" onAction={() => router.push('/(tabs)/library')} />
-          <Rail>
-            {saved.slice(0, 8).map((s) => (
-              <RoutineTile key={s.routine.id} routine={s.routine} onPress={() => router.push(`/routine/${s.routine.id}`)} />
-            ))}
-          </Rail>
-        </>
-      ) : null}
-
-      {pick ? (
-        <>
-          <SectionHeader title="From Discover" action="More looks" onAction={() => router.push('/(tabs)/discover')} />
-          <Card style={{ paddingVertical: space.xs }}>
-            <RoutineRow routine={pick} onPress={() => router.push(`/routine/${pick.id}`)} />
-          </Card>
-        </>
-      ) : null}
+          </PressableScale>
+        ))}
+      </ScrollView>
     </Screen>
   );
 }
 
-function Rail({ children }: { children: React.ReactNode }) {
-  return (
-    <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -space.xl }} contentContainerStyle={{ paddingHorizontal: space.xl, gap: space.l, paddingTop: space.m }}>
-      {children}
-    </ScrollView>
-  );
-}
-
 const styles = StyleSheet.create({
-  header: { flexDirection: 'row', alignItems: 'flex-end', gap: space.m, marginTop: space.xl, marginBottom: space.xxl },
-  banner: { flexDirection: 'row', alignItems: 'center', gap: space.l, height: 128 },
-  addCard: { flexDirection: 'row', alignItems: 'center', gap: space.l, paddingVertical: space.l },
-  bannerIcon: { width: 56, height: 56, borderRadius: 28, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  row: { flexDirection: 'row', alignItems: 'center', gap: space.l },
-  between: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  header: { flexDirection: 'row', alignItems: 'flex-start', gap: space.m, marginTop: space.s },
+  round: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', shadowOpacity: 0.08, shadowRadius: 14, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
+  card: { flexDirection: 'row', alignItems: 'center', gap: space.m, padding: space.m, borderRadius: radius.card, marginTop: space.xxl, shadowOpacity: 0.07, shadowRadius: 20, shadowOffset: { width: 0, height: 6 }, elevation: 2 },
+  cardIcon: { width: 64, height: 64, borderRadius: radius.thumb, alignItems: 'center', justifyContent: 'center' },
+  resumeThumb: { width: 64, height: 64, borderRadius: radius.thumb },
+  progressRow: { flexDirection: 'row', alignItems: 'center', gap: space.s },
+  track: { flex: 1, height: 4, borderRadius: 2, overflow: 'hidden' },
+  fill: { height: 4, borderRadius: 2 },
+  play: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  sectionHeadTop: { flexDirection: 'row', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: space.xxl },
+  pinEmpty: { flexDirection: 'row', alignItems: 'center', gap: space.m, padding: space.l, borderRadius: radius.thumb, marginTop: space.m, minHeight: 56 },
+  heartOnPhoto: { position: 'absolute', right: 8, top: 8 },
+  sectionHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: space.x4 },
+  seeAll: { minHeight: 44, justifyContent: 'center', paddingLeft: space.m },
+  railOuter: { marginHorizontal: -space.xl },
+  rail: { paddingHorizontal: space.xl, gap: space.m, paddingTop: space.s },
+  pick: { width: 220, gap: 10 },
+  pickPhoto: { width: 220, height: 280, borderRadius: radius.card },
+  timeChip: { position: 'absolute', left: 10, top: 10, height: 26, paddingHorizontal: 10, borderRadius: 13, justifyContent: 'center' },
+  occ: { width: 72, alignItems: 'center', gap: space.s },
+  occPhoto: { width: 72, height: 72, borderRadius: 36 },
 });

@@ -31,7 +31,7 @@ export default function Scan() {
   function finish(list: string[]) {
     if (list.length === 0) return;
     setPhotos(list);
-    router.replace('/bag/review');
+    router.replace('/bag/reading');
   }
 
   async function pick() {
@@ -113,7 +113,7 @@ export default function Scan() {
         style={{ marginTop: space.xxl }}
       >
         <Card style={styles.option}>
-          <View style={[styles.optIcon, { borderColor: c.hairlineStrong }]}>
+          <View style={[styles.optIcon, { borderColor: 'transparent', backgroundColor: c.surfaceAlt }]}>
             <Icon name="camera" size={26} />
           </View>
           <View style={{ flex: 1, gap: 2 }}>
@@ -133,7 +133,7 @@ export default function Scan() {
 
       <PressableScale accessibilityLabel="Choose photos you already have" onPress={pick} style={{ marginTop: space.m }}>
         <Card style={styles.option}>
-          <View style={[styles.optIcon, { borderColor: c.hairlineStrong }]}>
+          <View style={[styles.optIcon, { borderColor: 'transparent', backgroundColor: c.surfaceAlt }]}>
             <Icon name="upload" size={26} />
           </View>
           <View style={{ flex: 1, gap: 2 }}>
@@ -149,7 +149,7 @@ export default function Scan() {
       <Card variant="outline" style={{ marginTop: space.xxl, gap: space.s }}>
         <Txt variant="headline">For the best results</Txt>
         <Txt variant="callout" tone="secondary">
-          Good light, the label facing the camera, and one product per photo. A group photo works too — Mago will list each product it sees.
+          One product or a whole table — Mago finds every product in each photo, reads the brand and shade, sorts them into your bag and counts repeats. You check the counts after.
         </Txt>
       </Card>
       <Txt variant="footnote" tone="secondary" style={{ marginTop: space.l }}>

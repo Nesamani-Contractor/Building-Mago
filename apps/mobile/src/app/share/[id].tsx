@@ -57,7 +57,7 @@ export default function ShareCard() {
             <Txt variant={format === 'story' ? 'title2' : 'title1'} style={{ color: palette.plum }}>
               {routine.title}
             </Txt>
-            <Txt variant="footnote" style={{ color: palette.plumSecondary }}>
+            <Txt variant="footnote" style={{ color: palette.inkSecondary }}>
               {stepCount(routine)} steps · {routine.totalTimeMin} min
             </Txt>
           </View>
@@ -69,7 +69,7 @@ export default function ShareCard() {
         <Txt variant="footnote" tone="secondary">
           Caption
         </Txt>
-        <TextInput value={caption} onChangeText={setCaption} multiline accessibilityLabel="Caption" style={[styles.caption, { color: c.ink, borderColor: c.hairlineStrong }]} />
+        <TextInput value={caption} onChangeText={setCaption} multiline accessibilityLabel="Caption" style={[styles.caption, { color: c.ink, borderColor: 'transparent', backgroundColor: c.surfaceAlt }]} />
         <Txt variant="footnote" tone="secondary">
           Your invite link is included. When a friend installs Mago and finishes a look, you both get a month of Pro.
         </Txt>

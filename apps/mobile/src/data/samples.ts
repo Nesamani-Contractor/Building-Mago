@@ -43,6 +43,24 @@ const SHADES: Record<string, string> = {
   Moisturizer: '#F7F1EC',
 };
 
+/** Sample shade names + amounts (PRD FR-IMP-11: product list has shade; steps have quantity). */
+const SHADE_NAMES: Record<string, string> = {
+  'Skin-tint foundation': 'Warm Honey', 'Skin tint': 'Light Neutral', Concealer: 'Light Peach', 'Peach corrector': 'Soft Peach',
+  'Long-wear foundation': 'Golden Beige', 'Setting powder': 'Translucent', 'Warm brown eyeshadow': 'Cinnamon Matte',
+  'Champagne shimmer': 'Champagne Pop', 'Transition eyeshadow': 'Toasted Rose', 'Deep brown eyeshadow': 'Espresso',
+  'Lengthening mascara': 'Blackest Black', 'Volumizing mascara': 'Blackest Black', 'Liquid liner': 'Jet Black', 'Gel eyeliner': 'Soft Black',
+  'Rosy cream blush': 'Rose Petal', 'Cream blush': 'Warm Rose', 'Peach blush': 'Peach Glow', Bronzer: 'Sun Kissed',
+  'Liquid highlighter': 'Champagne Glow', 'Lip liner': 'Dusty Rose', 'Pink lip liner': 'Ballet Pink', 'Pink-nude lipstick': 'Pink Nude',
+  'Sheer pink lipstick': 'Sheer Rose', 'Long-wear lip color': 'Berry Satin', 'Clear gloss': 'Crystal Clear', 'Nude gloss': 'Rosy Nude',
+  'Tinted lip balm': 'Rose Tint', 'Brow pencil': 'Soft Brown', 'Brow gel': 'Taupe', 'Clear brow gel': 'Clear',
+};
+const AMOUNTS: [RegExp, string][] = [
+  [/moistur/i, 'Pea-size amount'], [/foundation|skin tint/i, '1–2 pumps'], [/conceal|corrector/i, '2–3 small dots'],
+  [/powder/i, 'Light dusting'], [/shimmer/i, 'One fingertip press'], [/eyeshadow/i, 'One brush dip, tap off excess'],
+  [/mascara/i, '2 coats'], [/liner/i, 'One thin stroke'], [/blush/i, 'One dab per cheek'], [/bronzer/i, 'One light sweep'],
+  [/highlight/i, 'One drop'], [/gloss/i, 'One swipe'], [/lip/i, 'One coat'], [/brow/i, 'Light, hair-like strokes'],
+];
+
 function mk(
   id: string,
   title: string,
@@ -67,6 +85,7 @@ function mk(
             name: p,
             confidence: extra.lowConfidence?.includes(p) ? 0.45 : 0.9,
             shadeHex: SHADES[p],
+            shade: SHADE_NAMES[p],
           });
         return ref;
       });
@@ -76,6 +95,8 @@ function mk(
         hint,
         waitSec,
         timestampSec: 20 + n * 38,
+        endTimestampSec: 20 + n * 38 + 34,
+        amount: prods.map((x) => AMOUNTS.find(([re]) => re.test(x))?.[1]).find(Boolean),
         productRefs: refs,
       };
     }),

@@ -1,33 +1,54 @@
 import { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { ScrollView, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { CATEGORIES, OCCASIONS } from '@mago/shared';
 import { Screen } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
-import { Card } from '@/components/Surface';
-import { Chip, RoutineRow } from '@/components/Bits';
+import { Chip, Eyebrow, LookPhoto } from '@/components/Bits';
+import { routineImage } from '@/design/media';
 import { StateView } from '@/components/States';
 import { Icon } from '@/components/Icon';
 import { PressableScale } from '@/components/PressableScale';
 import { useTheme } from '@/design/theme';
 import { fonts, layout, radius, space } from '@/design/tokens';
-import { searchLibrary, useLibrary } from '@/data/library';
+import { allUserTags, searchLibrary, useLibrary } from '@/data/library';
+import { Greeting, LookTile } from '@/components/LookActions';
+import { CartButton } from '@/components/Cart';
+import * as DocumentPicker from 'expo-document-picker';
+import { bagUnits, useBag, useScanDraft } from '@/data/bag';
 import { track } from '@/services/analytics';
 
-type Filter = 'all' | 'favorites' | 'recent' | 'quick' | `cat:${string}` | `occ:${string}` | `col:${string}`;
+type Filter = 'all' | 'favorites' | 'recent' | 'quick' | `cat:${string}` | `occ:${string}` | `col:${string}` | `tag:${string}`;
 
 /** M-11 Library: search, filter chips, collections, favorites, recently done. */
 export default function Library() {
   const router = useRouter();
   const { c } = useTheme();
+  const { width } = useWindowDimensions();
   const items = useLibrary((s) => s.items);
   const collections = useLibrary((s) => s.collections);
   const addCollection = useLibrary((s) => s.addCollection);
-  const [q, setQ] = useState('');
+  const params = useLocalSearchParams<{ q?: string }>();
+  const [q, setQ] = useState(params.q ?? '');
+  // A new search from Home updates the box (adjust state while rendering, no effect needed).
+  const [seenQ, setSeenQ] = useState(params.q);
+  if (params.q !== seenQ) {
+    setSeenQ(params.q);
+    if (params.q !== undefined) setQ(params.q);
+  }
   const [filter, setFilter] = useState<Filter>('all');
   const [newCol, setNewCol] = useState<string | null>(null);
 
   const all = useMemo(() => Object.values(items).sort((a, b) => b.savedAt.localeCompare(a.savedAt)), [items]);
+  const favorites = useMemo(() => all.filter((x) => x.favorite), [all]);
+  const bagItems = useBag((s) => s.items);
+  const setPhotos = useScanDraft((s) => s.setPhotos);
+  async function onePhoto() {
+    const res = await DocumentPicker.getDocumentAsync({ type: 'image/*', multiple: false, copyToCacheDirectory: true });
+    if (res.canceled || !res.assets[0]) return;
+    setPhotos([res.assets[0].uri]);
+    router.push('/bag/reading');
+  }
   const filtered = useMemo(() => {
     let list = searchLibrary(all, q);
     if (filter === 'favorites') list = list.filter((s) => s.favorite);
@@ -36,6 +57,7 @@ export default function Library() {
     else if (filter.startsWith('cat:')) list = list.filter((s) => s.routine.category === filter.slice(4));
     else if (filter.startsWith('occ:')) list = list.filter((s) => s.routine.occasion.includes(filter.slice(4) as never));
     else if (filter.startsWith('col:')) list = list.filter((s) => s.collectionIds.includes(filter.slice(4)));
+    else if (filter.startsWith('tag:')) list = list.filter((s) => (s.userTags ?? []).includes(filter.slice(4)));
     return list;
   }, [all, q, filter]);
 
@@ -44,20 +66,26 @@ export default function Library() {
     { id: 'favorites', label: 'Favorites' },
     { id: 'recent', label: 'Recently done' },
     { id: 'quick', label: 'Under 10 min' },
-    ...OCCASIONS.filter((o) => o !== 'Custom').map((o) => ({ id: `occ:${o}` as Filter, label: o })),
+    ...allUserTags(items).slice(0, 12).map((t) => ({ id: `tag:${t}` as Filter, label: `#${t}` })),
+    ...OCCASIONS.filter((o) => o !== 'Custom').map((o) => ({ id: `occ:${o}` as Filter, label: o === 'Wedding/Event' ? 'Events' : o })),
     ...CATEGORIES.filter((x) => x !== 'Other' && x !== 'Hair').map((x) => ({ id: `cat:${x}` as Filter, label: x })),
   ];
+  const colW = Math.floor((Math.min(width, layout.maxContentWidth) - space.xl * 2 - space.m) / 2);
 
   return (
     <Screen mood="calm" bottomInset={layout.tabBarSpace}>
-      <Txt variant="display" accessibilityRole="header" style={{ marginTop: space.xl }}>
-        Library
-      </Txt>
-      <Txt variant="callout" tone="secondary" style={{ marginTop: space.xs }}>
-        {all.length === 0 ? 'Your saved looks live here, on your phone.' : `${all.length} ${all.length === 1 ? 'look' : 'looks'} saved`}
-      </Txt>
+      <View style={styles.topRow}>
+        <Greeting style={{ flex: 1 }} />
+        <CartButton />
+      </View>
+      <View style={{ marginTop: space.m, gap: 6 }}>
+        <Eyebrow>{all.length === 0 ? 'Saved on this phone' : `${all.length} ${all.length === 1 ? 'look' : 'looks'} saved`}</Eyebrow>
+        <Txt variant="display" accessibilityRole="header">
+          Your looks
+        </Txt>
+      </View>
 
-      <View style={[styles.search, { backgroundColor: c.surface, borderColor: c.hairline }]}>
+      <View style={[styles.search, { backgroundColor: c.surfaceAlt }]}>
         <Icon name="search" size={20} color={c.inkSecondary} />
         <TextInput
           value={q}
@@ -82,41 +110,122 @@ export default function Library() {
         ))}
       </ScrollView>
 
+      {/* D-25: her products — add by hand, from one photo, or several. */}
       <View style={styles.colHeader}>
-        <Txt variant="title3">Collections</Txt>
-        <PressableScale accessibilityLabel="New collection" onPress={() => setNewCol('')} style={styles.newCol}>
-          <Icon name="plus" size={18} />
-          <Txt variant="subhead">New</Txt>
+        <Txt variant="title3" accessibilityRole="header">
+          My makeup bag
+        </Txt>
+        <PressableScale accessibilityLabel="Open my makeup bag" onPress={() => router.push('/bag')} style={styles.newCol}>
+          <Txt variant="subhead" style={{ color: c.primary }}>
+            {bagItems.length ? `Open (${bagUnits(bagItems)})` : 'Open'}
+          </Txt>
+        </PressableScale>
+      </View>
+      <View style={[styles.bagCard, { backgroundColor: c.surface }]}>
+        <Txt variant="callout" tone="secondary">
+          {bagItems.length
+            ? `${bagItems.length} ${bagItems.length === 1 ? 'product' : 'products'} · ${bagUnits(bagItems)} items. Add more — repeats just raise the count.`
+            : 'Add what you own and every look shows what you have, what to swap and what to buy.'}
+        </Txt>
+        <View style={styles.bagActions}>
+          <Chip icon="camera" label="Several photos" onPress={() => router.push('/bag/scan')} />
+          <Chip icon="image" label="One photo" onPress={onePhoto} />
+          <Chip icon="pencil" label="By hand" onPress={() => router.push('/bag/review?manual=1')} />
+        </View>
+      </View>
+
+      {/* FR-FAV: hearted looks, one tap away. */}
+      <View style={styles.colHeader}>
+        <Txt variant="title3" accessibilityRole="header">
+          Favorites
+        </Txt>
+        {favorites.length > 2 ? (
+          <PressableScale accessibilityLabel={`See all ${favorites.length} favorites`} onPress={() => setFilter('favorites')} style={styles.newCol}>
+            <Txt variant="subhead" style={{ color: c.primary }}>
+              See all ({favorites.length})
+            </Txt>
+          </PressableScale>
+        ) : null}
+      </View>
+      {favorites.length ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -space.xl }} contentContainerStyle={{ paddingHorizontal: space.xl, gap: space.m }}>
+          {favorites.map((x) => (
+            <LookTile key={x.routine.id} width={130} routine={x.routine} onPress={() => router.push(`/routine/${x.routine.id}`)} />
+          ))}
+        </ScrollView>
+      ) : (
+        <View style={[styles.favEmpty, { backgroundColor: c.surface }]}>
+          <Icon name="heart" size={20} color={c.primary} />
+          <Txt variant="callout" tone="secondary" style={{ flex: 1 }}>
+            Tap the heart on any look to keep it here.
+          </Txt>
+        </View>
+      )}
+
+      <View style={styles.colHeader}>
+        <Txt variant="title3" accessibilityRole="header">
+          Categories
+        </Txt>
+        <PressableScale accessibilityLabel="New category" onPress={() => setNewCol('')} style={styles.newCol}>
+          <Icon name="plus" size={18} color={c.primary} />
+          <Txt variant="subhead" style={{ color: c.primary }}>
+            New
+          </Txt>
         </PressableScale>
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginHorizontal: -space.xl }} contentContainerStyle={{ paddingHorizontal: space.xl, gap: space.m }}>
         {collections.map((col) => {
-          const count = all.filter((s) => s.collectionIds.includes(col.id)).length;
+          const inCol = all.filter((x) => x.collectionIds.includes(col.id));
+          const count = inCol.length;
           const sel = filter === `col:${col.id}`;
           return (
-            <PressableScale key={col.id} accessibilityState={{ selected: sel }} accessibilityLabel={`${col.name}, ${count} looks`} onPress={() => setFilter(sel ? 'all' : `col:${col.id}`)}>
-              <Card variant={sel ? 'outline' : 'glass'} style={[styles.colCard, sel && { borderColor: c.primary, borderWidth: 1.5 }]}>
-                <Txt variant="title3" numberOfLines={1}>
+            <PressableScale
+              key={col.id}
+              accessibilityState={{ selected: sel }}
+              accessibilityLabel={`${col.name}, ${count} looks`}
+              onPress={() => setFilter(sel ? 'all' : `col:${col.id}`)}
+              style={{ width: 150, gap: space.s }}
+            >
+              {count === 0 ? (
+                <View style={[styles.mosaic, styles.emptyCover, { backgroundColor: c.surfaceAlt, borderColor: sel ? c.primary : 'transparent' }]}>
+                  <Txt variant="display" style={{ color: c.inkTertiary }}>
+                    {col.name.slice(0, 1).toUpperCase()}
+                  </Txt>
+                </View>
+              ) : (
+                <View style={[styles.mosaic, { backgroundColor: c.surfaceAlt, borderColor: sel ? c.primary : 'transparent' }]}>
+                  {[0, 1, 2, 3].map((k) => {
+                    const r = inCol[k]?.routine;
+                    return r ? (
+                      <LookPhoto key={k} image={routineImage(r)} style={styles.mosaicCell} />
+                    ) : (
+                      <View key={k} style={[styles.mosaicCell, { backgroundColor: c.surfaceAlt }]} />
+                    );
+                  })}
+                </View>
+              )}
+              <View style={{ gap: 2 }}>
+                <Txt variant="headline" numberOfLines={1}>
                   {col.name}
                 </Txt>
                 <Txt variant="footnote" tone="secondary">
                   {count} {count === 1 ? 'look' : 'looks'}
                 </Txt>
-              </Card>
+              </View>
             </PressableScale>
           );
         })}
       </ScrollView>
       {newCol !== null ? (
-        <Card style={{ marginTop: space.m, gap: space.m }}>
+        <View style={{ marginTop: space.l, gap: space.m }}>
           <TextInput
             autoFocus
             value={newCol}
             onChangeText={setNewCol}
-            placeholder="Name, e.g. Weekend"
+            placeholder="e.g. Wedding season"
             placeholderTextColor={c.inkSecondary}
-            accessibilityLabel="Collection name"
-            style={[styles.colInput, { color: c.ink, borderColor: c.hairlineStrong }]}
+            accessibilityLabel="Category name"
+            style={[styles.colInput, { color: c.ink, backgroundColor: c.surfaceAlt }]}
             maxLength={30}
             onSubmitEditing={() => {
               if (newCol.trim()) {
@@ -129,7 +238,7 @@ export default function Library() {
           <View style={{ flexDirection: 'row', gap: space.m }}>
             <Chip label="Cancel" onPress={() => setNewCol(null)} />
             <Chip
-              label="Create collection"
+              label="Create category"
               selected
               onPress={() => {
                 if (newCol.trim()) {
@@ -140,33 +249,32 @@ export default function Library() {
               }}
             />
           </View>
-        </Card>
+        </View>
       ) : null}
 
-      <View style={{ marginTop: space.xxl }}>
+      <View style={{ marginTop: space.x4 }}>
         {all.length === 0 ? (
           <StateView
             icon="library"
-            title="No saved looks yet"
-            body="Share a tutorial from YouTube, TikTok or Instagram to Mago, or tap + to paste a link."
-            actionLabel="Add a look"
+            title="Your looks will live here"
+            body="Save one from Discover, or tap + to turn a tutorial into steps."
+            actionLabel="Add a tutorial"
             onAction={() => router.push('/add')}
           />
         ) : filtered.length === 0 ? (
           <StateView icon="search" title="Nothing matches" body="Try a product name, a step or another filter." actionLabel="Clear filters" onAction={() => { setQ(''); setFilter('all'); }} />
         ) : (
-          <Card style={{ paddingVertical: space.xs }}>
-            {filtered.map((s, i) => (
-              <View key={s.routine.id} style={i > 0 ? { borderTopWidth: 1, borderTopColor: c.hairline } : undefined}>
-                <RoutineRow
-                  routine={s.routine}
-                  subtitle={s.doneCount > 0 ? `Done ${s.doneCount} ${s.doneCount === 1 ? 'time' : 'times'} · ${s.routine.totalTimeMin} min` : undefined}
-                  onPress={() => router.push(`/routine/${s.routine.id}`)}
-                  right={s.favorite ? <Icon name="heart" filled size={18} /> : undefined}
-                />
-              </View>
+          <View style={styles.grid}>
+            {filtered.map((x) => (
+              <LookTile
+                key={x.routine.id}
+                width={colW}
+                routine={x.routine}
+                badge={x.pinned ? 'Pinned' : x.doneCount > 0 ? `Done ${x.doneCount}×` : undefined}
+                onPress={() => router.push(`/routine/${x.routine.id}`)}
+              />
             ))}
-          </Card>
+          </View>
         )}
       </View>
     </Screen>
@@ -174,11 +282,18 @@ export default function Library() {
 }
 
 const styles = StyleSheet.create({
-  search: { flexDirection: 'row', alignItems: 'center', gap: space.s, marginTop: space.xl, borderRadius: radius.pill, borderWidth: 1, paddingHorizontal: space.l, minHeight: 52 },
+  search: { flexDirection: 'row', alignItems: 'center', gap: space.s, marginTop: space.xl, borderRadius: radius.pill, paddingHorizontal: space.l, minHeight: 52 },
+  mosaic: { width: 150, height: 150, borderRadius: radius.thumb, overflow: 'hidden', flexDirection: 'row', flexWrap: 'wrap', gap: 2, borderWidth: 2 },
+  mosaicCell: { width: 72, height: 72 },
+  emptyCover: { alignItems: 'center', justifyContent: 'center' },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: space.m, rowGap: space.xl },
   input: { flex: 1, fontFamily: fonts.sans, fontSize: 17, paddingVertical: space.m },
   clear: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   colHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: space.xxl, marginBottom: space.m },
   newCol: { flexDirection: 'row', alignItems: 'center', gap: space.xs, minHeight: 44, paddingHorizontal: space.s },
-  colCard: { width: 156, gap: space.xs, paddingVertical: space.l },
-  colInput: { borderWidth: 1, borderRadius: radius.chip, paddingHorizontal: space.l, minHeight: 48, fontFamily: fonts.sans, fontSize: 17 },
+  topRow: { flexDirection: 'row', alignItems: 'center', gap: space.m, marginTop: space.s },
+  bagCard: { borderRadius: radius.card, padding: space.l, gap: space.m },
+  bagActions: { flexDirection: 'row', flexWrap: 'wrap', gap: space.s },
+  favEmpty: { flexDirection: 'row', alignItems: 'center', gap: space.m, padding: space.l, borderRadius: radius.thumb, minHeight: 56 },
+  colInput: { borderRadius: radius.chip, paddingHorizontal: space.l, minHeight: 48, fontFamily: fonts.sans, fontSize: 17 },
 });

@@ -51,3 +51,22 @@ Mode: **demo** (D-15). Everything below runs on the device with sample data unle
 - Headless browser click-through of onboarding → import → Follow-Along → completion, plus Discover, Library, Me, Paywall, Settings, Planner and iPad layouts: no runtime errors.
 - Backend: `deno check` passes for all 10 functions.
 - Not yet run: RLS tests against a live database, Maestro on a device, real-device performance.
+
+## Fix 13 Nov — uploaded videos are really watched (D-23)
+- **Bug:** uploading a video always showed one of the built-in sample looks (often the lip look) — the demo never looked at the video.
+- **Now:** the steps come from the uploaded video itself, for talking, captions-only and silent videos.
+  - Claude web preview: frames from the whole video become time-stamped contact sheets that Claude reads (captions, packaging labels, visible actions). The first upload asks her to allow Claude. Speech isn't available in the preview, so talking-only videos are read from what's on screen.
+  - Full app: upload → private bucket → `import-upload` → worker → Gemini watches and hears the file → Claude writes steps → video deleted from our bucket and Gemini.
+  - Not a beauty video → clear message, no charge. Unreadable file (e.g. some .mov in Chrome) → "try an MP4".
+- YouTube links in the demo still show sample content (labelled) — real YouTube watching needs the server (Gemini key).
+- Checks: shared tests 58 pass (new `watch.test.ts`), app `tsc` + lint clean, `deno check` passes for import-worker/import-upload/upload-url/import-start, headless browser run: 24 s silent captions-only test video → 4 contact sheets (16 frames, captions readable) → routine saved with 3 steps.
+
+## Change 13 Nov — welcome reel: music on, 50% slower
+- `welcome-reel.mp4` now carries the original score (music4.py) and runs 33.3 s instead of 22.2 s (motion-interpolated to 30 fps; music stretched to 80 BPM, pitch kept). Script: `tools/reel/slow-with-music.sh`.
+- Phones play the music straight away. Browsers (the web preview) block sound until the first tap, so the reel starts muted with a **Sound on** pill; her first tap anywhere turns the music on.
+
+## Change 14 Nov — new onboarding journey (D-27)
+- Old onboarding removed (story screens, 18+ screen, name screen, 4 questions, building, preview/sample Unveil).
+- New: the owner's Onboarding-flow skill — welcome reel (music) → saved-but-never-tried → insight → goals → occasions → level → how Mago works (hear your guide) → where she finds looks → time → weekly goal → product promise → makeup bag → pick a first look → hands-free primer → try two real steps read aloud → mini win → how did you hear → name → plan-building loader → first-week plan (saved to the planner) → notification primer → account (Apple/Google or Not now, 18+) → paywall (close after 3 s) → recovery gift → Home with Today's look.
+- Answers drive: Home picks/pinned first look, plan days, weekly goal, step detail level, makeup bag items, notification preference.
+- Tested end to end in a phone-size browser; no errors.
