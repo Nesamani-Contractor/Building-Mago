@@ -16,9 +16,22 @@ export interface VideoNotes {
   notes: string;
 }
 
-const WATCH_PROMPT = `You are watching a makeup or beauty tutorial.
-Return JSON only: {"language": "<ISO 639-1 of the spoken language>", "title": "...", "creator": "...", "durationSec": <int>, "notes": "..."}.
-In "notes", write one line per action in order, each starting with a [MM:SS] timestamp, describing what is applied, where, with which tool, and any product names shown or said. Include waiting times and the colour of each product when visible (e.g. "warm brown eyeshadow"). Do not invent products.`;
+/**
+ * PRD FR-SHR-04 — the owner's extraction prompt, verbatim, followed by Mago's output contract.
+ * Gemini watches the whole video and reads EVERY signal: speech, on-screen captions/text, product
+ * packaging shown to camera, and the visible actions — because many beauty videos are silent,
+ * music-only, or just show products with no talking.
+ */
+export const OWNER_PROMPT = `You are an expert makeup artist. Review the attached video/YouTube video in the link and prepare a step by step make up tutorial. Your output should include the following details from the video: 1. An appropriate title for the makeup routine 2. Category tags for the makeup routine. It will be things like "Date Night", "5 Mins lip gloss", "10 min workday" etc. 3. An estimated time to complete the makeup. 4. Complete list of products used in the makeup with brand name, shade, product name etc. Prepare this as a list and get images from Internet to show the products. 5. A step by step make up instruction with required product and estimated quantity. Generate visuals to show the step being performed. Generate instructions for 3 type of users:  a. expert in makeup - need a brief one liner about the steps with the product and estimated quantity. b. Intermediate in makeup - Need a bit more detail on how to complete the step along with required product and estimated quantity. c. Novice/New to makeup: A detailed instruction on how to complete this step along with product name and estimated quantity. 6. When any step requires some wait before the next step, capture it in the step by step breakdown and indicate how much time the user needs to wait before going to the next step. 7. Include the start and end timestamps for each of these steps from the original video.  8. Keep the maximum number of steps to under 10.`;
+
+const WATCH_PROMPT = `${OWNER_PROMPT}
+
+How to watch (Mago rules):
+- Watch the WHOLE video. It may have speech, on-screen captions or text, only background music, random noise, or no sound at all. Use every signal: what is said, what is written on screen, what packaging is held up to the camera, and what you see being applied.
+- Products: read brand, product name and shade from speech, captions, and packaging labels shown to the camera. If a product is only seen, describe it (e.g. "warm brown matte eyeshadow") and mark it unbranded. Never invent a brand or shade.
+- Do not produce the product images or step visuals yourself; Mago supplies those.
+Return JSON only: {"language": "<ISO 639-1 of the spoken or on-screen language, 'xx' if none>", "title": "...", "creator": "...", "durationSec": <int>, "notes": "..."}.
+In "notes", write one line per action in order, each starting with [MM:SS-MM:SS] (start and end), describing what is applied, where, with which tool, how much (quantity), any waiting time, and every product with brand, product name and shade exactly as said, written or shown, plus its colour.`;
 
 /** Gemini video understanding. `fileUri` is either a public YouTube URL or a Gemini File API URI. */
 export async function watchVideo(fileUri: string, mimeType?: string): Promise<VideoNotes> {
@@ -67,7 +80,11 @@ const ROUTINE_TOOL = {
                 properties: {
                   text: { type: 'string' },
                   hint: { type: 'string' },
+                  textExpert: { type: 'string', description: 'One-liner for experts with product and quantity.' },
+                  textNovice: { type: 'string', description: 'Detailed how-to for beginners with product name and quantity.' },
+                  amount: { type: 'string', description: 'Estimated quantity, e.g. "pea-size", "2 pumps".' },
                   timestampSec: { type: 'integer' },
+                  endTimestampSec: { type: 'integer' },
                   waitSec: { type: 'integer' },
                   productRefs: { type: 'array', items: { type: 'string' } },
                 },
@@ -85,6 +102,7 @@ const ROUTINE_TOOL = {
             ref: { type: 'string' },
             name: { type: 'string' },
             brand: { type: 'string' },
+            shade: { type: 'string' },
             category: { type: 'string' },
             confidence: { type: 'number' },
             kind: { type: 'string', enum: [...PRODUCT_KINDS] },
@@ -96,12 +114,13 @@ const ROUTINE_TOOL = {
   },
 };
 
-const SYSTEM = `You turn makeup tutorial notes into a calm, clear, follow-along routine.
-Rules: 3–40 steps, each step ≤ ${MAX_STEP_WORDS} words, imperative, second person ("Blend…").
-Group steps into sections like Base, Eyes, Brows, Cheeks, Lips, Finish. Put optional extra advice in "hint".
-Use the [MM:SS] timestamps for timestampSec. Use waitSec only when the video says to wait.
-Products: only those clearly shown or said; confidence 0–1 (below 0.6 means unsure). Never invent brands.
-For each product set "kind" (what it looks like: lipstick, gloss, pencil, mascara, palette, brush, sponge, bottle, tube, pot, spray, tool) and, when the video shows or names a colour, "shadeHex" as an approximate #RRGGBB.`;
+const SYSTEM = `You are an expert makeup artist turning tutorial notes into a calm follow-along routine for the Mago app, following this brief:
+${OWNER_PROMPT}
+Mago rules: fewer than 10 steps in total (combine small actions). "text" is the Intermediate version (≤ ${MAX_STEP_WORDS} words, imperative, second person); "textExpert" the brief one-liner; "textNovice" the detailed version. Every version names the product and quantity; also put the quantity in "amount".
+Group steps into sections like Prep, Base, Eyes, Brows, Cheeks, Lips, Finish. Put tips in "hint".
+Use the [MM:SS-MM:SS] timestamps for timestampSec and endTimestampSec. When a step needs a wait before the next one, set waitSec.
+Title: appropriate and specific. Tags: short category tags like "Date Night", "5 Min Lip Gloss", "10 Min Workday".
+Products: the complete list of products in the video with brand, product name and shade as said, written or shown; confidence 0–1 (below 0.6 means unsure). Never invent brands or shades. Set "kind" (lipstick, gloss, pencil, mascara, palette, brush, sponge, bottle, tube, pot, spray, tool) and, when a colour is visible or named, "shadeHex" as an approximate #RRGGBB. Do not include image URLs — Mago supplies product pictures from its licensed catalog.`;
 
 /** Claude: notes → validated Routine. One retry with the validation errors if the first answer fails. */
 export async function structureRoutine(notes: VideoNotes, base: Pick<Routine, 'id' | 'source' | 'creator' | 'durationSec'>): Promise<{ routine: Routine; inputTokens: number; outputTokens: number }> {
@@ -114,7 +133,7 @@ export async function structureRoutine(notes: VideoNotes, base: Pick<Routine, 'i
       headers: { 'content-type': 'application/json', 'x-api-key': env('ANTHROPIC_API_KEY'), 'anthropic-version': '2023-06-01' },
       body: JSON.stringify({
         model: CLAUDE_MODEL,
-        max_tokens: 4000,
+        max_tokens: 8000,
         system: SYSTEM,
         tools: [ROUTINE_TOOL],
         tool_choice: { type: 'tool', name: 'save_routine' },
@@ -143,7 +162,10 @@ export async function structureRoutine(notes: VideoNotes, base: Pick<Routine, 'i
           id: `${base.id}-s${++n}`,
           text: String(st.text),
           hint: st.hint ? String(st.hint) : undefined,
+          amount: st.amount ? String(st.amount).slice(0, 60) : undefined,
+          levels: st.textExpert || st.textNovice ? { expert: st.textExpert ? String(st.textExpert) : undefined, novice: st.textNovice ? String(st.textNovice) : undefined } : undefined,
           timestampSec: typeof st.timestampSec === 'number' ? st.timestampSec : undefined,
+          endTimestampSec: typeof st.endTimestampSec === 'number' ? st.endTimestampSec : undefined,
           waitSec: typeof st.waitSec === 'number' ? st.waitSec : undefined,
           productRefs: Array.isArray(st.productRefs) ? st.productRefs.map(String) : [],
         })),

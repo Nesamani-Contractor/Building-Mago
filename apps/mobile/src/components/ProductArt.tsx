@@ -4,6 +4,7 @@ import Svg, { Circle, Ellipse, G, Path, Rect } from 'react-native-svg';
 import { productKind, type ProductRef } from '@mago/shared';
 import { useTheme } from '@/design/theme';
 import { palette } from '@/design/tokens';
+import { productRender } from '@/design/products';
 
 /**
  * Product picture. Uses a real catalog photo when `imageUrl` exists; otherwise a clean illustration
@@ -21,6 +22,18 @@ export function ProductArt({ product, size = 72, mono = true }: { product: Produ
         source={{ uri: product.imageUrl }}
         style={{ width: size, height: size, borderRadius: size * 0.22, backgroundColor: c.surfaceAlt }}
         contentFit="contain"
+        accessibilityLabel={product.name}
+      />
+    );
+  }
+  const render = mono ? productRender(product) : undefined;
+  if (render) {
+    return (
+      <Image
+        source={render}
+        style={{ width: size, height: size, borderRadius: size * 0.22, backgroundColor: c.surfaceAlt }}
+        contentFit="cover"
+        transition={180}
         accessibilityLabel={product.name}
       />
     );

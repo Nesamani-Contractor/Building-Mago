@@ -11,6 +11,8 @@ import { Eyebrow, LookPhoto } from '@/components/Bits';
 import { Icon } from '@/components/Icon';
 import { PhotoCapture } from '@/components/PhotoCapture';
 import { StepProducts } from '@/components/StepProducts';
+import { FloatingProduct } from '@/components/FloatingProduct';
+import { isMakeup } from '@/design/products';
 import { useBagCheck } from '@/components/BagCheck';
 import { PressableScale } from '@/components/PressableScale';
 import { StateView } from '@/components/States';
@@ -167,7 +169,10 @@ export default function FollowAlong() {
   const canWatch = routine.source.platform === 'youtube' && step.timestampSec !== undefined && !!routine.source.videoId;
   const watch = () => Linking.openURL(`https://www.youtube.com/watch?v=${routine.source.videoId}&t=${step.timestampSec}s`);
   const isLast = idx === steps.length - 1;
-  const stepProducts = step.productRefs.map((ref) => products.get(ref)).filter((p): p is NonNullable<typeof p> => !!p);
+  const stepProducts = step.productRefs
+    .map((ref) => products.get(ref))
+    .filter((p): p is NonNullable<typeof p> => !!p)
+    .sort((a, b) => Number(isMakeup(b)) - Number(isMakeup(a)));
 
   const loop = routine.id.startsWith('sample-') ? sectionLoop(step.section) : undefined;
   const media = (
@@ -222,9 +227,25 @@ export default function FollowAlong() {
   const stepBody = (
     <Animated.View key={idx} entering={entering} style={{ gap: space.s }}>
       <Eyebrow>{step.section}</Eyebrow>
-      <Txt variant="step" style={isWide ? { fontSize: 38, lineHeight: 44 } : undefined} accessibilityRole="header" accessibilityLiveRegion="polite">
-        {step.text}
-      </Txt>
+      <View style={styles.stepRow}>
+        <Txt variant="step" style={[{ flex: 1 }, isWide ? { fontSize: 38, lineHeight: 44 } : null]} accessibilityRole="header" accessibilityLiveRegion="polite">
+          {step.text}
+        </Txt>
+        {stepProducts[0] ? (
+          <FloatingProduct
+            product={stepProducts[0]}
+            more={stepProducts.length - 1}
+            match={bagMatches?.get(stepProducts[0].ref)}
+            size={isWide ? 120 : 92}
+            onPress={() => router.push(`/products/${routine.id}`)}
+          />
+        ) : null}
+      </View>
+      {step.amount ? (
+        <Txt variant="subhead" tone="secondary">
+          Use: <Txt variant="subhead" style={{ fontWeight: '600' }}>{step.amount}</Txt>
+        </Txt>
+      ) : null}
       {step.hint ? (
         <View style={styles.coach}>
           <View style={[styles.coachRule, { backgroundColor: c.primary }]} />
@@ -238,7 +259,7 @@ export default function FollowAlong() {
       ) : null}
       {stepProducts.length > 0 ? (
         <View style={{ marginTop: space.l }}>
-          <StepProducts note matches={bagMatches} size={isWide ? 'l' : 'm'} products={stepProducts} />
+          {stepProducts.length > 1 ? <StepProducts note matches={bagMatches} size={isWide ? 'l' : 'm'} products={stepProducts.slice(1)} /> : null}
           <PressableScale accessibilityLabel="See every product in this look" onPress={() => router.push(`/products/${routine.id}`)} style={styles.allProducts}>
             <Txt variant="subhead" style={{ color: c.primary, fontWeight: '600' }}>
               See every product
@@ -401,6 +422,7 @@ const styles = StyleSheet.create({
   mediaTop: { position: 'absolute', left: space.l, right: space.l, gap: 14 },
   mediaBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   mediaBottom: { position: 'absolute', left: space.l },
+  stepRow: { flexDirection: 'row', alignItems: 'flex-start', gap: space.m },
   coach: { flexDirection: 'row', gap: space.m, marginTop: space.s },
   coachRule: { width: 2, borderRadius: 1, alignSelf: 'stretch' },
   allProducts: { flexDirection: 'row', alignItems: 'center', gap: 6, minHeight: 44, alignSelf: 'flex-start' },
