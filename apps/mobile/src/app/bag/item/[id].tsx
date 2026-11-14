@@ -7,6 +7,10 @@ import { Card } from '@/components/Surface';
 import { BagItemForm, type Draft } from '@/components/BagItemForm';
 import { space } from '@/design/tokens';
 import { useBag } from '@/data/bag';
+import { useCart } from '@/data/cart';
+import { haptic } from '@/design/haptics';
+import { track } from '@/services/analytics';
+import { Txt } from '@/components/Txt';
 
 /** Edit or remove one product in the bag. */
 export default function BagItemEdit() {
@@ -16,6 +20,8 @@ export default function BagItemEdit() {
   const update = useBag((s) => s.update);
   const remove = useBag((s) => s.remove);
   const [draft, setDraft] = useState<Draft | undefined>(item);
+  const addToCart = useCart((s) => s.add);
+  const [added, setAdded] = useState(false);
 
   if (!item || !draft) return <Redirect href="/bag" />;
 
@@ -33,6 +39,18 @@ export default function BagItemEdit() {
             }}
           />
           <Button
+            variant="secondary"
+            icon="cart"
+            label={added ? 'Added to cart · View cart' : 'Buy more'}
+            onPress={() => {
+              if (added) return router.push('/cart');
+              addToCart([{ name: item.name, brand: item.brand, shade: item.shade, shadeHex: item.shadeHex, kind: item.kind, role: item.role }]);
+              haptic.select();
+              track('cart_added', { count: 1, source: 'bag_item' });
+              setAdded(true);
+            }}
+          />
+          <Button
             variant="ghost"
             icon="trash"
             label="Remove from my bag"
@@ -45,8 +63,11 @@ export default function BagItemEdit() {
       }
     >
       <Card style={{ marginTop: space.l }}>
-        <BagItemForm value={draft} onChange={setDraft} />
+        <BagItemForm value={{ ...draft, count: draft.count ?? 1 }} onChange={setDraft} />
       </Card>
+      <Txt variant="footnote" tone="secondary" style={{ marginTop: space.m, marginBottom: space.xxl }}>
+        Used one up? Lower the count — at zero, remove it from your bag.
+      </Txt>
     </Screen>
   );
 }

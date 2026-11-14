@@ -10,6 +10,7 @@ import { Chip } from './Bits';
 import { PressableScale } from './PressableScale';
 import { Icon } from './Icon';
 import { ProductArt } from './ProductArt';
+import { QtyStepper } from './Cart';
 
 export type Draft = Omit<BagItem, 'id' | 'addedAt'>;
 
@@ -58,8 +59,8 @@ export function BagThumb({ item, size = 64 }: { item: Draft; size?: number }) {
   return <ProductArt product={{ ref: 'x', name: item.name || roleLabel(role), confidence: 1, kind: item.kind ?? kindForRole(role), shadeHex: item.shadeHex }} size={size} />;
 }
 
-/** Confirm/edit one product: name, what it is, shade, brand. */
-export function BagItemForm({ value, onChange, onRemove }: { value: Draft; onChange: (d: Draft) => void; onRemove?: () => void }) {
+/** Confirm/edit one product: name, brand, what it is, how many, shade. */
+export function BagItemForm({ value, onChange, onRemove, note }: { value: Draft; onChange: (d: Draft) => void; onRemove?: () => void; note?: string }) {
   const { c } = useTheme();
   const role = value.role ?? (value.name ? productRole(value) : undefined);
   return (
@@ -91,6 +92,25 @@ export function BagItemForm({ value, onChange, onRemove }: { value: Draft; onCha
         ) : null}
       </View>
 
+      {note ? (
+        <View style={[styles.note, { backgroundColor: c.surfaceAlt }]} accessibilityLiveRegion="polite">
+          <Icon name="info" size={16} color={c.inkSecondary} />
+          <Txt variant="footnote" style={{ flex: 1 }}>
+            {note}
+          </Txt>
+        </View>
+      ) : null}
+
+      <View style={styles.countRow}>
+        <View style={{ flex: 1 }}>
+          <Txt variant="subhead">How many?</Txt>
+          <Txt variant="footnote" tone="secondary">
+            Same product, same shade
+          </Txt>
+        </View>
+        <QtyStepper value={Math.max(1, value.count ?? 1)} max={99} label="products" onChange={(n) => onChange({ ...value, count: Math.max(1, n) })} />
+      </View>
+
       <Txt variant="footnote" tone="secondary">
         What is it?
       </Txt>
@@ -108,6 +128,14 @@ export function BagItemForm({ value, onChange, onRemove }: { value: Draft; onCha
       <Txt variant="footnote" tone="secondary">
         Shade (optional)
       </Txt>
+      <TextInput
+        value={value.shade ?? ''}
+        onChangeText={(t) => onChange({ ...value, shade: t || undefined })}
+        placeholder="Shade name, e.g. Ruby Woo"
+        placeholderTextColor={c.inkSecondary}
+        accessibilityLabel="Shade name"
+        style={[styles.input, { color: c.ink, borderColor: 'transparent', backgroundColor: c.surfaceAlt }]}
+      />
       <View style={styles.wrap} accessibilityRole="radiogroup">
         {SHADE_SWATCHES.map((hex) => {
           const sel = value.shadeHex === hex;
@@ -135,6 +163,8 @@ export function BagItemForm({ value, onChange, onRemove }: { value: Draft; onCha
 const styles = StyleSheet.create({
   top: { flexDirection: 'row', gap: space.m, alignItems: 'flex-start' },
   input: { borderWidth: 1, borderRadius: radius.chip, minHeight: 44, paddingHorizontal: space.m, fontFamily: fonts.sans, fontSize: 16 },
+  note: { flexDirection: 'row', gap: space.s, alignItems: 'center', padding: space.m, borderRadius: radius.chip },
+  countRow: { flexDirection: 'row', alignItems: 'center', gap: space.m },
   remove: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: space.s },
   swatchRing: { width: 44, height: 44, borderRadius: 22, borderWidth: 2, alignItems: 'center', justifyContent: 'center' },

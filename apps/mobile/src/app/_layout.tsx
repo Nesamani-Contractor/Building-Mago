@@ -34,6 +34,10 @@ function Shell() {
         <Stack.Screen name="brief/[id]" options={{ presentation: 'modal' }} />
         <Stack.Screen name="save/[id]" options={{ presentation: 'modal', gestureEnabled: false }} />
         <Stack.Screen name="name" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="cart/index" />
+        <Stack.Screen name="cart/checkout" />
+        <Stack.Screen name="cart/placed/[id]" options={{ gestureEnabled: false }} />
+        <Stack.Screen name="orders" />
         <Stack.Screen name="follow/[id]" options={{ animation: 'fade', gestureEnabled: false }} />
         <Stack.Screen name="unveil/[id]" options={{ animation: 'fade' }} />
         <Stack.Screen name="products/[id]" />

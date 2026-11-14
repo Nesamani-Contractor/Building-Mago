@@ -6,8 +6,9 @@ import { useLibrary } from '@/data/library';
 import { useSessions, completionDates } from '@/data/sessions';
 import { useAccount } from '@/data/account';
 import { useBag } from '@/data/bag';
+import { useCart } from '@/data/cart';
 
-const stores = [useProfile, usePrefs, useLibrary, useSessions, useAccount, useBag];
+const stores = [useProfile, usePrefs, useLibrary, useSessions, useAccount, useBag, useCart];
 
 /** True once every on-device store has loaded from storage. */
 export function useHydrated(): boolean {

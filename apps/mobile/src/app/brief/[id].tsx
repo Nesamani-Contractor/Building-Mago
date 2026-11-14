@@ -110,7 +110,7 @@ export default function StylistNote() {
             {check.missing ? ` · ${check.missing} missing` : ''}
           </Txt>
           {(['have', 'swap', 'missing'] as const).flatMap((st) =>
-            check.matches.filter((m) => m.status === st).map((m) => <MatchRow key={`${st}-${m.product.ref}`} m={m} />),
+            check.matches.filter((m) => m.status === st).map((m) => <MatchRow key={`${st}-${m.product.ref}`} m={m} routine={routine} />),
           )}
         </View>
       ) : (

@@ -34,14 +34,14 @@ export class WatchError extends Error {
   }
 }
 
-interface SampleFn {
+export interface SampleFn {
   (input: string, opts?: Record<string, unknown>): Promise<{ text: string; truncated: boolean }>;
   json: <T>(input: string, opts?: Record<string, unknown>) => Promise<T>;
   limits: () => Promise<{ images?: { maxCount: number; maxInputBytes: number } }>;
 }
 
 /** The Claude runtime lives on the preview frame; the app itself runs in a same-origin iframe inside it. */
-async function getSample(): Promise<SampleFn | null> {
+export async function getSample(): Promise<SampleFn | null> {
   if (Platform.OS !== 'web' || typeof window === 'undefined') return null;
   const candidates: unknown[] = [];
   try {

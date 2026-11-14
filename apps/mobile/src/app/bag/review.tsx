@@ -10,6 +10,7 @@ import { BagItemForm, type Draft } from '@/components/BagItemForm';
 import { space } from '@/design/tokens';
 import { haptic } from '@/design/haptics';
 import { useBag, useScanDraft } from '@/data/bag';
+import { bagCount, isSameProduct } from '@mago/shared';
 import { draftFrom, readProductPhotos } from '@/services/scanService';
 import { photoData } from '@/services/photoData';
 import { isDemo } from '@/services/config';
@@ -35,10 +36,25 @@ export default function Review() {
   }, [manual, photos]);
 
   const ready = (drafts ?? []).filter((d) => d.name.trim());
+  const bag = useBag((s) => s.items);
+  const setLastResult = useScanDraft((s) => s.setLastResult);
+
+  /** D-25: tell her before saving when a product is already in her bag, or repeated in this batch. */
+  function noteFor(i: number): string | undefined {
+    const d = drafts?.[i];
+    if (!d || !d.name.trim()) return undefined;
+    const earlier = drafts!.slice(0, i).findIndex((x) => x.name.trim() && isSameProduct(x, d));
+    if (earlier >= 0) return `Same as product ${earlier + 1} — they’ll be saved together as one, with the counts added.`;
+    const owned = bag.find((b) => isSameProduct(b, d));
+    if (owned) return `Already in your bag (×${bagCount(owned)}). Saving makes it ×${bagCount(owned) + Math.max(1, d.count ?? 1)}.`;
+    return undefined;
+  }
 
   function save() {
-    add(ready.map((d) => ({ ...d, name: d.name.trim() })));
-    track('bag_item_added', { count: ready.length, source: manual ? 'manual' : 'scan' });
+    const res = add(ready.map((d) => ({ ...d, name: d.name.trim() })));
+    setLastResult({ added: res.added.length, updated: res.merged.map((m) => ({ name: m.item.name, count: bagCount(m.item) })) });
+    track('bag_item_added', { count: res.added.length, source: manual ? 'manual' : 'scan' });
+    if (res.merged.length) track('bag_item_merged', { count: res.merged.length });
     photoData.clear();
     haptic.success();
     // Return to the bag without stacking a second copy of it.
@@ -72,14 +88,17 @@ export default function Review() {
           <Txt variant="callout" tone="secondary" style={{ marginTop: space.l }}>
             {manual
               ? 'Name it and tap what it is — that’s all Mago needs.'
-              : isDemo
-                ? 'Demo mode: name each product and tap what it is. In the full app Mago reads the label for you and you just check it.'
-                : 'Here’s what Mago read. Fix anything that’s off, then add them.'}
+              : drafts.some((d) => d.name.trim())
+                ? 'Here’s what Mago read from your photos. Fix anything that’s off, then add them.'
+                : isDemo
+                  ? 'Name each product and tap what it is.'
+                  : 'We couldn’t read these labels. Name each product and tap what it is.'}
           </Txt>
           <View style={{ gap: space.l, marginTop: space.l }}>
             {drafts.map((d, i) => (
               <Card key={i}>
                 <BagItemForm
+                  note={noteFor(i)}
                   value={d}
                   onChange={(next) => setDrafts(drafts.map((x, j) => (j === i ? next : x)))}
                   onRemove={drafts.length > 1 ? () => setDrafts(drafts.filter((_, j) => j !== i)) : undefined}

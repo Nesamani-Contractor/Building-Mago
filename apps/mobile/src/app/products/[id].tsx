@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { checkBag, productKind, type BagMatch } from '@mago/shared';
+import { checkBag, productKind, productUsage, type BagMatch } from '@mago/shared';
 import { Txt } from '@/components/Txt';
 import { Button } from '@/components/Button';
 import { Eyebrow, LookPhoto } from '@/components/Bits';
@@ -10,6 +10,8 @@ import { Icon } from '@/components/Icon';
 import { PressableScale } from '@/components/PressableScale';
 import { ProductArt } from '@/components/ProductArt';
 import { KIND_LABEL } from '@/components/StepProducts';
+import { AddToCartButton, bagSummary, useAddAllMissing } from '@/components/BagCheck';
+import { CartButton } from '@/components/Cart';
 import { StateView } from '@/components/States';
 import { GlassButton, PhotoScrim } from '@/components/Wow';
 import { useTheme } from '@/design/theme';
@@ -32,7 +34,8 @@ export default function Products() {
   const bag = useBag((s) => s.items);
   const [tab, setTab] = useState<Tab>('all');
 
-  const check = useMemo(() => (routine && bag.length > 0 ? checkBag(routine.products, bag) : null), [routine, bag]);
+  const check = useMemo(() => (routine && bag.length > 0 ? checkBag(routine.products, bag, routine.sections) : null), [routine, bag]);
+  const all = useAddAllMissing(check, routine);
   const rows: { product: NonNullable<typeof routine>['products'][number]; match?: BagMatch }[] = useMemo(() => {
     if (!routine) return [];
     return routine.products.map((p) => ({ product: p, match: check?.matches.find((m) => m.product.ref === p.ref) }));
@@ -51,8 +54,8 @@ export default function Products() {
   const tabs: { id: Tab; label: string }[] = check
     ? [
         { id: 'all', label: `All ${rows.length}` },
-        { id: 'have', label: `You have ${owned}` },
-        { id: 'missing', label: `Missing ${check.missing}` },
+        { id: 'have', label: `Have or swap ${owned}` },
+        { id: 'missing', label: `To buy ${check.missing}` },
       ]
     : [];
 
@@ -65,6 +68,9 @@ export default function Products() {
           <PhotoScrim height={220} />
           <View style={[styles.back, { top: insets.top + space.s }]}>
             <GlassButton icon="chevronLeft" accessibilityLabel="Back" onPress={() => (router.canGoBack() ? router.back() : router.replace(`/routine/${routine.id}`))} />
+          </View>
+          <View style={[styles.cart, { top: insets.top + space.s }]}>
+            <CartButton />
           </View>
           <View style={styles.headerText}>
             <Eyebrow onPhoto>
@@ -113,6 +119,12 @@ export default function Products() {
             </PressableScale>
           )}
 
+          {check ? (
+            <Txt variant="footnote" tone="secondary" style={{ marginTop: space.s }}>
+              {bagSummary(check)}
+            </Txt>
+          ) : null}
+
           {shown.length === 0 ? (
             <Txt variant="callout" tone="secondary" style={{ marginTop: space.xl }}>
               {tab === 'missing' ? 'Nothing missing — you own everything for this look.' : 'Nothing here yet.'}
@@ -123,10 +135,11 @@ export default function Products() {
             const status = !match
               ? null
               : match.status === 'have'
-                ? { text: 'In your bag', color: c.success }
+                ? { text: `In your bag · you have ${match.ownedCount}`, color: c.success }
                 : match.status === 'swap'
-                  ? { text: match.item ? `Swap · use your ${match.item.name}` : 'Swap · use fingertips', color: c.inkSecondary }
-                  : { text: 'Not in your bag', color: c.warningInk };
+                  ? { text: match.item ? `Swap · use your ${match.item.name} (you have ${match.ownedCount})` : 'Swap · use fingertips', color: c.inkSecondary }
+                  : { text: 'Not in your bag · you have 0', color: c.warningInk };
+            const use = match?.usage ?? productUsage(routine.sections, product.ref);
             return (
               <View key={product.ref} style={[styles.row, i > 0 && { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: c.hairlineStrong }]}>
                 <ProductArt product={product} size={64} />
@@ -143,10 +156,21 @@ export default function Products() {
                       {status.text}
                     </Txt>
                   ) : null}
+                  {use.steps ? (
+                    <Txt variant="footnote" tone="secondary">
+                      Used in {use.steps} {use.steps === 1 ? 'step' : 'steps'}
+                      {use.amounts.length ? ` · ${use.amounts.join(', ')}` : ''}
+                    </Txt>
+                  ) : null}
                   {match?.tip ? (
                     <Txt variant="footnote" tone="secondary" style={{ marginTop: 2 }}>
                       {match.tip}
                     </Txt>
+                  ) : null}
+                  {!match || match.status !== 'have' ? (
+                    <View style={{ flexDirection: 'row', marginTop: space.xs }}>
+                      <AddToCartButton product={product} routine={routine} />
+                    </View>
                   ) : null}
                 </View>
               </View>
@@ -163,7 +187,13 @@ export default function Products() {
       </ScrollView>
       <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, space.l), backgroundColor: c.bg, shadowColor: c.shadow }]}>
         <View style={styles.column}>
-          <Button label="Back to the look" onPress={() => (router.canGoBack() ? router.back() : router.replace(`/routine/${routine.id}`))} />
+          {all.toAdd > 0 ? (
+            <Button icon="cart" label={`Add ${all.toAdd} missing to cart`} onPress={all.addAll} />
+          ) : all.missing > 0 ? (
+            <Button icon="cart" label="View cart" onPress={() => router.push('/cart')} />
+          ) : (
+            <Button label="Back to the look" onPress={() => (router.canGoBack() ? router.back() : router.replace(`/routine/${routine.id}`))} />
+          )}
         </View>
       </View>
     </View>
@@ -175,6 +205,7 @@ const styles = StyleSheet.create({
   column: { width: '100%', maxWidth: layout.maxContentWidth, alignSelf: 'center', paddingHorizontal: space.xl },
   header: { overflow: 'hidden', borderBottomLeftRadius: radius.sheet, borderBottomRightRadius: radius.sheet, marginBottom: space.l },
   back: { position: 'absolute', left: space.l },
+  cart: { position: 'absolute', right: space.l },
   headerText: { position: 'absolute', left: space.xl, right: space.xl, bottom: space.xl, gap: 6 },
   segmented: { flexDirection: 'row', gap: 4, padding: 4, borderRadius: 24, marginBottom: space.s },
   seg: { flex: 1, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center' },

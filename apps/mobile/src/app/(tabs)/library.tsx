@@ -13,6 +13,9 @@ import { useTheme } from '@/design/theme';
 import { fonts, layout, radius, space } from '@/design/tokens';
 import { allUserTags, searchLibrary, useLibrary } from '@/data/library';
 import { Greeting, LookTile } from '@/components/LookActions';
+import { CartButton } from '@/components/Cart';
+import * as DocumentPicker from 'expo-document-picker';
+import { bagUnits, useBag, useScanDraft } from '@/data/bag';
 import { track } from '@/services/analytics';
 
 type Filter = 'all' | 'favorites' | 'recent' | 'quick' | `cat:${string}` | `occ:${string}` | `col:${string}` | `tag:${string}`;
@@ -38,6 +41,14 @@ export default function Library() {
 
   const all = useMemo(() => Object.values(items).sort((a, b) => b.savedAt.localeCompare(a.savedAt)), [items]);
   const favorites = useMemo(() => all.filter((x) => x.favorite), [all]);
+  const bagItems = useBag((s) => s.items);
+  const setPhotos = useScanDraft((s) => s.setPhotos);
+  async function onePhoto() {
+    const res = await DocumentPicker.getDocumentAsync({ type: 'image/*', multiple: false, copyToCacheDirectory: true });
+    if (res.canceled || !res.assets[0]) return;
+    setPhotos([res.assets[0].uri]);
+    router.push('/bag/review');
+  }
   const filtered = useMemo(() => {
     let list = searchLibrary(all, q);
     if (filter === 'favorites') list = list.filter((s) => s.favorite);
@@ -63,7 +74,10 @@ export default function Library() {
 
   return (
     <Screen mood="calm" bottomInset={layout.tabBarSpace}>
-      <Greeting style={{ marginTop: space.s }} />
+      <View style={styles.topRow}>
+        <Greeting style={{ flex: 1 }} />
+        <CartButton />
+      </View>
       <View style={{ marginTop: space.m, gap: 6 }}>
         <Eyebrow>{all.length === 0 ? 'Saved on this phone' : `${all.length} ${all.length === 1 ? 'look' : 'looks'} saved`}</Eyebrow>
         <Txt variant="display" accessibilityRole="header">
@@ -95,6 +109,30 @@ export default function Library() {
           <Chip key={ch.id} label={ch.label} selected={filter === ch.id} onPress={() => setFilter(ch.id === filter ? 'all' : ch.id)} />
         ))}
       </ScrollView>
+
+      {/* D-25: her products — add by hand, from one photo, or several. */}
+      <View style={styles.colHeader}>
+        <Txt variant="title3" accessibilityRole="header">
+          My makeup bag
+        </Txt>
+        <PressableScale accessibilityLabel="Open my makeup bag" onPress={() => router.push('/bag')} style={styles.newCol}>
+          <Txt variant="subhead" style={{ color: c.primary }}>
+            {bagItems.length ? `Open (${bagUnits(bagItems)})` : 'Open'}
+          </Txt>
+        </PressableScale>
+      </View>
+      <View style={[styles.bagCard, { backgroundColor: c.surface }]}>
+        <Txt variant="callout" tone="secondary">
+          {bagItems.length
+            ? `${bagItems.length} ${bagItems.length === 1 ? 'product' : 'products'} · ${bagUnits(bagItems)} items. Add more — repeats just raise the count.`
+            : 'Add what you own and every look shows what you have, what to swap and what to buy.'}
+        </Txt>
+        <View style={styles.bagActions}>
+          <Chip icon="camera" label="Several photos" onPress={() => router.push('/bag/scan')} />
+          <Chip icon="image" label="One photo" onPress={onePhoto} />
+          <Chip icon="pencil" label="By hand" onPress={() => router.push('/bag/review?manual=1')} />
+        </View>
+      </View>
 
       {/* FR-FAV: hearted looks, one tap away. */}
       <View style={styles.colHeader}>
@@ -253,6 +291,9 @@ const styles = StyleSheet.create({
   clear: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   colHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: space.xxl, marginBottom: space.m },
   newCol: { flexDirection: 'row', alignItems: 'center', gap: space.xs, minHeight: 44, paddingHorizontal: space.s },
+  topRow: { flexDirection: 'row', alignItems: 'center', gap: space.m, marginTop: space.s },
+  bagCard: { borderRadius: radius.card, padding: space.l, gap: space.m },
+  bagActions: { flexDirection: 'row', flexWrap: 'wrap', gap: space.s },
   favEmpty: { flexDirection: 'row', alignItems: 'center', gap: space.m, padding: space.l, borderRadius: radius.thumb, minHeight: 56 },
   colInput: { borderRadius: radius.chip, paddingHorizontal: space.l, minHeight: 48, fontFamily: fonts.sans, fontSize: 17 },
 });

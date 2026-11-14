@@ -68,6 +68,14 @@ export const ANALYTICS_EVENTS = [
   'routine_unpinned',
   'pinned_see_all',
   'onb_q_name',
+  // D-25: makeup bag counts, cart and orders.
+  'bag_item_merged',
+  'cart_added',
+  'cart_viewed',
+  'cart_item_removed',
+  'cart_cleared',
+  'order_placed',
+  'order_added_to_bag',
 ] as const;
 export type AnalyticsEvent = (typeof ANALYTICS_EVENTS)[number];
 export type AnalyticsProps = Record<string, string | number | boolean>;

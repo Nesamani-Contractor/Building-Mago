@@ -19,6 +19,7 @@ import { useAccount } from '@/data/account';
 import { useProfile } from '@/data/profile';
 import { useStreak } from '@/lib/hooks';
 import { useBag } from '@/data/bag';
+import { useCart, useCartUnits } from '@/data/cart';
 import { BagThumb } from '@/components/BagItemForm';
 
 /** M-14 Me: glow-up preview, stats, badges, referral, Pro status, settings (Ulta Account pattern). */
@@ -32,6 +33,8 @@ export default function Me() {
   const name = useProfile((s) => s.name);
   const streak = useStreak();
   const bag = useBag((s) => s.items);
+  const cartUnits = useCartUnits();
+  const orderCount = useCart((s) => s.orders.length);
   const photos = useMemo(
     () => Object.values(sessions).filter((s) => s.completedAt && (s.afterPhoto || s.beforePhoto)).sort((a, b) => (b.completedAt ?? '').localeCompare(a.completedAt ?? '')),
     [sessions],
@@ -147,6 +150,10 @@ export default function Me() {
         <ListRow icon="person" label="Your name" value={name?.trim() ? name.trim() : 'Add your name'} onPress={() => router.push('/name')} />
         <Hairline />
         <ListRow icon="sparkle" label="Mago Pro" value={isPro ? (trialEndsAt ? 'Free trial' : 'Active') : 'Try free'} onPress={() => (isPro ? router.push('/settings/subscription') : router.push('/paywall?from=me'))} />
+        <Hairline />
+        <ListRow icon="cart" label="My cart" value={cartUnits ? `${cartUnits} ${cartUnits === 1 ? 'item' : 'items'}` : 'Empty'} onPress={() => router.push('/cart')} />
+        <Hairline />
+        <ListRow icon="bag" label="My orders" value={orderCount ? String(orderCount) : undefined} onPress={() => router.push('/orders')} />
         <Hairline />
         <ListRow icon="calendar" label="Planner" onPress={() => router.push('/planner')} />
         <Hairline />
