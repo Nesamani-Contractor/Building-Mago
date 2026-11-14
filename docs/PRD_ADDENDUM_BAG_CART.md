@@ -32,3 +32,12 @@ For every product in a look (routine page bag check, "See every product", stylis
 
 ## Analytics
 `bag_item_merged`, `cart_added` {count, source}, `cart_viewed`, `cart_item_removed`, `cart_cleared`, `order_placed` {lines, units}, `order_added_to_bag`. No product names sent.
+
+## 5. Automatic photo scan (D-26, 13 Nov)
+- **Several photos / One photo** now ADD products to the bag automatically — no naming needed. Then a **Check your bag** screen asks her to review, especially the counts.
+- Each photo may hold one product or a cluttered table (organizers, product bottoms, things that aren't products). Mago lists every distinct product with name, brand, shade (as printed), plain **type** ("Liquid eyeliner", "Face serum"), role, colour, count and confidence (`productPhotoPrompt`, shared by the server and the preview).
+- Sorted into **categories**: Face, Eyes & brows, Lips, Skincare, Fragrance, Tools, Other (`bagCategory`). The bag can be viewed **by category or by brand**.
+- Counting: identical units in one photo → count; the **same product seen in two photos counts once** (`combineScan`); products she already owned get their count raised ("You already had 1 — now 2").
+- Review screen: grouped by category, How many stepper on every product (minus at 1 removes, with Undo), **Check this** on readings below 70% confidence (filter "Check these N"), tap to fix name/brand/shade, photos Mago couldn't read → name them by hand. **Looks right** marks them checked; until then the bag shows "To check".
+- Same-product rule tightened: names must match over the longer name ("Lipstick" ≠ "Matte Lipstick"); unbranded descriptions need a shade match.
+- Tested on the owner's six real photos (22 products: Lakmé, MAC, wet n wild, Bio-Oil, Nature Republic, Lancôme, Shingar Sapnaa…), with the AI reading simulated in the test browser.

@@ -1,8 +1,9 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import * as DocumentPicker from 'expo-document-picker';
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { bagCount, productRole, type BagItem, type ProductRole } from '@mago/shared';
+import { BAG_CATEGORIES, bagCategory, bagCount, productRole, type BagItem } from '@mago/shared';
+import { Chip } from '@/components/Bits';
 import { Screen, TopBar } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
 import { Button } from '@/components/Button';
@@ -16,13 +17,6 @@ import { CartButton } from '@/components/Cart';
 import { Icon } from '@/components/Icon';
 import { useTheme } from '@/design/theme';
 
-const GROUPS: { title: string; roles: ProductRole[] }[] = [
-  { title: 'Face', roles: ['primer', 'foundation', 'concealer', 'corrector', 'powder', 'bronzer', 'blush', 'highlighter', 'setting spray'] },
-  { title: 'Eyes & brows', roles: ['eyeshadow', 'eyeliner', 'mascara', 'lashes', 'brow'] },
-  { title: 'Lips', roles: ['lipstick', 'lip liner', 'gloss', 'lip balm'] },
-  { title: 'Skincare', roles: ['skincare', 'sunscreen'] },
-  { title: 'Tools', roles: ['brush', 'sponge', 'tool', 'other'] },
-];
 
 /** My makeup bag: everything she owns, grouped, on her phone. */
 export default function Bag() {
@@ -44,13 +38,22 @@ export default function Bag() {
     const res = await DocumentPicker.getDocumentAsync({ type: 'image/*', multiple: false, copyToCacheDirectory: true });
     if (res.canceled || !res.assets[0]) return;
     setPhotos([res.assets[0].uri]);
-    router.push('/bag/review');
+    router.push('/bag/reading');
   }
-  const groups = useMemo(
-    () =>
-      GROUPS.map((g) => ({ ...g, items: items.filter((i) => g.roles.includes(i.role ?? productRole(i))) })).filter((g) => g.items.length > 0),
-    [items],
-  );
+  const [groupBy, setGroupBy] = useState<'category' | 'brand'>('category');
+  const toCheck = items.filter((i) => i.needsReview).length;
+  const groups = useMemo(() => {
+    if (groupBy === 'category')
+      return BAG_CATEGORIES.map((title) => ({ title, items: items.filter((i) => bagCategory(i) === title) })).filter((g) => g.items.length > 0);
+    const byBrand = new Map<string, BagItem[]>();
+    for (const i of items) {
+      const b = i.brand?.trim() || 'Other brands';
+      byBrand.set(b, [...(byBrand.get(b) ?? []), i]);
+    }
+    return [...byBrand.entries()]
+      .sort((x, y) => (x[0] === 'Other brands' ? 1 : y[0] === 'Other brands' ? -1 : x[0].localeCompare(y[0])))
+      .map(([title, list]) => ({ title, items: list }));
+  }, [items, groupBy]);
 
   return (
     <Screen
@@ -91,9 +94,28 @@ export default function Bag() {
           <Txt variant="callout" tone="secondary" style={{ marginTop: space.l }}>
             {items.length} {items.length === 1 ? 'product' : 'products'} · {units} {units === 1 ? 'item' : 'items'} in total · used to check every look
           </Txt>
+          {toCheck ? (
+            <PressableScale
+              onPress={() => router.push(useScanDraft.getState().batch ? '/bag/added' : `/bag/item/${items.find((i) => i.needsReview)!.id}`)}
+              accessibilityLabel={`${toCheck} products to check. Open`}
+              style={[styles.result, { backgroundColor: c.surface }]}
+            >
+              <Icon name="info" size={18} color={c.warningInk} />
+              <Txt variant="callout" style={{ flex: 1 }}>
+                {toCheck} {toCheck === 1 ? 'product' : 'products'} added from photos — check the counts
+              </Txt>
+              <Icon name="chevronRight" size={18} color={c.inkSecondary} />
+            </PressableScale>
+          ) : null}
+          <View style={{ flexDirection: 'row', gap: space.s, marginTop: space.l }}>
+            <Chip label="By category" selected={groupBy === 'category'} onPress={() => setGroupBy('category')} />
+            <Chip label="By brand" selected={groupBy === 'brand'} onPress={() => setGroupBy('brand')} />
+          </View>
           {groups.map((g) => (
             <View key={g.title} style={{ marginTop: space.xl, gap: space.m }}>
-              <Txt variant="title3">{g.title}</Txt>
+              <Txt variant="title3" accessibilityRole="header">
+                {g.title} · {g.items.length}
+              </Txt>
               <View style={styles.grid}>
                 {g.items.map((i) => (
                   <Tile key={i.id} item={i} onPress={() => router.push(`/bag/item/${i.id}`)} />
@@ -126,9 +148,14 @@ function Tile({ item, onPress }: { item: BagItem; onPress: () => void }) {
         <Txt variant="footnote" numberOfLines={2} align="center" style={{ fontWeight: '600' }}>
           {item.name}
         </Txt>
-        <Txt variant="caption" tone="secondary" numberOfLines={1}>
-          {[item.brand ?? roleLabel(item.role ?? productRole(item)), item.shade].filter(Boolean).join(' · ')}
+        <Txt variant="caption" tone="secondary" numberOfLines={2} align="center">
+          {[item.brand, item.type ?? roleLabel(item.role ?? productRole(item)), item.shade].filter(Boolean).join(' · ')}
         </Txt>
+        {item.needsReview ? (
+          <Txt variant="caption" style={{ color: c.warningInk, fontWeight: '600' }}>
+            To check
+          </Txt>
+        ) : null}
       </Card>
     </PressableScale>
   );

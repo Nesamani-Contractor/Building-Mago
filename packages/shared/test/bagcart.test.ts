@@ -1,4 +1,4 @@
-import { checkBag, isSameProduct, mergeIntoBag, productUsage, type BagItem } from '../src/bag';
+import { bagCategory, checkBag, combineScan, isSameProduct, mergeIntoBag, productRole, productUsage, type BagItem } from '../src/bag';
 import { addToCart, cartUnits, setCartQty, MAX_QTY } from '../src/cart';
 import type { ProductRef, Section } from '../src/routine';
 
@@ -89,5 +89,52 @@ describe('cart', () => {
     expect(lines[0]!.qty).toBe(MAX_QTY);
     lines = setCartQty(lines, lines[1]!.id, 0);
     expect(lines).toHaveLength(1);
+  });
+});
+
+describe('scan: cluttered photos (D-26)', () => {
+  it('counts a product seen in two photos once, keeping the best reading', () => {
+    const out = combineScan([
+      [
+        { name: 'Sun Expert Ultra Matte Lotion', brand: 'Lakme', role: 'sunscreen' as const, count: 1, confidence: 0.95 },
+        { name: 'Matte Lipstick', brand: 'MAC', shade: 'Ruby Woo', role: 'lipstick' as const, count: 2, confidence: 0.8 },
+      ],
+      [
+        { name: 'Sun Expert Ultra Matte Lotion', brand: 'Lakme', role: 'sunscreen' as const, count: 1, confidence: 0.6 },
+        { name: 'Raging Red', brand: 'wet n wild', shade: '563C Raging Red', role: 'lipstick' as const, count: 1, confidence: 0.9 },
+      ],
+    ]);
+    expect(out).toHaveLength(3);
+    const sun = out.find((o) => o.role === 'sunscreen')!;
+    expect(sun.count).toBe(1);
+    expect(sun.seenInPhotos).toBe(2);
+    expect(sun.confidence).toBe(0.95);
+    expect(out.find((o) => o.shade === 'Ruby Woo')!.count).toBe(2);
+  });
+
+  it('never merges different lipsticks just because one name contains the other', () => {
+    type Read = { name: string; brand?: string; shadeHex?: string; role: 'lipstick'; confidence: number; count?: number };
+    const out = combineScan<Read>([
+      [
+        { name: 'Holographic-cap lipstick', role: 'lipstick' as const, confidence: 0.4 },
+        { name: 'Square black lipstick', role: 'lipstick' as const, confidence: 0.35 },
+      ],
+      [
+        { name: 'Matte Lipstick', brand: 'MAC', shadeHex: '#B9786E', role: 'lipstick' as const, confidence: 0.6 },
+        { name: 'Matte Lipstick', brand: 'MAC', shadeHex: '#9E1B32', role: 'lipstick' as const, confidence: 0.6 },
+        { name: 'Lipstick', brand: 'MAC', role: 'lipstick' as const, confidence: 0.5 },
+      ],
+    ]);
+    expect(out).toHaveLength(5);
+    expect(out.every((o) => o.count === 1 && o.seenInPhotos === 1)).toBe(true);
+  });
+
+  it('sorts products into bag categories', () => {
+    expect(bagCategory({ name: 'Bio-Oil Skincare Oil', role: 'skincare' })).toBe('Skincare');
+    expect(bagCategory({ name: 'Eau de parfum' })).toBe('Fragrance');
+    expect(bagCategory({ name: 'Prep + Prime Fix+', role: 'setting spray' })).toBe('Face');
+    expect(bagCategory({ name: 'Liquid eyeliner' })).toBe('Eyes & brows');
+    expect(productRole({ name: 'Liquid Sindoor' })).toBe('other');
+    expect(bagCategory({ name: 'Sun Expert lotion SPF 30' })).toBe('Skincare');
   });
 });

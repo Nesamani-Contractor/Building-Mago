@@ -34,7 +34,7 @@ export default function BagItemEdit() {
             label="Save changes"
             disabled={!draft.name.trim()}
             onPress={() => {
-              update(item.id, { ...draft, name: draft.name.trim() });
+              update(item.id, { ...draft, name: draft.name.trim(), needsReview: false });
               router.back();
             }}
           />

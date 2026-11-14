@@ -33,9 +33,11 @@ export const ROLE_CHOICES: { role: ProductRole; label: string }[] = [
   { role: 'setting spray', label: 'Setting spray' },
   { role: 'skincare', label: 'Skincare' },
   { role: 'sunscreen', label: 'Sunscreen' },
+  { role: 'fragrance', label: 'Fragrance' },
   { role: 'brush', label: 'Brush' },
   { role: 'sponge', label: 'Sponge' },
   { role: 'tool', label: 'Tool' },
+  { role: 'other', label: 'Other' },
 ];
 
 export function roleLabel(role: ProductRole): string {

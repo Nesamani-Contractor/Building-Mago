@@ -19,13 +19,13 @@ import { track } from '@/services/analytics';
 /** Review what Mago read from the photos (or add by hand) before anything is saved. */
 export default function Review() {
   const router = useRouter();
-  const { manual } = useLocalSearchParams<{ manual?: string }>();
+  const { manual, unread } = useLocalSearchParams<{ manual?: string; unread?: string }>();
   const photos = useScanDraft((s) => s.photos);
   const add = useBag((s) => s.add);
-  const [drafts, setDrafts] = useState<Draft[] | null>(manual ? [{ name: '' }] : null);
+  const [drafts, setDrafts] = useState<Draft[] | null>(manual ? [{ name: '' }] : unread ? photos.map((photoUri) => ({ name: '', photoUri })) : null);
 
   useEffect(() => {
-    if (manual) return;
+    if (manual || unread) return;
     let alive = true;
     void readProductPhotos(photos, photoData.get).then((results) => {
       if (alive) setDrafts(results.flatMap(draftFrom));
@@ -33,7 +33,7 @@ export default function Review() {
     return () => {
       alive = false;
     };
-  }, [manual, photos]);
+  }, [manual, unread, photos]);
 
   const ready = (drafts ?? []).filter((d) => d.name.trim());
   const bag = useBag((s) => s.items);
@@ -90,9 +90,9 @@ export default function Review() {
               ? 'Name it and tap what it is — that’s all Mago needs.'
               : drafts.some((d) => d.name.trim())
                 ? 'Here’s what Mago read from your photos. Fix anything that’s off, then add them.'
-                : isDemo
-                  ? 'Name each product and tap what it is.'
-                  : 'We couldn’t read these labels. Name each product and tap what it is.'}
+                : unread || !isDemo
+                  ? 'We couldn’t read these labels. Name each product and tap what it is.'
+                  : 'Name each product and tap what it is.'}
           </Txt>
           <View style={{ gap: space.l, marginTop: space.l }}>
             {drafts.map((d, i) => (

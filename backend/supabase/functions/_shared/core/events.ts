@@ -76,6 +76,11 @@ export const ANALYTICS_EVENTS = [
   'cart_cleared',
   'order_placed',
   'order_added_to_bag',
+  // D-26: automatic photo scan + review.
+  'bag_scan_auto_added',
+  'bag_review_count_changed',
+  'bag_review_removed',
+  'bag_review_done',
 ] as const;
 export type AnalyticsEvent = (typeof ANALYTICS_EVENTS)[number];
 export type AnalyticsProps = Record<string, string | number | boolean>;

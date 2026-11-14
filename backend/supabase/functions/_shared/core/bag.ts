@@ -28,6 +28,7 @@ export const PRODUCT_ROLES = [
   'setting spray',
   'skincare',
   'sunscreen',
+  'fragrance',
   'brush',
   'sponge',
   'tool',
@@ -44,6 +45,12 @@ export interface BagItem {
   shadeHex?: string;
   /** Shade name as printed or said, e.g. "Warm Honey 220". */
   shade?: string;
+  /** Plain product type as read from the label, e.g. "Liquid eyeliner", "Setting spray" (D-26). */
+  type?: string;
+  /** How sure Mago was when it read this from a photo (0–1). */
+  confidence?: number;
+  /** Added automatically from a photo and not yet checked by her (D-26). */
+  needsReview?: boolean;
   /** How many of this exact product she owns (D-25). Missing on older items → 1. */
   count?: number;
   /** On-device photo of her product (never uploaded except briefly for reading, D-18). */
@@ -51,6 +58,28 @@ export interface BagItem {
   addedAt: string;
   updatedAt?: string;
 }
+
+/** Bag sections (D-26): every role belongs to exactly one. */
+export const BAG_CATEGORIES = ['Face', 'Eyes & brows', 'Lips', 'Skincare', 'Fragrance', 'Tools', 'Other'] as const;
+export type BagCategory = (typeof BAG_CATEGORIES)[number];
+
+const CATEGORY_OF: Record<ProductRole, BagCategory> = {
+  primer: 'Face', foundation: 'Face', concealer: 'Face', corrector: 'Face', powder: 'Face', bronzer: 'Face',
+  blush: 'Face', highlighter: 'Face', 'setting spray': 'Face',
+  eyeshadow: 'Eyes & brows', eyeliner: 'Eyes & brows', mascara: 'Eyes & brows', lashes: 'Eyes & brows', brow: 'Eyes & brows',
+  lipstick: 'Lips', 'lip liner': 'Lips', gloss: 'Lips', 'lip balm': 'Lips',
+  skincare: 'Skincare', sunscreen: 'Skincare',
+  fragrance: 'Fragrance',
+  brush: 'Tools', sponge: 'Tools', tool: 'Tools',
+  other: 'Other',
+};
+
+export function bagCategory(p: { name: string; role?: ProductRole }): BagCategory {
+  return CATEGORY_OF[productRole(p)] ?? 'Other';
+}
+
+/** Below this, a photo-read product is flagged "Check this" on the review screen. */
+export const SCAN_REVIEW_CONFIDENCE = 0.7;
 
 /** How many she owns (never less than 1 while the item exists). */
 export function bagCount(i: Pick<BagItem, 'count'>): number {
@@ -69,9 +98,12 @@ export function isSameProduct(a: Pick<BagItem, 'name' | 'brand' | 'shade' | 'sha
   const ba = norm(a.brand);
   const bb = norm(b.brand);
   if (ba && bb && ba !== bb) return false;
-  const sim = Math.min(nameSimilarity(a.name, b.name), nameSimilarity(b.name, a.name));
+  // Overlap over the LONGER name: "Lipstick" is not the same product as "Matte Lipstick".
+  const sim = nameOverlap(a.name, b.name);
   // Without both brands we need the names to agree fully; with matching brands, mostly.
   if (sim < (ba && bb ? 0.8 : 1)) return false;
+  // Unbranded, unnamed descriptions ("lipstick") need a matching shade to count as the same item.
+  if (!ba && !bb && !norm(a.shade) && !norm(b.shade) && !(a.shadeHex && b.shadeHex)) return tokens(a.name).size > 1 && tokens(b.name).size > 1;
   const sa = norm(a.shade);
   const sb = norm(b.shade);
   if (sa && sb) return sa === sb;
@@ -113,6 +145,7 @@ export function mergeIntoBag(
         shadeHex: cur.shadeHex ?? d.shadeHex,
         kind: cur.kind ?? d.kind,
         role: cur.role ?? d.role,
+        type: cur.type ?? d.type,
         photoUri: cur.photoUri ?? d.photoUri,
         count: bagCount(cur) + plus,
         updatedAt: now,
@@ -146,7 +179,9 @@ export function productUsage(sections: Section[] | undefined, ref: string): Prod
 
 const ROLE_RULES: [RegExp, ProductRole][] = [
   [/setting spray|fixing spray|setting mist/i, 'setting spray'],
-  [/sunscreen|spf/i, 'sunscreen'],
+  [/sunscreen|\bspf\b|sun expert|sun block/i, 'sunscreen'],
+  [/perfume|parfum|eau de|fragrance|cologne|body mist/i, 'fragrance'],
+  [/sindoor|kumkum/i, 'other'],
   [/primer/i, 'primer'],
   [/corrector/i, 'corrector'],
   [/concealer/i, 'concealer'],
@@ -256,6 +291,16 @@ function nameSimilarity(a: string, b: string): number {
   return common / Math.min(A.size, B.size);
 }
 
+/** Shared words over the longer name's words (1 = same words). */
+function nameOverlap(a: string, b: string): number {
+  const A = tokens(a);
+  const B = tokens(b);
+  if (A.size === 0 || B.size === 0) return 0;
+  let common = 0;
+  A.forEach((w) => B.has(w) && common++);
+  return common / Math.max(A.size, B.size);
+}
+
 /** Perceptual-ish distance between two #RRGGBB colors (0 = same, ~442 = black vs white). */
 export function shadeDistance(a?: string, b?: string): number {
   if (!a || !b) return Number.POSITIVE_INFINITY;
@@ -347,6 +392,7 @@ export function kindForRole(role: ProductRole): ProductKind {
     'setting spray': 'spray',
     skincare: 'pot',
     sunscreen: 'tube',
+    fragrance: 'bottle',
     brush: 'brush',
     sponge: 'sponge',
   };
@@ -362,15 +408,49 @@ export function bagItemKind(item: BagItem): ProductKind {
  * web preview (Claude). Identical units of the same product are COUNTED, not listed twice.
  */
 export function productPhotoPrompt(photoCount: number): string {
-  return `You are looking at ${photoCount === 1 ? 'a photo' : `${photoCount} photos`} of beauty and makeup products (on a table, in a drawer, in a hand).
-List every distinct product you can see${photoCount > 1 ? ', photo by photo' : ''}.
-- name: the product name from the label when readable, else a plain description ("pink cream blush").
-- brand and shade: exactly as printed on the label; leave out when you can't read them. Never invent them.
-- role (what it is for), one of: ${PRODUCT_ROLES.join(', ')}.
+  return `You are an expert beauty-counter assistant cataloguing someone's makeup bag from ${photoCount === 1 ? 'a photo' : `${photoCount} photos`}.
+Photos are often cluttered: products lying together on a mat, standing in an organizer, shot from the top or the bottom (label stickers on the base of a lipstick), partly hidden, or next to things that are not products (nail tips, jewellery, toys, packaging).
+
+For EACH photo, list EVERY distinct beauty, makeup, skincare or fragrance product you can see — one entry per product, even if several are in the same photo.
+- name: the product name exactly as printed ("Studio Fix Fluid", "Sun Expert Ultra Matte Lotion"). If no name is readable, a short plain description ("red bullet lipstick", "black liquid lipstick").
+- brand: as printed on the product or recognised from its unmistakable design (e.g. the MAC logo). Leave out if you can't tell. Never guess a brand from colour alone.
+- shade: shade name and/or number exactly as printed ("563C Raging Red", "01 Intense Black"). Leave out if not visible.
+- type: what the product is, in plain words ("Matte lipstick", "Liquid eyeliner", "Setting spray", "Face serum", "Body oil", "Loose powder", "Sunscreen lotion", "Liquid sindoor", "Perfume").
+- role, one of: ${PRODUCT_ROLES.join(', ')}. Skincare oils and serums are "skincare"; perfume is "fragrance"; anything else that doesn't fit is "other".
 - kind (how it looks), one of: lipstick, gloss, pencil, mascara, palette, brush, sponge, bottle, tube, pot, spray, tool.
-- shadeHex: the product colour as #RRGGBB when visible.
-- count: how many identical units of that exact product (same brand, name and shade) are visible. Two of the same lipstick = one entry with count 2.
-- confidence: 0–1 (below 0.6 = not sure).
-If a photo shows no beauty products, give it an empty list.
-Reply with ONLY JSON: {"photos": [{"photo": 1, "items": [{"name": "...", "brand": "...", "shade": "...", "role": "...", "kind": "...", "shadeHex": "#RRGGBB", "count": 1, "confidence": 0.9}]}]}`;
+- shadeHex: the product's colour as #RRGGBB when visible.
+- count: how many identical units (same brand, name and shade) you can see in THIS photo. Two identical lipsticks = one entry with count 2. Different shades are separate entries.
+- confidence: 0–1 — how sure you are of the name and brand (below 0.7 = she should check it).
+Skip things that are not beauty products. Don't list the same physical product twice within one photo. If a photo has no products, give it an empty list.
+Reply with ONLY JSON: {"photos": [{"photo": 1, "items": [{"name": "...", "brand": "...", "shade": "...", "type": "...", "role": "...", "kind": "...", "shadeHex": "#RRGGBB", "count": 1, "confidence": 0.9}]}]}`;
+}
+
+/**
+ * D-26: combine what was read from several photos of ONE scan. The same product seen in two photos
+ * is usually the same item photographed twice, so it is counted once (the highest count seen in a
+ * single photo), not added up. She confirms the final counts on the review screen.
+ */
+export function combineScan<T extends Pick<BagItem, 'name' | 'brand' | 'shade' | 'shadeHex' | 'role'> & { count?: number; confidence?: number }>(perPhoto: T[][]): (T & { seenInPhotos: number })[] {
+  const out: (T & { seenInPhotos: number })[] = [];
+  for (const items of perPhoto) {
+    for (const it of items) {
+      const j = out.findIndex((o) => isSameProduct(o, it));
+      if (j < 0) {
+        out.push({ ...it, count: bagCount(it), seenInPhotos: 1 });
+        continue;
+      }
+      const cur = out[j]!;
+      const better = (it.confidence ?? 0) > (cur.confidence ?? 0) ? it : cur;
+      out[j] = {
+        ...cur,
+        ...better,
+        brand: cur.brand ?? it.brand,
+        shade: cur.shade ?? it.shade,
+        shadeHex: cur.shadeHex ?? it.shadeHex,
+        count: Math.max(bagCount(cur), bagCount(it)),
+        seenInPhotos: cur.seenInPhotos + 1,
+      };
+    }
+  }
+  return out;
 }

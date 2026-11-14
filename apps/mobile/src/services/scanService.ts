@@ -11,6 +11,8 @@ export interface ScanItem {
   kind?: ProductKind;
   role?: ProductRole;
   shadeHex?: string;
+  /** Plain product type, e.g. "Liquid eyeliner" (D-26). */
+  type?: string;
   /** Identical units seen (D-25). */
   count?: number;
   confidence: number;
@@ -35,6 +37,7 @@ function clean(raw: Record<string, unknown>): ScanItem | null {
     name,
     brand: str(raw.brand),
     shade: str(raw.shade),
+    type: str(raw.type, 40),
     role: role && (PRODUCT_ROLES as readonly string[]).includes(role) ? role : productRole({ name }),
     kind: kind && KINDS.includes(kind) ? kind : undefined,
     shadeHex: hex && /^#[0-9a-fA-F]{6}$/.test(hex) ? hex : undefined,
@@ -106,5 +109,5 @@ async function readInPreview(photoUris: string[], base64: (uri: string) => Promi
 
 export function draftFrom(r: ScanResult): Omit<BagItem, 'id' | 'addedAt'>[] {
   if (r.items.length === 0) return [{ name: '', photoUri: r.photoUri }];
-  return r.items.map((i) => ({ name: i.name, brand: i.brand, shade: i.shade, kind: i.kind, role: i.role, shadeHex: i.shadeHex, count: i.count, photoUri: r.photoUri }));
+  return r.items.map((i) => ({ name: i.name, brand: i.brand, shade: i.shade, type: i.type, kind: i.kind, role: i.role, shadeHex: i.shadeHex, count: i.count, photoUri: r.photoUri }));
 }

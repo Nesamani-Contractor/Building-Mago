@@ -47,7 +47,7 @@ export default function Library() {
     const res = await DocumentPicker.getDocumentAsync({ type: 'image/*', multiple: false, copyToCacheDirectory: true });
     if (res.canceled || !res.assets[0]) return;
     setPhotos([res.assets[0].uri]);
-    router.push('/bag/review');
+    router.push('/bag/reading');
   }
   const filtered = useMemo(() => {
     let list = searchLibrary(all, q);

@@ -13,6 +13,10 @@ interface BagState {
   /** Set how many she owns; 0 removes it. */
   setCount: (id: string, count: number) => void;
   remove: (id: string) => void;
+  /** Put back an item she just removed (Undo). */
+  restore: (item: BagItem) => void;
+  /** D-26: she has checked these auto-added items. */
+  markReviewed: (ids: string[]) => void;
   reset: () => void;
 }
 
@@ -33,11 +37,21 @@ export const useBag = create<BagState>()(
         ),
       update: (id, patch) => set((s) => ({ items: s.items.map((i) => (i.id === id ? { ...i, ...patch } : i)) })),
       remove: (id) => set((s) => ({ items: s.items.filter((i) => i.id !== id) })),
+      restore: (item) => set((s) => (s.items.some((i) => i.id === item.id) ? s : { items: [item, ...s.items] })),
+      markReviewed: (ids) => set((s) => ({ items: s.items.map((i) => (ids.includes(i.id) ? { ...i, needsReview: false } : i)) })),
       reset: () => set({ items: [] }),
     }),
     { name: 'mago.bag.v1', storage: deviceStorage },
   ),
 );
+
+export interface ScanBatch {
+  photos: number;
+  /** Photos where Mago found nothing — she can name those by hand. */
+  unreadPhotos: string[];
+  /** One entry per product it touched: new ones, and ones whose count went up. */
+  entries: { id: string; plus: number; prevCount: number; isNew: boolean; seenInPhotos: number }[];
+}
 
 /** Photos picked during a scan, waiting for review, and what the last save did (not persisted). */
 export const useScanDraft = create<{
@@ -45,7 +59,12 @@ export const useScanDraft = create<{
   setPhotos: (p: string[]) => void;
   lastResult: { added: number; updated: { name: string; count: number }[] } | null;
   setLastResult: (r: { added: number; updated: { name: string; count: number }[] } | null) => void;
+  /** D-26: what the last photo scan added automatically, for the review screen. */
+  batch: ScanBatch | null;
+  setBatch: (b: ScanBatch | null) => void;
 }>((set) => ({
+  batch: null,
+  setBatch: (batch) => set({ batch }),
   photos: [],
   setPhotos: (photos) => set({ photos }),
   lastResult: null,
