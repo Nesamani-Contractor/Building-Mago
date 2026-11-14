@@ -10,7 +10,7 @@ import { useTheme } from '@/design/theme';
 import { radius, space } from '@/design/tokens';
 import { routineImage } from '@/design/media';
 import { haptic } from '@/design/haptics';
-import { useProfile, type Goal, type SourceApp } from '@/data/profile';
+import { useProfile, type Goal } from '@/data/profile';
 import { startersForGoals } from '@/lib/routines';
 import { track } from '@/services/analytics';
 
@@ -21,7 +21,6 @@ const GOAL_WORDS: Record<Goal, string> = {
   learn: 'learning new techniques',
   glowup: 'your glow-up',
 };
-const APP: Record<SourceApp, string> = { tiktok: 'TikTok', instagram: 'Instagram', youtube: 'YouTube', pinterest: 'Pinterest', other: 'your apps' };
 
 /**
  * "Building your Mago" (book ch. 6): plays her answers back one line at a time (li-4, labor-illusion-2),
@@ -40,7 +39,7 @@ export default function Building() {
   const looks = startersForGoals(goals);
   const lines = [
     `Choosing your first looks for ${goals.map((g) => GOAL_WORDS[g]).slice(0, 2).join(' and ')}`,
-    `Setting up sharing from ${APP[p.sources.find((s) => s !== 'other') ?? 'youtube']}`,
+    'Setting up sharing from YouTube, TikTok and Instagram',
     p.skill === 'beginner' ? 'Adding extra detail to every step' : p.skill === 'pro' ? 'Keeping every step to one line' : 'Adding tips where they help',
     `Your goal: ${p.weeklyGoal} ${p.weeklyGoal === 1 ? 'look' : 'looks'} a week, no daily pressure`,
   ];

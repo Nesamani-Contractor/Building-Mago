@@ -33,12 +33,11 @@ const SKILLS: { id: Skill; title: string; body: string; reply: string }[] = [
   { id: 'comfortable', title: 'I know the basics', body: 'Tips when they help', reply: 'Got it. Clear steps, with tips only where they help.' },
   { id: 'pro', title: 'Pretty skilled', body: 'Keep it short', reply: 'Nice. One-line steps with the product and amount, nothing extra.' },
 ];
-const SOURCE_NAME: Record<SourceApp, string> = { tiktok: 'TikTok', instagram: 'Instagram', youtube: 'YouTube', pinterest: 'Pinterest', other: 'your app' };
 
 /**
  * S-03–S-06 (PRD J1) with the Onboarding-flow book applied: 4 skippable questions about her, framed as
  * customization (pe-6), multi-select goals (pe-2), a reply to each answer (pe-7), and a value-return
- * screen after two inputs — how sharing works for her top app (FR-ONB-05, le-5). Progress counts the
+ * screen after two inputs — how sharing works from YouTube, TikTok and Instagram (FR-ONB-05, le-5). Progress counts the
  * age check as step one, so it never starts at zero.
  */
 export default function Questions() {
@@ -48,7 +47,6 @@ export default function Questions() {
   const p = useProfile();
   const [q, setQ] = useState(0);
   const STEPS = 5; // goals, sources, share how-to, skill, weekly
-  const top = p.sources.find((s) => s !== 'other') ?? 'youtube';
 
   const events = ['onb_q_goal', 'onb_q_sources', 'onb_share_howto_viewed', 'onb_q_skill', 'onb_q_weekly_goal'] as const;
   const answered = [p.goals.length > 0, p.sources.length > 0, true, p.skill !== null, true][q];
@@ -174,11 +172,11 @@ export default function Questions() {
             The one trick to know
           </Txt>
           <Txt variant="title1" accessibilityRole="header">
-            Send any {SOURCE_NAME[top]} video to Mago in two taps
+            Send any YouTube, TikTok or Instagram video to Mago in two taps
           </Txt>
           <View style={{ gap: space.m, marginTop: space.m }}>
             {[
-              { n: 1, icon: 'share' as const, t: `In ${SOURCE_NAME[top]}, tap Share`, b: 'On the video you love.' },
+              { n: 1, icon: 'share' as const, t: 'Tap Share on the video', b: 'In YouTube, TikTok or Instagram.' },
               { n: 2, icon: 'sparkle' as const, t: 'Pick Mago', b: 'First time? It’s under More.' },
               { n: 3, icon: 'check' as const, t: 'Your steps appear', b: 'With every product, in about a minute.' },
             ].map((s, i) => (
