@@ -77,6 +77,7 @@ export const ANALYTICS_EVENTS = [
   'order_added_to_bag',
   // D-26: automatic photo scan + review.
   'bag_scan_auto_added',
+  'bag_scan_failed',
   'bag_review_count_changed',
   'bag_review_removed',
   'bag_review_done',

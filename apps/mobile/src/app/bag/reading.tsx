@@ -5,12 +5,13 @@ import { Image } from 'expo-image';
 import { bagCount, combineScan, isSameProduct, SCAN_REVIEW_CONFIDENCE } from '@mago/shared';
 import { Screen, TopBar } from '@/components/Screen';
 import { Txt } from '@/components/Txt';
-import { Skeleton } from '@/components/States';
+import { Skeleton , StateView } from '@/components/States';
 import { useTheme } from '@/design/theme';
 import { radius, space } from '@/design/tokens';
 import { haptic } from '@/design/haptics';
 import { useBag, useScanDraft } from '@/data/bag';
-import { readProductPhotos } from '@/services/scanService';
+import { readProductPhotos, type ScanError } from '@/services/scanService';
+import { Button } from '@/components/Button';
 import { photoData } from '@/services/photoData';
 import { track } from '@/services/analytics';
 
@@ -25,17 +26,26 @@ export default function Reading() {
   const photos = useScanDraft((s) => s.photos);
   const setBatch = useScanDraft((s) => s.setBatch);
   const [found, setFound] = useState<number | null>(null);
-  const started = useRef(false);
+  const [progress, setProgress] = useState(0);
+  const [error, setError] = useState<ScanError | null>(null);
+  const [attempt, setAttempt] = useState(0);
+  const started = useRef(-1);
 
   useEffect(() => {
-    if (started.current) return;
-    started.current = true;
+    if (started.current === attempt) return;
+    started.current = attempt;
     if (photos.length === 0) {
       router.replace('/bag');
       return;
     }
     void (async () => {
-      const results = await readProductPhotos(photos, photoData.get);
+      const results = await readProductPhotos(photos, photoData.get, (done) => setProgress(done));
+      if (results.every((r) => r.items.length === 0 && r.error)) {
+        // Every photo failed for a reason we can name: say so, don't silently ask her to type.
+        setError(results[0]!.error!);
+        track('bag_scan_failed', { reason: results[0]!.error! });
+        return;
+      }
       const perPhoto = results.map((r) =>
         r.items.map((i) => ({
           ...i,
@@ -78,15 +88,46 @@ export default function Reading() {
       haptic.success();
       router.replace('/bag/added');
     })();
-  }, [photos, router, setBatch]);
+  }, [photos, router, setBatch, attempt]);
+
+  if (error) {
+    const copy: Record<ScanError, { title: string; body: string }> = {
+      unavailable: { title: 'Photo reading isn’t available here', body: 'Open Mago from the Claude app or claude.ai to let it read your photos. You can still add products by hand.' },
+      not_granted: { title: 'Mago needs your OK to read photos', body: 'Tap Try again and choose Allow when Claude asks to look at your images.' },
+      busy: { title: 'Too many photos at once', body: 'Give it a minute, then tap Try again.' },
+      bad_photo: { title: 'We couldn’t open these photos', body: 'Try a JPEG or a screenshot of the photo, or take a new one.' },
+      failed: { title: 'Something interrupted the reading', body: 'Check your connection and tap Try again.' },
+    };
+    return (
+      <Screen
+        header={<TopBar title="Reading your products" />}
+        footer={
+          <View style={{ gap: space.s }}>
+            <Button label="Try again" onPress={() => {
+              setError(null);
+              setProgress(0);
+              setAttempt((a) => a + 1);
+            }} />
+            <Button variant="ghost" label="Name them by hand" onPress={() => router.replace('/bag/review?unread=1')} />
+          </View>
+        }
+      >
+        <StateView icon="camera" title={copy[error].title} body={copy[error].body} style={{ marginTop: space.x4 }} />
+      </Screen>
+    );
+  }
 
   return (
     <Screen header={<TopBar title="Reading your products" />}>
       <Txt variant="title2" accessibilityRole="header" style={{ marginTop: space.l }} accessibilityLiveRegion="polite">
-        {found === null ? `Reading ${photos.length} ${photos.length === 1 ? 'photo' : 'photos'}…` : `Found ${found} ${found === 1 ? 'product' : 'products'}`}
+        {found !== null
+          ? `Found ${found} ${found === 1 ? 'product' : 'products'}`
+          : photos.length === 1
+            ? 'Reading your photo…'
+            : `Reading photo ${Math.min(progress + 1, photos.length)} of ${photos.length}…`}
       </Txt>
       <Txt variant="callout" tone="secondary" style={{ marginTop: space.s }}>
-        Mago reads every label — brand, name, shade — sorts each product into your bag and counts repeats. You’ll check everything next.
+        Mago looks at every product in each photo — zooming in to read brand, name and shade — sorts it into your bag and counts identical ones. You’ll check everything next.
       </Txt>
       <View style={styles.grid}>
         {photos.map((p) => (

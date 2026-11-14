@@ -41,3 +41,8 @@ For every product in a look (routine page bag check, "See every product", stylis
 - Review screen: grouped by category, How many stepper on every product (minus at 1 removes, with Undo), **Check this** on readings below 70% confidence (filter "Check these N"), tap to fix name/brand/shade, photos Mago couldn't read → name them by hand. **Looks right** marks them checked; until then the bag shows "To check".
 - Same-product rule tightened: names must match over the longer name ("Lipstick" ≠ "Matte Lipstick"); unbranded descriptions need a shade match.
 - Tested on the owner's six real photos (22 products: Lakmé, MAC, wet n wild, Bio-Oil, Nature Republic, Lancôme, Shingar Sapnaa…), with the AI reading simulated in the test browser.
+
+### 5.1 Fix 13 Nov — cluttered photos read item by item
+- Owner report: a cluttered photo (8 products) was not turned into separate items.
+- Causes: (1) any reading failure fell back silently to "name them by hand"; (2) all photos were sent in one request, each shrunk to ~1.2 MP, so small labels became unreadable; (3) iPhone HEIC files could be rejected.
+- Now: one request per photo with the whole photo **plus 4 overlapping zoomed quarters** (all re-encoded to JPEG), a prompt that scans edge to edge, reads logos, lists every product (partly visible ones too), counts physically separate identical items (2 identical lipsticks = ×2, same brand in different colours = separate items); one automatic retry; progress "Reading photo 2 of 6"; a clear message with Try again when reading isn't possible (permission, connection, photo format) instead of a silent fallback.

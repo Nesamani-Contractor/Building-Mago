@@ -406,11 +406,15 @@ export function bagItemKind(item: BagItem): ProductKind {
  * D-25: how Mago reads product photos (one photo or many). Shared by the server (Gemini) and the
  * web preview (Claude). Identical units of the same product are COUNTED, not listed twice.
  */
-export function productPhotoPrompt(photoCount: number): string {
-  return `You are an expert beauty-counter assistant cataloguing someone's makeup bag from ${photoCount === 1 ? 'a photo' : `${photoCount} photos`}.
+export function productPhotoPrompt(photoCount: number, zoomCrops = 0): string {
+  const zoom = zoomCrops
+    ? `\nYou get ONE photo as ${zoomCrops + 1} images: image 1 is the whole photo; images 2–${zoomCrops + 1} are zoomed-in, overlapping sections of the SAME photo, only so you can read small print. Every physical product counts ONCE even if it shows in several images. Report everything under "photo": 1.\n`
+    : '';
+  return `You are an expert beauty-counter assistant cataloguing someone's makeup bag from ${photoCount === 1 ? 'a photo' : `${photoCount} photos`}.${zoom}
 Photos are often cluttered: products lying together on a mat, standing in an organizer, shot from the top or the bottom (label stickers on the base of a lipstick), partly hidden, or next to things that are not products (nail tips, jewellery, toys, packaging).
 
-For EACH photo, list EVERY distinct beauty, makeup, skincare or fragrance product you can see — one entry per product, even if several are in the same photo.
+For EACH photo, list EVERY beauty, makeup, skincare or fragrance product you can see — scan the whole photo edge to edge, including products that are only partly visible or cut off at the edge. A cluttered photo of 8 products must give 8 entries (or fewer entries with counts, when some are identical).
+- Read brands from labels AND logos (e.g. the MAC wordmark on a lipstick bullet, the Lancôme rose, LAKMÉ).
 - name: the product name exactly as printed ("Studio Fix Fluid", "Sun Expert Ultra Matte Lotion"). If no name is readable, a short plain description ("red bullet lipstick", "black liquid lipstick").
 - brand: as printed on the product or recognised from its unmistakable design (e.g. the MAC logo). Leave out if you can't tell. Never guess a brand from colour alone.
 - shade: shade name and/or number exactly as printed ("563C Raging Red", "01 Intense Black"). Leave out if not visible.
@@ -418,7 +422,7 @@ For EACH photo, list EVERY distinct beauty, makeup, skincare or fragrance produc
 - role, one of: ${PRODUCT_ROLES.join(', ')}. Skincare oils and serums are "skincare"; perfume is "fragrance"; anything else that doesn't fit is "other".
 - kind (how it looks), one of: lipstick, gloss, pencil, mascara, palette, brush, sponge, bottle, tube, pot, spray, tool.
 - shadeHex: the product's colour as #RRGGBB when visible.
-- count: how many identical units (same brand, name and shade) you can see in THIS photo. Two identical lipsticks = one entry with count 2. Different shades are separate entries.
+- count: how many physically separate, identical units (same brand, name and same colour/shade) you can see in THIS photo. Two identical lipsticks = ONE entry with count 2. Two lipsticks of the same brand but different colours (e.g. a nude MAC and a red MAC) = two entries, each count 1.
 - confidence: 0–1 — how sure you are of the name and brand (below 0.7 = she should check it).
 Skip things that are not beauty products. Don't list the same physical product twice within one photo. If a photo has no products, give it an empty list.
 Reply with ONLY JSON: {"photos": [{"photo": 1, "items": [{"name": "...", "brand": "...", "shade": "...", "type": "...", "role": "...", "kind": "...", "shadeHex": "#RRGGBB", "count": 1, "confidence": 0.9}]}]}`;
